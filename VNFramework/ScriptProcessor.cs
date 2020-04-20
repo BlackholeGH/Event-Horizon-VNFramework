@@ -18,6 +18,16 @@ namespace VNFramework
     {
         public static int CountApplicableRollbacks { get; set; }
         public static Boolean AllowScriptShift { get; set; }
+        public static Hashtable EntityBlueprintCollection { get; set; }
+        static long pBlueprintIndex = -1;
+        public static long BlueprintIndex
+        {
+            get
+            {
+                pBlueprintIndex++;
+                return pBlueprintIndex;
+            }
+        }
         public static Stack PastStates = new Stack();
         public static String SongCom = "";
         static String TextArchive = "";
@@ -101,10 +111,72 @@ namespace VNFramework
                 }
             }
         }
-        public static String PreprocessFileScript(String ScriptArchiveContent)
+        public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
         {
-            String SCA = ScriptArchiveContent.Replace("\n", "");
-
+            String SCA = EntityFactory.SelectiveStringOps.ReplaceExclosed(ScriptArchiveContent, "{{", "#", '\"');
+            SCA = EntityFactory.SelectiveStringOps.ReplaceExclosed(SCA, "}}", "#", '\"');
+            SCA = EntityFactory.SelectiveStringOps.RemoveExclosed(SCA, '\n', '#');
+            ArrayList IndivScripts = new ArrayList();
+            int NextStart = EntityFactory.SelectiveStringOps.IndexOfExclosed(SCA, "declare_script", '\"');
+            SCA = SCA.Remove(0, NextStart + 14);
+            do
+            {
+                NextStart = EntityFactory.SelectiveStringOps.IndexOfExclosed(SCA, "declare_script", '\"');
+                if(NextStart > 0)
+                {
+                    IndivScripts.Add(SCA.Remove(NextStart));
+                    SCA = SCA.Remove(0, NextStart + 14);
+                }
+                else { IndivScripts.Add(SCA); }
+            }
+            while (NextStart > 0);
+            Hashtable TrueIndivScripts = new Hashtable();
+            foreach(String S in IndivScripts)
+            {
+                String Nameless = S.Remove(0, S.IndexOf('\"'));
+                String Name = Nameless.Remove(Nameless.IndexOf('\"'));
+                Nameless = Nameless.Remove(0, Nameless.IndexOf('\"')).Remove(0, Nameless.IndexOf(':'));
+                TrueIndivScripts.Add(Name, Nameless);
+            }
+            Hashtable EventScripts = new Hashtable();
+            foreach(String S in TrueIndivScripts.Keys)
+            {
+                EventScripts.Add(S, AssembleEventScript((String)TrueIndivScripts[S]));
+            }
+            return EventScripts;
+        }
+        public static Object[] AssembleEventScript(String StringFormatScript)
+        {
+            StringFormatScript = EntityFactory.SelectiveStringOps.RemoveExclosed(StringFormatScript, ' ', '\"');
+            ArrayList SSAssembled = new ArrayList();
+            while (EntityFactory.SelectiveStringOps.ContainsExclosed(StringFormatScript, '{', '\"'))
+            {
+                StringFormatScript = StringFormatScript.Remove(0, StringFormatScript.IndexOf('{'));
+                int EndIndex = EntityFactory.SelectiveStringOps.IndexOfExclosed(StringFormatScript, "},", '\"');
+                String FoundScriptShift = StringFormatScript.Remove(EndIndex);
+                StringFormatScript = StringFormatScript.Remove(0, EndIndex + 2);
+                String[] SCommands = EntityFactory.SelectiveStringOps.SplitAtExclosed(FoundScriptShift, ',', '\"');
+                Object[] ThisTrueShift = new Object[SCommands.Length];
+                int CIndex = 0;
+                foreach(String S in SCommands)
+                {
+                    if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 1); }
+                    else if (S.StartsWith("FACTORY"))
+                    {
+                        String FBlueprint = S.Remove(0, S.IndexOf('#') + 1);
+                        FBlueprint = EntityFactory.SelectiveStringOps.RemoveExclosed(FBlueprint, '#', '\"');
+                        FBlueprint = FBlueprint.Trim('\n');
+                        ThisTrueShift[CIndex] = new VoidDel(delegate ()
+                        {
+                            Shell.RunQueue.Add(new VoidDel(delegate ()
+                            {
+                                EntityFactory.Assemble(FBlueprint);
+                            }));
+                        });
+                    }
+                    CIndex++;
+                }
+            }
         }
         public static Boolean VineGot = false;
         public static String GetVineName()
@@ -462,6 +534,7 @@ namespace VNFramework
          * F||| sets the atlas frame of a specified entity to the given coordinates, if possible.
          * F|| sets the atlas frame of a specified entity to the given named frame state, if possible.
          * G| sets the GlobalWorldState.
+         // * E| Assembles an entity from the given blueprint ID.
          * H halts script skipping upon occurrence.
          * S|| plays a named sound effect, or stops all sound effects via |#CLOSEALL. Second parameter sets looping.
          * M||| switches the music track to a named song, or stops the song via |#NULL|. Second parameter sets looping. Third if set to "INSTANT" skips the auto fadeout.
@@ -562,6 +635,16 @@ namespace VNFramework
                 {
                     Shell.GlobalWorldState = Parts[1];
                 }
+                /*else if (Parts[0].ToUpper() == "E")
+                {
+                    if(ScriptProcessor.EntityBlueprintCollection.ContainsKey(Parts[1]))
+                    {
+                        Shell.RunQueue.Add(new VoidDel(delegate ()
+                        {
+                            EntityFactory.Assemble((String)EntityBlueprintCollection[Parts[1]]);
+                        }));
+                    }
+                }*/
             }
             else if (Element is VoidDel)
             {

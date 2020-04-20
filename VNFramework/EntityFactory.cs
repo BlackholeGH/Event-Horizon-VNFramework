@@ -18,6 +18,27 @@ namespace VNFramework
     {
         public static class SelectiveStringOps
         {
+            public static String ReplaceExclosed(String Input, String Find, String Replace, char Encloser)
+            {
+                Boolean Exclosed = true;
+                for (int i = 0; i < Input.Length; i++)
+                {
+                    if (Input[i] == Encloser) { Exclosed = !Exclosed; }
+                    if (Input[i] == Find[0] && Exclosed)
+                    {
+                        for (int ii = 0; ii < Find.Length; ii++)
+                        {
+                            if ((i + ii >= Input.Length) || !(Find[ii] == Input[i + ii])) { break; }
+                            if (ii == Find.Length - 1)
+                            {
+                                Input = Input.Remove(i) + Replace + Input.Remove(0, i + ii);
+                                i += Replace.Length - 1;
+                            }
+                        }
+                    }
+                }
+                return Input;
+            }
             public static int IndexOfExclosed(String Input, String ContainsString, char Encloser)
             {
                 Boolean Exclosed = true;
