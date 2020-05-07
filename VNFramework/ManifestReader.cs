@@ -125,13 +125,13 @@ namespace VNFramework
                         DirIndex = EntityFactory.ParseRealData(EntrySegment[1]);
                         ContentFilePath = EntrySegment[2].Trim('\"');
                         FontDirectory.Add(DirIndex, MyShell.Content.Load<SpriteFont>(ContentFilePath));
-                        Shell.WriteLine("Loaded font " + " to " + DirIndex.ToString() + ContentFilePath + ".");
+                        Shell.WriteLine("Loaded font " + ContentFilePath + " to " + DirIndex.ToString() + ".");
                         break;
                     case "SOUND":
                         DirIndex = EntityFactory.ParseRealData(EntrySegment[1]);
                         ContentFilePath = EntrySegment[2].Trim('\"');
                         SFXDirectory.Add(DirIndex, MyShell.Content.Load<SoundEffect>(ContentFilePath));
-                        Shell.WriteLine("Loaded sound effect " + " to " + DirIndex.ToString() + ContentFilePath + ".");
+                        Shell.WriteLine("Loaded sound effect " + ContentFilePath + " to " + DirIndex.ToString() + ".");
                         break;
                     case "MUSIC":
                         DirIndex = EntityFactory.ParseRealData(EntrySegment[1]);
