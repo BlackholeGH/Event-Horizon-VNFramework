@@ -10,15 +10,13 @@ namespace VNFramework
     public static class Program
     {
         /// <summary>
-        /// The main entry Vector2 for the application.
+        /// The main entry method for the application.
         /// </summary>
-        public static Shell AccessShell;
         [STAThread]
         static void Main()
         {
             using (var game = new Shell())
             {
-                AccessShell = game;
                 game.Run();
             }
         }

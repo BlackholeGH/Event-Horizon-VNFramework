@@ -399,7 +399,7 @@ namespace VNFramework
                 {
                     if(LoadInit)
                     {
-                        Program.AccessShell.IsFixedTimeStep = false;
+                        Shell.DefaultShell.IsFixedTimeStep = false;
                         LoadInit = false;
                         return;
                     }
@@ -422,7 +422,7 @@ namespace VNFramework
                     {
                         Shell.GlobalWorldState = "LOADED SHIFT VIA LOADMODE...";
                         Shell.HoldRender = false;
-                        Program.AccessShell.IsFixedTimeStep = true;
+                        Shell.DefaultShell.IsFixedTimeStep = true;
                         LoadMode = false;
                     }
                 }
