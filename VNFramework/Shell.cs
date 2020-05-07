@@ -36,7 +36,7 @@ namespace VNFramework
     }
     public class Shell : Game
     {
-        public const String FrameworkVersion = "1.3_DEV";
+        public const String FrameworkVersion = "1.3.5_DEV";
         public static Random Rnd = new Random();
         static Hashtable Flags = new Hashtable();
         public static String GlobalWorldState = "DEFAULT";
