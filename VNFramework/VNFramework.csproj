@@ -7,7 +7,7 @@
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{354599A0-D845-4BC1-95AC-A03DE95810FA}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VNFramework</RootNamespace>
     <AssemblyName>VNFramework</AssemblyName>
@@ -80,6 +80,7 @@
     <Compile Include="EntInteractExtensions.cs" />
     <Compile Include="EntityCore.cs" />
     <Compile Include="EntityFactory.cs" />
+    <Compile Include="ManifestReader.cs" />
     <Compile Include="MatmutEnts.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="SaveLoadModule.cs" />
@@ -89,6 +90,7 @@
     <Compile Include="Shell.cs" />
     <Compile Include="SofiaEnts.cs" />
     <Compile Include="Surrogates.cs" />
+    <Compile Include="VNFUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoGame.Framework">

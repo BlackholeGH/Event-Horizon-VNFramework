@@ -17,32 +17,14 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 /*VNF GENERAL TO-DO:
  * Sub-frames to render to
- * Construct objects from string params
  * Read all scripts from file with above
  * Inbuilt console
- * Load entities from file
  * Make interactive UI elements fire events for simpler use
- * "Camera" objects that can be passed to WorldEntity.Draw() to allow scrolling perspectives
- * External resource manifests
+ * Test
  */
 
 namespace VNFramework
 {
-    //Texture atlas info type
-    [Serializable]
-    public struct TAtlasInfo
-    {
-        [field: NonSerialized]
-        public Texture2D Atlas;
-        public Rectangle SourceRect;
-        public Point DivDimensions;
-        public Point FrameSize()
-        {
-            return new Point(SourceRect.Width / DivDimensions.X, SourceRect.Height / DivDimensions.Y);
-        }
-        public Hashtable FrameLookup;
-        public String ReferenceHash;
-    }
     [Serializable]
     public struct RecallableState
     {
@@ -53,14 +35,13 @@ namespace VNFramework
         public string SongCom;
         public Hashtable Flags;
     }
-    public delegate void VoidDel();
     public class Shell : Game
     {
         public const String FrameworkVersion = "1.3_DEV";
         public static Random Rnd = new Random();
         static Hashtable Flags = new Hashtable();
         public static String GlobalWorldState = "DEFAULT";
-        private static Boolean pHasConsole = false;
+        private static Boolean pHasConsole = true;
         public static Camera AutoCamera = null;
         public static Boolean LooseCamera { get; set; }
         public static Boolean HasConsole
@@ -70,81 +51,7 @@ namespace VNFramework
                 return pHasConsole;
             }
         }
-        public static Point ConvertVector(Vector2 V)
-        {
-            return new Point((int)V.X, (int)V.Y);
-        }
-        public static Vector2 ConvertPoint(Point P)
-        {
-            return new Vector2(P.X, P.Y);
-        }
-        public static Point PointMultiply(Point P, Vector2 V)
-        {
-            return new Point((int)(V.X * P.X), (int)(V.Y * P.Y));
-        }
-        public static Point PointMultiply(Point P, Point P2)
-        {
-            return new Point((int)(P2.X * P.X), (int)(P2.Y * P.Y));
-        }
-        public static double GetLinearDistance(Vector2 A, Vector2 B)
-        {
-            return Math.Sqrt((double)((B.X - A.X) * (B.X - A.X)) + ((B.Y - A.Y) * (B.Y - A.Y)));
-        }
         public static GraphicsDevice PubGD;
-        //Function to extract texture objects defined by rectangles from a larger spritesheet
-        public Texture2D ExtractTexture(Texture2D Sheet, Rectangle Source)
-        {
-            return ExtractTexture(Sheet, Source, new Vector2(1, 1));
-        }
-        public Texture2D ExtractTexture(Texture2D Sheet, Rectangle Source, Vector2 Scaling)
-        {
-            RenderTarget2D Output = new RenderTarget2D(GraphicsDevice, (int)(Source.Width * Scaling.X), (int)(Source.Height * Scaling.Y), false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
-            GraphicsDevice.SetRenderTarget(Output);
-            GraphicsDevice.Clear(Color.Transparent);
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            spriteBatch.Draw(Sheet, new Rectangle(new Point(0, 0), new Point((int)(Source.Width * Scaling.X), (int)(Source.Height * Scaling.Y))), Source, Color.White);
-            spriteBatch.End();
-            GraphicsDevice.SetRenderTarget(null);
-            Color[] texdata = new Color[Output.Width * Output.Height];
-            Output.GetData(texdata);
-            Texture2D NOut = new Texture2D(GraphicsDevice, Output.Width, Output.Height);
-            NOut.SetData(texdata);
-            return NOut;
-        }
-        public Texture2D CombineTextures(Point DestinationDims, Texture2D TextureA, Rectangle SourceA, Vector2 PositionA, Vector2 ScalingA, Texture2D TextureB, Rectangle SourceB, Vector2 PositionB, Vector2 ScalingB)
-        {
-            RenderTarget2D Output = new RenderTarget2D(GraphicsDevice, DestinationDims.X, DestinationDims.Y, false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
-            GraphicsDevice.SetRenderTarget(Output);
-            GraphicsDevice.Clear(Color.Transparent);
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            spriteBatch.Draw(TextureA, new Rectangle(new Point((int)PositionA.X, (int)PositionA.Y), new Point((int)(SourceA.Width * ScalingA.X), (int)(SourceA.Height * ScalingA.Y))), SourceA, Color.White);
-            spriteBatch.Draw(TextureB, new Rectangle(new Point((int)PositionB.X, (int)PositionB.Y), new Point((int)(SourceB.Width * ScalingB.X), (int)(SourceB.Height * ScalingB.Y))), SourceB, Color.White);
-            spriteBatch.End();
-            GraphicsDevice.SetRenderTarget(null);
-            Color[] texdata = new Color[Output.Width * Output.Height];
-            Output.GetData(texdata);
-            Texture2D NOut = new Texture2D(GraphicsDevice, Output.Width, Output.Height);
-            NOut.SetData(texdata);
-            return NOut;
-        }
-        public Texture2D GetNovelTextureOfColour(Color Colour, Point Dims)
-        {
-            RenderTarget2D Output = new RenderTarget2D(GraphicsDevice, Dims.X, Dims.Y, false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
-            GraphicsDevice.SetRenderTarget(Output);
-            GraphicsDevice.Clear(Colour);
-            GraphicsDevice.SetRenderTarget(null);
-            Color[] texdata = new Color[Output.Width * Output.Height];
-            Output.GetData(texdata);
-            Texture2D NOut = new Texture2D(GraphicsDevice, Output.Width, Output.Height);
-            NOut.SetData(texdata);
-            return NOut;
-        }
         public static WorldEntity GetEntityByName(String Name)
         {
             object O = null;
@@ -175,17 +82,15 @@ namespace VNFramework
         {
             return In * (720 / ScreenSize.Y);
         }
-        public static Texture2D GetFromRT(RenderTarget2D In)
-        {
-            Texture2D Out = new Texture2D(PubGD, In.Width, In.Height);
-            Color[] texdata = new Color[Out.Width * Out.Height];
-            In.GetData(texdata);
-            Out.SetData(texdata);
-            return Out;
-        }
         static GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
-        public static Boolean Ser = false;
+        private SpriteBatch pSpriteBatch;
+        public SpriteBatch spriteBatch
+        {
+            get
+            {
+                return pSpriteBatch;
+            }
+        }
         public static RecallableState SerializeState()
         {
             ArrayList UpdateIDs = new ArrayList();
@@ -297,10 +202,32 @@ namespace VNFramework
             ButtonScripts.UnHideUI();
         }
         public static VoidDel GlobalVoid = null;
+        private static object CWriteLockObj = new object();
         public static void WriteLine(String Text)
         {
-            InternalLog += Text + "\n";
-            if(pHasConsole) { Console.WriteLine(Text); }
+            try
+            {
+                Monitor.Enter(CWriteLockObj);
+                InternalLog += Text + "\n";
+                if (pHasConsole) { Console.WriteLine(Text); }
+                pLastLogLine = Text;
+            }
+            finally { Monitor.Exit(CWriteLockObj); }
+        }
+        private static String pLastLogLine = "";
+        public static String LastLogLine
+        {
+            get
+            {
+                String Out = "";
+                try
+                {
+                    Monitor.Enter(CWriteLockObj);
+                    Out = pLastLogLine;
+                }
+                finally { Monitor.Exit(CWriteLockObj); }
+                return Out;
+            }
         }
         public static Boolean QueryFullscreen()
         {
@@ -369,8 +296,8 @@ namespace VNFramework
         public static ArrayList UpdateQueue = new ArrayList();
         public static ArrayList DeleteQueue = new ArrayList();
         public static ArrayList RunQueue = new ArrayList();
-        static Boolean Fullscreen = false;
         public static TAtlasInfo TestAtlas = new TAtlasInfo();
+        public static SpriteFont SysFont;
         public static SpriteFont Default;
         public static SpriteFont King;
         public static Vector2 ScreenSize = new Vector2(1280, 720);
@@ -417,8 +344,6 @@ namespace VNFramework
         /// LoadContent will be called once per game and is the place to load
         /// all of your content.
         /// </summary>
-        WorldEntity TestObj;
-        Button TestButton;
         public static void ResetFlags()
         {
             Flags = new Hashtable();
@@ -542,662 +467,74 @@ namespace VNFramework
         public static Checkbox CaptureSaveType = null;
         public static Slider CaptureVolume = null;
         public static Hashtable Fonts = new Hashtable();
-        protected override void LoadContent()
+        public float LoadPercentage { get; set; }
+        public object LPLockObj = new object();
+        protected async Task<object[]> AsyncLoad()
         {
-            WriteLine("VNF is loading content...");
-            // Create a new SpriteBatch, which can be used to draw textures.
-            spriteBatch = new SpriteBatch(GraphicsDevice);
-            TrueDisplay = new RenderTarget2D(
-                GraphicsDevice,
-                1280,
-                720,
-                false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
+            
+            WriteLine("Preload complete, loading remaining content...");
+            ScriptProcessor.ScriptCache = new Hashtable();
 
             TestAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/LethalHexWalk1");
             TestAtlas.DivDimensions = new Point(1, 1);
-            TestAtlas.SourceRect = new Rectangle(new Point(0, 0), TestAtlas.Atlas.Bounds.Size);
 
-            //Define fonts
-            Default = Content.Load<SpriteFont>("Fonts/Default");
-            King = Content.Load<SpriteFont>("Fonts/Zenda");
-            Fonts.Add("DEFAULT", Default);
-            Fonts.Add("KING", King);
-
-            Fonts.Add("MACABRE", Content.Load<SpriteFont>("Fonts/Abaddon"));
-
-            //Define SFX
-            SFXDirectory.Add("TYPE_1", Content.Load<SoundEffect>("Audio/SFX/Typewriter_1"));
-            SFXDirectory.Add("TYPE_2", Content.Load<SoundEffect>("Audio/SFX/Typewriter_2"));
-            SFXDirectory.Add("TYPE_3", Content.Load<SoundEffect>("Audio/SFX/Typewriter_3"));
-            SFXDirectory.Add("YAY", Content.Load<SoundEffect>("Audio/SFX/Humans_yay"));
-            SFXDirectory.Add("LASERBUILD", Content.Load<SoundEffect>("Audio/SFX/ChargedLaserBlast_A"));
-            SFXDirectory.Add("LASERBLAST", Content.Load<SoundEffect>("Audio/SFX/ChargedLaserBlast_B"));
-            SFXDirectory.Add("DEEPBOOM", Content.Load<SoundEffect>("Audio/SFX/Deep_Boom_1"));
-            SFXDirectory.Add("BHLOGO", Content.Load<SoundEffect>("Audio/UI/Logos/BH_Chip_Short_RevIntro"));
-            SFXDirectory.Add("UT_SAVE", Content.Load<SoundEffect>("Audio/UI/Responsive/UT_Save"));
-            SFXDirectory.Add("SOFIA_I", Content.Load<SoundEffect>("Audio/SFX/Sofia_I"));
-            SFXDirectory.Add("SOFIA_AM", Content.Load<SoundEffect>("Audio/SFX/Sofia_Am"));
-            SFXDirectory.Add("SOFIA_SOFIA", Content.Load<SoundEffect>("Audio/SFX/Sofia_Sofia"));
-            SFXDirectory.Add("SOFIA_HOH", Content.Load<SoundEffect>("Audio/SFX/Sofia_HOH"));
-            SFXDirectory.Add("R_CYMBAL", Content.Load<SoundEffect>("Audio/SFX/Reverse_Cymbal"));
-
-            //Define songs
-            SongDirectory.Add("NIGHTFLIER", Content.Load<Song>("Audio/Music/Nightflier_1"));
-            SongDirectory.Add("SPOONS", Content.Load<Song>("Audio/Music/Incompetech_Spoons"));
-            SongDirectory.Add("DEUCES", Content.Load<Song>("Audio/Music/Incompetech_Deuces"));
-            SongDirectory.Add("AMBIMENT", Content.Load<Song>("Audio/Music/Incompetech_Ambiment"));
-            SongDirectory.Add("MIRAGE", Content.Load<Song>("Audio/Music/Incompetech_Mirage"));
-            SongDirectory.Add("SPIDER", Content.Load<Song>("Audio/Music/Incompetech_Spider"));
-            SongDirectory.Add("DARKLING", Content.Load<Song>("Audio/Music/A Darkling Plain"));
-            SongDirectory.Add("KING", Content.Load<Song>("Audio/Music/Banner of a King"));
-            SongDirectory.Add("CRIMINAL", Content.Load<Song>("Audio/Music/Criminal Intent"));
-            SongDirectory.Add("SOURCE", Content.Load<Song>("Audio/Music/SOURCE"));
-            SongDirectory.Add("CREDITS", Content.Load<Song>("Audio/Music/Sofia's Theme"));
-            SongDirectory.Add("LEGEND", Content.Load<Song>("Audio/Music/Another Legend"));
-            SongDirectory.Add("MEDLEY", Content.Load<Song>("Audio/Music/Medley of ULTRASOFIAWORLD"));
-            SongDirectory.Add("ORDINARY", Content.Load<Song>("Audio/Music/An Ordinary Day in the Life of Sofia"));
-            SongDirectory.Add("GODHEAD", Content.Load<Song>("Audio/Music/Godhead Approaching (Loopready)"));
-            SongDirectory.Add("BATTLE", Content.Load<Song>("Audio/Music/Battle Against SOFIA (endcut)"));
-            SongDirectory.Add("EPILOGUE", Content.Load<Song>("Audio/Music/Battle-Epilogue"));
-            SongDirectory.Add("QUINTESSENCE", Content.Load<Song>("Audio/Music/Quintessence"));
-
-            SongDirectory.Add("PORTAL", Content.Load<Song>("Audio/SFX/Ambient/PortalBloops_WithFade"));
-            SongDirectory.Add("DEEP1", Content.Load<Song>("Audio/SFX/Ambient/Deep_Rumble_1_Lpr"));
-            SongDirectory.Add("DEEP2", Content.Load<Song>("Audio/SFX/Ambient/Deep_Rumble_2_Lpr"));
-            SongDirectory.Add("DEEP3", Content.Load<Song>("Audio/SFX/Ambient/Deep_Rumble_3_Lpr"));
-            SongDirectory.Add("BIRDS", Content.Load<Song>("Audio/SFX/Ambient/Ambient_Birds"));
-
-            //Define texture atlas details...
             TAtlasInfo InsertAtlas = new TAtlasInfo();
-            //InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/VineTB");
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/TextBox_Dark");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("UIBOX", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            //InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/VineTB");
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/UI_NameBacking_5");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("NAMEBACKING", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            //InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/VineSettings");
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/Settings_Dark");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SETTINGSPANE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Elements/SofiaWorldTitle");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIAWORLD", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/Purple_Spot");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PURPLE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/SofiaLetter");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("LETTER", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/SofiaCrimeShack");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CRIMESHACK", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_Portal");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PORTAL", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/JudgingGlowBase");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("ESSENCEGLOW", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/BigJudgingGlow");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BIGJUDGINGGLOW", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_BGFlasher");
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BGFLASHER", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_WhiteoutGradient");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("WHITEGRADIENT", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_Source");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOURCE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_Runes");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("RUNEGLOW", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Effects/Env_Splash_Glow");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SPLASHGLOW", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/TestBackground");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("TESTBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/TempBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("TEMPBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/BlackBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BLACK", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/StarscapeBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("STARBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/HouseBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("HOUSEBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/CellarBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CELLARBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/CastleExteriorBG_Resize");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CASTLEEXTBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/CastleInteriorBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CASTLEINTBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/SourceCaveBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOURCECAVEBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/SofiaWorldBlur_Sizemod");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SWBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/CrookedCaveBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CROOKEDCAVEBG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Logos/BMS");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BMS", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Logos/Presenting");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PRESENTING", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
             InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Logos/MatmutLogo");
             InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
             AtlasDirectory.Add("MATMUTLOGO", InsertAtlas);
             InsertAtlas = new TAtlasInfo();
             InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/MatmutBG");
             InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
             AtlasDirectory.Add("MATMUTBG", InsertAtlas);
 
             InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_1_Unformed_Base");
             InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY1_BASE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_1_Unformed_Lightning");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY1_BOLTS", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_2_Meteors");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY2", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_3_Stars");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY3", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_4_Formation");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY4", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_5_Lineup");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY5", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_6_Handprint");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY6", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Scenes/Mystic/Story_7_Fadingprint");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MYSTICSTORY7", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/FinalLogo");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_LOGO", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/Continued");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_CONTINUED", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/NotContinued");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_NOTCONTINUED", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/CreditRoll");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_ROLL", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/Starring");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_STARRING", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsHerself");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_HERSELF", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsCool");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_COOL", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsGolem");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_GOLEM", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsKing");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_KING", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsCrooked");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_CROOKED", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsMystic");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_MYSTIC", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/AsBig");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_BIG", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/LetterAs");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_LETTER", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/PortalAs");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_PORTAL", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/MirandaHead");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_MIRANDA", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/Production");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_PRODUCTION", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/MyCredits");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_MYCREDITS", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/Soundtrack");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_OST", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/FrameworkAndLogos");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_LOGOS", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Credits/HappyBirthday");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SOFIA_CREDITS_BIRTHDAY", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            //InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/SaveSlotBase");
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/SaveSlotBase_Dark");
-            InsertAtlas.DivDimensions = new Point(3, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SAVESLOT", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/RestoreDefaults");
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("RESTOREBUTTON", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/SofiaSprites");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            Hashtable FrameLookup = new Hashtable();
-            FrameLookup.Add("EXCITED", new Point(0, 0));
-            FrameLookup.Add("HAPPY", new Point(1, 0));
-            FrameLookup.Add("CONSIDERING", new Point(2, 0));
-            FrameLookup.Add("UNIMPRESSED", new Point(3, 0));
-            FrameLookup.Add("GRINNING", new Point(0, 1));
-            FrameLookup.Add("JUDGING", new Point(1, 1));
-            FrameLookup.Add("DOWNCAST", new Point(2, 1));
-            FrameLookup.Add("LAUGHING", new Point(3, 1));
-            FrameLookup.Add("WORRIED", new Point(0, 2));
-            FrameLookup.Add("THINKING", new Point(1, 2));
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("SOFIASPRITES", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/BigSofiaHeads");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BIGSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/CoolSofia");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("COOLSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/KingSofia");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("KINGSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/CrookedSofia");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("CROOKEDSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/MysticSofia");
-            InsertAtlas.DivDimensions = new Point(4, 3);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("MYSTICSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/GolemSofia");
-            InsertAtlas.DivDimensions = new Point(3, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            FrameLookup = new Hashtable();
-            FrameLookup.Add("GRINNING", new Point(0, 0));
-            FrameLookup.Add("STARE", new Point(1, 0));
-            FrameLookup.Add("PLACID", new Point(2, 0));
-            InsertAtlas.FrameLookup = FrameLookup;
-            AtlasDirectory.Add("GOLEMSOFIA", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/Sprites/SofiaMemes");
-            InsertAtlas.DivDimensions = new Point(4, 4);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MEMES", InsertAtlas);
-
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), new Point(320, 180));
+            InsertAtlas.SetManualSR(new Rectangle(new Point(0, 0), new Point(320, 180)));
             AtlasDirectory.Add("THUMBBLANK", InsertAtlas);
 
-            //Texture2D MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/MainMenuUIButtons");
-            Texture2D MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/MainMenuUIButtons_Dark");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 500, 140));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PLAYBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 140, 500, 140));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("LOADBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 280, 500, 140));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CREDITSBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 420, 500, 140));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SETTINGSBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 560, 250, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("BACKBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 630, 250, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("NEXTBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 700, 250, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PREVBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(250, 560, 75, 70));
-            InsertAtlas.DivDimensions = new Point(3, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SCROLLBAR", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(250, 642, 144, 48));
-            InsertAtlas.DivDimensions = new Point(3, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SLIDERKNOB", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(250, 690, 100, 50));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("MAPBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(325, 560, 82, 41));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSEMENUBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(407, 560, 82, 41));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("RETURNBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(325, 601, 82, 41));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SKIPBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(407, 601, 82, 41));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("ARCHIVEBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(407, 642, 82, 82));
-            InsertAtlas.DivDimensions = new Point(2, 2);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("CHECKBOX", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 855, 104, 102));
-            InsertAtlas.DivDimensions = new Point(2, 2);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("EYECHECKBOX", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 770, 500, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("QUITBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 840, 500, 15));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SLIDERBAR", InsertAtlas);
-
-            MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/CrimeQuizImages");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 600, 400));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("HACKER_IMAGEBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 400, 600, 400));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PIRATE_IMAGEBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 800, 600, 400));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("THIEF_IMAGEBUTTON", InsertAtlas);
-
-            //MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/PauseMenuActual");
-            MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/PauseMenuActual_Dark");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 460, 500));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSEMENUPANE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(460, 0, 880, 80));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSERETURNBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(460, 80, 880, 80));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSESAVEBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(460, 160, 880, 80));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSESETTINGSBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(460, 240, 880, 80));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSEMAINMENUBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(460, 320, 880, 80));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("PAUSEQUITBUTTON", InsertAtlas);
-
-            //MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/WriteSaveUI");
-            MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/WriteSaveUI_Dark");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 560, 500));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SAVEPANE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 500, 250, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("YESBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 570, 250, 70));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("NOBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(560, 0, 400, 300));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SAVEWRITTENPANE", InsertAtlas);
-
-            MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/DeleteSaveUI_Dark");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 560, 500));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("DELETEPANE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 500, 640, 180));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("DELETESAVEBUTTON", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(560, 0, 400, 300));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("SAVEDELETEDPANE", InsertAtlas);
-
-            MainUISource = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/ExitDialogue");
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 0, 400, 249));
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("EXITPANE", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 249, 202, 54));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("QUITYESBUTTON", InsertAtlas);
-            InsertAtlas.Atlas = ExtractTexture(MainUISource, new Rectangle(0, 303, 148, 54));
-            InsertAtlas.DivDimensions = new Point(2, 1);
-            InsertAtlas.SourceRect = new Rectangle(new Point(0, 0), InsertAtlas.Atlas.Bounds.Size);
-            AtlasDirectory.Add("QUITNOBUTTON", InsertAtlas);
-
+            String DefaultManifest = "ultrasofiaworld_manifest.ehm";
+            String ManifestTitle = "ULTRASOFIAWORLD";
+            Hashtable Manifests = ManifestReader.ReadManifestFile(DefaultManifest);
+            Hashtable[] Resources = ManifestReader.ParseManifest((String)Manifests[ManifestTitle], this);
+            String FirstScript = "";
+            Boolean RunFirstAsUnique = true;
+            WriteLine("Reading application metainfo...");
+            if (Resources[0].ContainsKey("startatscript"))
+            {
+                FirstScript = (String)Resources[0]["startatscript"];
+            }
+            if (Resources[0].ContainsKey("useunique"))
+            {
+                RunFirstAsUnique = (Boolean)Resources[0]["useunique"];
+            }
+            WriteLine("Ingesting application scripts...");
+            foreach (String key in Resources[1].Keys)
+            {
+                ManifestReader.IngestScriptFile((String)Resources[1][key]);
+            }
+            WriteLine("Integrating loaded resources...");
+            foreach (object key in Resources[2].Keys)
+            {
+                Fonts.Add(key, (SpriteFont)Resources[2][key]);
+            }
+            foreach (object key in Resources[3].Keys)
+            {
+                SFXDirectory.Add(key, (SoundEffect)Resources[3][key]);
+            }
+            foreach (object key in Resources[4].Keys)
+            {
+                SongDirectory.Add(key, (Song)Resources[4][key]);
+            }
+            foreach (String key in Resources[5].Keys)
+            {
+                AtlasDirectory.Add(key, (TAtlasInfo)Resources[5][key]);
+            }
             ArrayList ADKeys = new ArrayList();
-            foreach(String K in AtlasDirectory.Keys)
+            foreach (String K in AtlasDirectory.Keys)
             {
                 ADKeys.Add(K);
             }
-            foreach(String K in ADKeys)
+            foreach (String K in ADKeys)
             {
                 TAtlasInfo Copy = ((TAtlasInfo)AtlasDirectory[K]);
                 Copy.ReferenceHash = K;
@@ -1206,14 +543,56 @@ namespace VNFramework
             TestLongRect = Content.Load<Texture2D>("Textures/Entities/UI/Elements/TestLongRect");
             ButtonAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/ButtonDefault");
             ButtonAtlas.DivDimensions = new Point(2, 1);
-            ButtonAtlas.SourceRect = new Rectangle(new Point(0, 0), ButtonAtlas.Atlas.Bounds.Size);
-            /*TextEntity Test = new TextEntity("Test", "[F:MACABRE]Line 1 GGGGGGGGGGGGGGGGGGGGGGGGG[F:MACABRE]Placing some of your essence into it should kickstart a reaction that will reverse the decay that our world has been experiencing.", new Vector2(50, 50), 1f);
-            //TextEntity Test = new TextEntity("Test", ((SpriteFont)Fonts["MACABRE"]).MeasureString(" ").ToString(), new Vector2(50, 50), 1f);
-            Shell.UpdateQueue.Add(Test);
-            Shell.RenderQueue.Add(Test);*/
-            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("INTRO_SNIFFER_UNIQUE", ScriptProcessor.RetrieveScriptByName("INTRO_PRELOAD"), "INTRO_PRELOAD"));
+            Monitor.Enter(LPLockObj);
+            LoadPercentage = 1;
+            Monitor.Exit(LPLockObj);
             WriteLine("Content load complete.");
+            return new object[] { FirstScript, RunFirstAsUnique };
         }
+        private WorldEntity LoadBar;
+        private WorldEntity LoadCover;
+        private TextEntity LoadText;
+        protected override void LoadContent()
+        {
+            WriteLine("VNF is loading content...");
+            // Create a new SpriteBatch, which can be used to draw textures.
+            pSpriteBatch = new SpriteBatch(GraphicsDevice);
+            TrueDisplay = new RenderTarget2D(
+                GraphicsDevice,
+                1280,
+                720,
+                false,
+                GraphicsDevice.PresentationParameters.BackBufferFormat,
+                DepthFormat.Depth24);
+
+            SysFont = Content.Load<SpriteFont>("Fonts/SysFont");
+            Default = Content.Load<SpriteFont>("Fonts/Default");
+            King = Content.Load<SpriteFont>("Fonts/Zenda");
+
+            TAtlasInfo BarAtlas = new TAtlasInfo();
+            BarAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingBar");
+            BarAtlas.DivDimensions = new Point(1, 1);
+            TAtlasInfo CoverAtlas = new TAtlasInfo();
+            CoverAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingCover");
+            CoverAtlas.DivDimensions = new Point(1, 1);
+
+            LoadBar = new WorldEntity("LOADBAR", new Vector2((ScreenSize.X / 2) - 250, (ScreenSize.Y / 2) + 100), BarAtlas, 0.5f);
+            LoadCover = new WorldEntity("LOADCOVER", new Vector2((ScreenSize.X / 2) + 243, (ScreenSize.Y / 2) + 107), CoverAtlas, 1f);
+            LoadCover.SetManualOrigin(new Vector2(486, 0));
+            LoadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((ScreenSize.X / 2) - 250, (ScreenSize.Y / 2) + 200), 1f);
+            LoadText.BufferLength = 500;
+            LoadText.TypeWrite = false;
+
+            RenderQueue.Add(LoadBar);
+            RenderQueue.Add(LoadCover);
+            RenderQueue.Add(LoadText);
+
+            LoadGraphicsQueue = new Queue();
+            LoadPercentage = 0f;
+
+            LoadOperation = Task.Run(AsyncLoad);
+        }
+        protected Task<object[]> LoadOperation = null;
         /// <summary>
         /// UnloadContent will be called once per game and is the place to unload
         /// game-specific content.
@@ -1239,7 +618,61 @@ namespace VNFramework
         public static Boolean DoNextShifter { get; set; }
         float LastCapturedVol = 0f;
         float LastCapturedText = 0f;
+        public Queue LoadGraphicsQueue { get; set; }
         protected override void Update(GameTime gameTime)
+        {
+            if (LoadOperation != null && !LoadOperation.IsCompleted)
+            {
+                try
+                {
+                    Monitor.Enter(LoadGraphicsQueue);
+                    while (LoadGraphicsQueue.Count > 0)
+                    {
+                        Task GraphTask = (Task)LoadGraphicsQueue.Dequeue();
+                        GraphTask.RunSynchronously();
+                    }
+                }
+                finally { Monitor.Exit(LoadGraphicsQueue); }
+                try
+                {
+                    Monitor.Enter(LPLockObj);
+                    LoadCover.Scale(new Vector2((1 - LoadPercentage) - LoadCover.ScaleSize.X, 0));
+                }
+                finally { Monitor.Exit(LPLockObj); }
+                LoadText.Text = "[F:SYSFONT]" + LastLogLine;
+            }
+            else
+            {
+                if (LoadOperation != null)
+                {
+                    object[] LoadResult = LoadOperation.GetAwaiter().GetResult();
+                    String FirstScript = (String)LoadResult[0];
+                    Boolean RunFirstAsUnique = (Boolean)LoadResult[1];
+                    if (FirstScript.Length > 0)
+                    {
+                        WriteLine("Priming first script.");
+                        if (RunFirstAsUnique)
+                        {
+                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("INTRO_SNIFFER_UNIQUE", ScriptProcessor.RetrieveScriptByName(FirstScript), FirstScript));
+                        }
+                        else
+                        {
+                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer(FirstScript + "_SNIFFER", ScriptProcessor.RetrieveScriptByName(FirstScript), FirstScript));
+                        }
+                    }
+                    LoadBar.AnimationQueue.Add(Animation.Retrieve("FADEOUT"));
+                    LoadBar.TransientAnimation = true;
+                    UpdateQueue.Add(LoadBar);
+                    DeleteQueue.Add(LoadCover);
+                    DeleteQueue.Add(LoadText);
+                    LoadOperation.Dispose();
+                    LoadOperation = null;
+                }
+                MainUpdate(gameTime);
+            }
+            base.Update(gameTime);
+        }
+        protected void MainUpdate(GameTime gameTime)
         {
             KeyboardState KCurrent = Keyboard.GetState();
             if (KCurrent.IsKeyDown(Keys.Escape) && !LastKeyState.IsKeyDown(Keys.Escape))
@@ -1356,7 +789,6 @@ namespace VNFramework
                 GlobalVoid();
                 GlobalVoid = null;
             }
-            base.Update(gameTime);
         }
 
         /// <summary>

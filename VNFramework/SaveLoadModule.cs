@@ -24,7 +24,7 @@ namespace VNFramework
         }
         static public void PullOrInitPersistentState()
         {
-            FileInfo PSArchive = new FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\persistent-states\\settingsstates.eha");
+            FileInfo PSArchive = new FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\persistence\\settingsstates.eha");
             if(PSArchive.Exists)
             {
                 BinaryReader Reader = new BinaryReader(PSArchive.OpenRead());
@@ -81,7 +81,7 @@ namespace VNFramework
                 + "<tickwriteinterval=" + TextEntity.TickWriteInterval + ">\n"
                 + "<applicablesavetype=" + ApplicableSaveType + "> \n"
                 + "<isfullscreen=" + Shell.QueryFullscreen().ToString().ToLower() + "> \n";
-            BinaryWriter Writer = new BinaryWriter(new FileStream(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\persistent-states\\settingsstates.eha", FileMode.Create));
+            BinaryWriter Writer = new BinaryWriter(new FileStream(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\persistence\\settingsstates.eha", FileMode.Create));
             Writer.Write(StateRecord);
             Writer.Close();
         }
@@ -93,22 +93,29 @@ namespace VNFramework
             Dir = new DirectoryInfo(Path.Combine(Dir.FullName, "Event Horizon Framework"));
             if (!Dir.Exists) { Dir.Create(); }
             String EHFFolder = Dir.FullName;
-            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "persistent-states"));
+            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "persistence"));
             if (!Dir.Exists) { Dir.Create(); }
-            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "data"));
+            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "savedata"));
             if (!Dir.Exists) { Dir.Create(); }
-            String DatFolder = Dir.FullName;
-            Dir = new DirectoryInfo(Path.Combine(DatFolder, "saves"));
+            String SaveDatFolder = Dir.FullName;
+            Dir = new DirectoryInfo(Path.Combine(SaveDatFolder, "saves"));
             if (!Dir.Exists) { Dir.Create(); }
-            Dir = new DirectoryInfo(Path.Combine(DatFolder, "thumbs"));
+            Dir = new DirectoryInfo(Path.Combine(SaveDatFolder, "thumbs"));
             if (!Dir.Exists) { Dir.Create(); }
             AutoRenumberSaveFiles();
+            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "appdata"));
+            if (!Dir.Exists) { Dir.Create(); }
+            String AppDatFolder = Dir.FullName;
+            Dir = new DirectoryInfo(Path.Combine(AppDatFolder, "scripts"));
+            if (!Dir.Exists) { Dir.Create(); }
+            Dir = new DirectoryInfo(Path.Combine(AppDatFolder, "appmanifests"));
+            if (!Dir.Exists) { Dir.Create(); }
         }
         static public void AutoRenumberSaveFiles()
         {
             try
             {
-                String SaveDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\saves";
+                String SaveDirectoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\saves";
                 DirectoryInfo SaveFolder = new DirectoryInfo(SaveDirectoryPath);
                 FileInfo[] Saves = SaveFolder.GetFiles();
                 if(Saves.Length == 0) { return; }
@@ -185,8 +192,8 @@ namespace VNFramework
         }
         static public void WriteSave(Texture2D Thumb)
         {
-            String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\saves";
-            String ThumbDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\thumbs";
+            String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\saves";
+            String ThumbDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\thumbs";
             if(Thumb is null) { Thumb = GenerateSaveThumb(); }
             Texture2D ThumbData = Thumb;
             String SName = "UNKNOWN";

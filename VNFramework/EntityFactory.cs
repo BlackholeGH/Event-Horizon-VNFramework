@@ -15,98 +15,18 @@ using System.Reflection;
 namespace VNFramework
 {
     public static class EntityFactory
-    {
-        public static class SelectiveStringOps
-        {
-            public static String ReplaceExclosed(String Input, String Find, String Replace, char Encloser)
-            {
-                Boolean Exclosed = true;
-                for (int i = 0; i < Input.Length; i++)
-                {
-                    if (Input[i] == Encloser) { Exclosed = !Exclosed; }
-                    if (Input[i] == Find[0] && Exclosed)
-                    {
-                        for (int ii = 0; ii < Find.Length; ii++)
-                        {
-                            if ((i + ii >= Input.Length) || !(Find[ii] == Input[i + ii])) { break; }
-                            if (ii == Find.Length - 1)
-                            {
-                                Input = Input.Remove(i) + Replace + Input.Remove(0, i + ii);
-                                i += Replace.Length - 1;
-                            }
-                        }
-                    }
-                }
-                return Input;
-            }
-            public static int IndexOfExclosed(String Input, String ContainsString, char Encloser)
-            {
-                Boolean Exclosed = true;
-                for (int i = 0; i < Input.Length; i++)
-                {
-                    if (Input[i] == Encloser) { Exclosed = !Exclosed; }
-                    if (Input[i] == ContainsString[0] && Exclosed)
-                    {
-                        for (int ii = 0; ii < ContainsString.Length; ii++)
-                        {
-                            if ((i + ii >= Input.Length) || !(ContainsString[ii] == Input[i + ii])) { break; }
-                            if (ii == ContainsString.Length - 1) { return i; }
-                        }
-                    }
-                }
-                return -1;
-            }
-            public static Boolean ContainsExclosed(String Input, char ContainsChar, char Encloser)
-            {
-                Boolean Exclosed = true;
-                foreach (char C in Input)
-                {
-                    if (C == ContainsChar && Exclosed) { return true; }
-                    if (C == Encloser) { Exclosed = !Exclosed; }
-                }
-                return false;
-            }
-            public static String RemoveExclosed(String Input, char RemChar, char Encloser)
-            {
-                String Output = "";
-                Boolean Remove = true;
-                foreach (char C in Input)
-                {
-                    if (C == RemChar && Remove) { continue; }
-                    else { Output += C; }
-                    if (C == Encloser) { Remove = !Remove; }
-                }
-                return Output;
-            }
-            public static String[] SplitAtExclosed(String Input, char SplitChar, char Encloser)
-            {
-                ArrayList Splits = new ArrayList();
-                String Current = "";
-                Boolean Split = true;
-                foreach (char C in Input)
-                {
-                    if (C == SplitChar && Split)
-                    {
-                        Splits.Add(Current);
-                        Current = "";
-                    }
-                    else { Current += C; }
-                    if (C == Encloser) { Split = !Split; }
-                }
-                if (Current.Length > 0) { Splits.Add(Current); }
-                return Splits.ToArray().Select(o => (String)o).ToArray();
-            }
-        }
+    {        
         public static Object[] ExtractMethodValues(String MethodOrConstructorData)
         {
             String IsolatedIdentifier = MethodOrConstructorData.Remove(MethodOrConstructorData.IndexOf('('));
-            String IsolatedParamList = MethodOrConstructorData.Remove(0, MethodOrConstructorData.IndexOf('(')).Remove(MethodOrConstructorData.LastIndexOf(')'));
+            String IsolatedParamList = MethodOrConstructorData.Remove(0, MethodOrConstructorData.IndexOf('(') + 1);
+            IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
             Object[] TrueParameters = ParseDataList(IsolatedParamList);
             return new Object[] { IsolatedIdentifier, TrueParameters };
         }
         public static Object[] ParseDataList(String DataList)
         {
-            String[] PriorToParse = SelectiveStringOps.SplitAtExclosed(DataList, ',', '\"');
+            String[] PriorToParse = VNFUtils.Strings.SplitAtExclosed(DataList, ',', '(', ')', '\"');
             Object[] Out = new Object[PriorToParse.Length];
             for(int i = 0; i < PriorToParse.Length; i++)
             {
@@ -124,12 +44,19 @@ namespace VNFramework
             {
                 if (DP.Contains("."))
                 {
-                    String TypeToFind = "VNFramework." + DP.Remove(DP.LastIndexOf('.'));
+                    String TypeToFind = DP.Remove(DP.LastIndexOf('.'));
+                    if(!TypeToFind.StartsWith("VNFramework.")) { TypeToFind = "VNFramework." + TypeToFind; }
                     Type Find = Type.GetType(TypeToFind);
                     if (Find != null) { SuperType = Find; }
                     while (!(SuperType.IsAbstract && SuperType.IsSealed))
                     {
+                        if(SuperType == typeof(Shell))
+                        {
+                            InstancedObject = Shell.DefaultShell;
+                            break;
+                        }
                         TypeToFind = TypeToFind.Remove(TypeToFind.LastIndexOf('.'));
+                        if(TypeToFind == "VNFramework" || TypeToFind.Length == 0) { break; }
                         Find = Type.GetType(TypeToFind);
                         if (Find != null) { SuperType = Find; }
                         else
@@ -138,7 +65,9 @@ namespace VNFramework
                             break;
                         }
                     }
+                    if(!DP.StartsWith("VNFramework.")) { TypeToFind = TypeToFind.Remove(0, 12); }
                     StaticMemberTree = DP.Replace(TypeToFind, "");
+                    StaticMemberTree = StaticMemberTree.TrimStart('.');
                 }
             }
             else
@@ -152,20 +81,21 @@ namespace VNFramework
                 Count++;
                 if (S.Contains("(") && S.Contains(")"))
                 {
-                    String IsolatedIdentifier = DP.Remove(DP.IndexOf('('));
-                    String IsolatedParamList = DP.Remove(0, DP.IndexOf('(')).Remove(DP.LastIndexOf(')'));
+                    String IsolatedIdentifier = S.Remove(S.IndexOf('('));
+                    String IsolatedParamList = S.Remove(0, S.IndexOf('(') + 1);
+                    IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
                     Object[] TrueParameters = ParseDataList(IsolatedParamList);
                     if(InstancedObject is null)
                     {
                         foreach (var me in SuperType.GetMethods())
                         {
-                            if (me.Name == IsolatedIdentifier && me.GetParameters().Length == IsolatedParamList.Length)
+                            if (me.Name == IsolatedIdentifier && me.GetParameters().Length == TrueParameters.Length)
                             {
                                 Boolean InvocationFlag = true;
                                 int i = 0;
                                 foreach(ParameterInfo pi in me.GetParameters())
                                 {
-                                    if (pi.ParameterType != IsolatedParamList[i].GetType())
+                                    if (!CanConvert(pi.ParameterType, TrueParameters[i].GetType()))
                                     {
                                         InvocationFlag = false;
                                         break;
@@ -180,13 +110,13 @@ namespace VNFramework
                     {
                         foreach (var me in InstancedObject.GetType().GetMethods())
                         {
-                            if (me.Name == IsolatedIdentifier && me.GetParameters().Length == IsolatedParamList.Length)
+                            if (me.Name == IsolatedIdentifier && me.GetParameters().Length == TrueParameters.Length)
                             {
                                 Boolean InvocationFlag = true;
                                 int i = 0;
                                 foreach (ParameterInfo pi in me.GetParameters())
                                 {
-                                    if (pi.ParameterType != IsolatedParamList[i].GetType())
+                                    if (!CanConvert(pi.ParameterType, TrueParameters[i].GetType()))
                                     {
                                         InvocationFlag = false;
                                         break;
@@ -264,19 +194,23 @@ namespace VNFramework
                 String DP = DataParameter.Replace(";", "");
                 if (DP[0] == '(' && DP.Contains(")"))
                 {
-                    DP = DP.Remove(0, SelectiveStringOps.IndexOfExclosed(DP, ")", '\"') + 1);
+                    DP = DP.Remove(0, VNFUtils.Strings.IndexOfExclosed(DP, ")", '\"') + 1);
                 }
-                if (!(SelectiveStringOps.ContainsExclosed(DP, '(', '\"') && SelectiveStringOps.ContainsExclosed(DP, ')', '\"')) && !(SelectiveStringOps.ContainsExclosed(DP, '[', '\"') && SelectiveStringOps.ContainsExclosed(DP, ']', '\"')))
+                if (!(VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"')) && !(VNFUtils.Strings.ContainsExclosed(DP, '[', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ']', '\"')))
                 {
-                    if (DP[0] == '\"' && DP[DP.Length - 1] == '\"') { return DP.Remove(1, DP.Length - 2); }
+                    if (DP[0] == '\"' && DP[DP.Length - 1] == '\"') { return DP.Substring(1, DP.Length - 2); }
                     else
                     {
                         float f;
-                        if (float.TryParse(DP, out f))
+                        if (float.TryParse(DP.TrimEnd(new char[] { 'f', 'd' }), out f))
                         {
-                            if (DP.Contains("f") || DP.Contains(".")) { return float.Parse(DP.Replace("f", "")); }
+                            if (DP.Contains("f") || (DP.Contains(".") && !DP.Contains("d"))) { return float.Parse(DP.Replace("f", "")); }
                             else if (DP.Contains("d")) { return double.Parse(DP.Replace("d", "")); }
                             else { return int.Parse(DP); }
+                        }
+                        else if(DP.ToUpper() == "TRUE" || DP.ToUpper() == "FALSE")
+                        {
+                            return DP.ToUpper() == "TRUE";
                         }
                         else
                         {
@@ -284,12 +218,14 @@ namespace VNFramework
                         }
                     }
                 }
-                else if (SelectiveStringOps.ContainsExclosed(DP, '(', '\"') && SelectiveStringOps.ContainsExclosed(DP, ')', '\"'))
+                else if (VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"'))
                 {
                     if (DP.ToLower().StartsWith("new"))
                     {
-                        String IsolatedIdentifier = DP.Remove(0, 3).Remove(DP.IndexOf('('));
-                        String IsolatedParamList = DP.Remove(0, DP.IndexOf('(')).Remove(DP.LastIndexOf(')'));
+                        String IsolatedIdentifier = DP.Remove(0, 3);
+                        IsolatedIdentifier = IsolatedIdentifier.Remove(IsolatedIdentifier.IndexOf('('));
+                        String IsolatedParamList = DP.Remove(0, DP.IndexOf('(') + 1);
+                        IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
                         Object[] TrueParameters = ParseDataList(IsolatedParamList);
                         return ConstructDynamicObject(IsolatedIdentifier, TrueParameters, true);
                     }
@@ -298,16 +234,19 @@ namespace VNFramework
                         return ReturnMemberOrFuncValue(DP, null, null);
                     }
                 }
-                else if (SelectiveStringOps.ContainsExclosed(DP, '[', '\"') && SelectiveStringOps.ContainsExclosed(DP, ']', '\"'))
+                else if (VNFUtils.Strings.ContainsExclosed(DP, '[', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ']', '\"'))
                 {
                     if (DP.ToLower().StartsWith("new"))
                     {
-                        String IsolatedIdentifier = DP.Remove(0, 3).Remove(DP.IndexOf('['));
-                        String IsolatedLengthOrNone = DP.Remove(0, DP.IndexOf('[')).Remove(DP.LastIndexOf(']'));
+                        String IsolatedIdentifier = DP.Remove(0, 3);
+                        IsolatedIdentifier = IsolatedIdentifier.Remove(IsolatedIdentifier.IndexOf('['));
+                        String IsolatedLengthOrNone = DP.Remove(0, DP.IndexOf('[') + 1);
+                        IsolatedLengthOrNone = IsolatedLengthOrNone.Remove(IsolatedLengthOrNone.LastIndexOf(']'));
                         String IsolatedCurls = null;
-                        if (SelectiveStringOps.ContainsExclosed(DP, '{', '\"') && SelectiveStringOps.ContainsExclosed(DP, '}', '\"'))
+                        if (VNFUtils.Strings.ContainsExclosed(DP, '{', '\"') && VNFUtils.Strings.ContainsExclosed(DP, '}', '\"'))
                         {
-                            IsolatedCurls = DP.Remove(0, DP.IndexOf('{')).Remove(DP.LastIndexOf('}'));
+                            IsolatedCurls = DP.Remove(0, DP.IndexOf('{'));
+                            IsolatedCurls = IsolatedCurls.Remove(IsolatedCurls.LastIndexOf('}'));
                         }
                         if(IsolatedCurls == null && IsolatedLengthOrNone.Length == 0) { return null; }
                         else
@@ -319,7 +258,7 @@ namespace VNFramework
                             }
                             else
                             {
-                                RLength = SelectiveStringOps.SplitAtExclosed(IsolatedCurls, ',', '\"').Length;
+                                RLength = VNFUtils.Strings.SplitAtExclosed(IsolatedCurls, ',', '\"').Length;
                             }
                             Type RType = Type.GetType("System." + IsolatedIdentifier);
                             Object[] TempR = new Object[RLength];
@@ -337,7 +276,8 @@ namespace VNFramework
                     else
                     {
                         String IndexableIdentifier = DP.Remove(DP.IndexOf('['));
-                        String IndexValue = DP.Remove(0, DP.IndexOf('[') + 1).Remove(DP.LastIndexOf(']'));
+                        String IndexValue = DP.Remove(0, DP.IndexOf('[') + 1);
+                        IndexValue = IndexValue.Remove(IndexValue.LastIndexOf(']'));
                         Object TrueIndex = ReturnMemberOrFuncValue(IndexValue, null, null);
                         Object TrueDataStructure = ReturnMemberOrFuncValue(IndexableIdentifier, null, null);
                         Object IndexPull = null;
@@ -361,31 +301,53 @@ namespace VNFramework
             if (!TypeName.ToUpper().Contains("VNFRAMEWORK.")) { TypeName = "VNFramework." + TypeName; }
             if (TypeName.ToUpper() != "VNFRAMEWORK.WORLDENTITY")
             {
-                if(TypeName.Contains(".")) { TypeName = TypeName.Remove(0, TypeName.LastIndexOf('.')); }
+                if(TypeName.Contains(".")) { TypeName = TypeName.Remove(0, TypeName.LastIndexOf('.') + 1); }
                 Assembly ThisAssembly = Assembly.GetExecutingAssembly();
                 Type[] TheseTypes = ThisAssembly.GetTypes();
                 foreach(Type T in TheseTypes)
                 {
                     if(T.IsSubclassOf(typeof(WorldEntity)) && T.Name == TypeName)
                     {
-                        TypeName = T.FullName;
+                        TypeName = T.AssemblyQualifiedName;
                         break;
                     }
                 }
             }
             return (WorldEntity)ConstructDynamicObject(TypeName, ConstructorArgs, false);
         }
+        public static Boolean CanConvert(Type Type1, Type Type2)
+        {
+            Type PosNul1 = Nullable.GetUnderlyingType(Type1);
+            Type PosNul2 = Nullable.GetUnderlyingType(Type2);
+            if (PosNul1 != null) { Type1 = PosNul1; }
+            if (PosNul2 != null) { Type2 = PosNul2; }
+            if (Type1 == Type2) { return true; }
+            Boolean CConvert = false;
+            try
+            {
+                Convert.ChangeType(Activator.CreateInstance(Type1), Type2);
+                CConvert = true;
+            }
+            catch (Exception e) { }
+            return CConvert;
+        }
         public static Object ConstructDynamicObject(String TypeName, Object[] ConstructorArgs, Boolean BroadSearch)
         {
             if(BroadSearch)
             {
-                Assembly ThisAssembly = Assembly.GetExecutingAssembly();
-                Type[] TheseTypes = ThisAssembly.GetTypes();
+                ArrayList TheseTypes = new ArrayList();
+                foreach(Assembly ThisAssembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    foreach (Type AssType in ThisAssembly.GetTypes())
+                    {
+                        TheseTypes.Add(AssType);
+                    }
+                }
                 foreach (Type T in TheseTypes)
                 {
                     if (T.Name.ToUpper() == TypeName.ToUpper())
                     {
-                        TypeName = T.FullName;
+                        TypeName = T.AssemblyQualifiedName;
                         break;
                     }
                 }
@@ -400,7 +362,7 @@ namespace VNFramework
                     Boolean SetAndMake = true;
                     for (int i = 0; i < ConstructorArgs.Length; i++)
                     {
-                        if (C.GetParameters()[i].ParameterType != ConstructorArgs[i].GetType())
+                        if (!CanConvert(ConstructorArgs[i].GetType(), C.GetParameters()[i].ParameterType))
                         {
                             SetAndMake = false;
                             break;
@@ -432,7 +394,7 @@ namespace VNFramework
                 if(Identifier.Contains("."))
                 {
                     ParameterBody = Identifier.Remove(0, Identifier.IndexOf('.') + 1);
-                    BaseIdentifier = Identifier.Remove(Identifier.IndexOf('.') + 1);
+                    BaseIdentifier = Identifier.Remove(Identifier.IndexOf('.'));
                 }
                 if (BaseIdentifier.ToUpper() == "SHELL")
                 {
@@ -456,12 +418,12 @@ namespace VNFramework
         public static WorldEntity Assemble(String Schema)
         {
             WorldEntity ConstructedEntity = null;
-            String[] Schemas = SelectiveStringOps.RemoveExclosed(Schema, ' ', '\"').Split('\n');
+            String[] Schemas = VNFUtils.Strings.RemoveExclosed(Schema, ' ', '\"').Split('\n');
             foreach(String S in Schemas)
             {
                 String RS = S;
                 if (!RS.Contains("=")) { RS = RS + "="; }
-                String[] SplitScheme = SelectiveStringOps.SplitAtExclosed(S, '=', '\"');
+                String[] SplitScheme = VNFUtils.Strings.SplitAtExclosed(RS, '=', '\"');
                 String Identifier = SplitScheme[0];
                 if (Identifier == "new") { ConstructedEntity = Process(SplitScheme[1], Identifier, null); }
                 else { ConstructedEntity = Process(SplitScheme[1], Identifier, ConstructedEntity); }

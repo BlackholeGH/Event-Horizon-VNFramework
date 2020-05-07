@@ -80,7 +80,7 @@ namespace VNFramework
                 pCO = value;
                 if(pCO == true)
                 {
-                    pOrigin = Shell.ConvertPoint(HitBox.Size) / 2;
+                    pOrigin = VNFUtils.ConvertPoint(HitBox.Size) / 2;
                 }
                 else
                 {
@@ -431,7 +431,7 @@ namespace VNFramework
         public virtual void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if(CameraImmune) { Draw(spriteBatch); }
-            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(Shell.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), Shell.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
+            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
         }
     }
     /// <summary>
@@ -451,7 +451,7 @@ namespace VNFramework
         {
             get
             {
-                return Shell.ConvertVector(OffsetVector);
+                return VNFUtils.ConvertVector(OffsetVector);
             }
         }
         private double ZoomLevel = 0d;
@@ -498,10 +498,10 @@ namespace VNFramework
                 {
                     if (!MouseDragging)
                     {
-                        LastMouseDragPos = Shell.CoordNormalize(Shell.ConvertPoint(MyMouse.Position));
+                        LastMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(MyMouse.Position));
                         MouseDragging = true;
                     }
-                    Vector2 CurrentMouseDragPos = Shell.CoordNormalize(Shell.ConvertPoint(MyMouse.Position));
+                    Vector2 CurrentMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(MyMouse.Position));
                     Vector2 DragDistance = CurrentMouseDragPos - LastMouseDragPos;
                     Move(-DragDistance / ZoomFactor);
                     LastMouseDragPos = CurrentMouseDragPos;
@@ -629,7 +629,14 @@ namespace VNFramework
                                 }
                                 break;
                             case "F":
-                                Font = (SpriteFont)Shell.Fonts[SSplit[1]];
+                                if (SSplit[1] == "SYSFONT")
+                                {
+                                    Font = (SpriteFont)Shell.SysFont;
+                                }
+                                else
+                                {
+                                    Font = (SpriteFont)Shell.Fonts[SSplit[1]];
+                                }
                                 FontName = SSplit[1];
                                 break;
                             case "L":

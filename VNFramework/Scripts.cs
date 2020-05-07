@@ -179,6 +179,7 @@ namespace VNFramework
                 }));
             })
         };
+        public static Hashtable ScriptCache { get; set; }
         public static String[] ScriptIndex()
         {
             String[] SIndex = new String[]
@@ -255,6 +256,7 @@ namespace VNFramework
         }
         public static object[] RetrieveScriptByName(String S)
         {
+            if(ScriptCache.ContainsKey(S.ToUpper())) { return (object[])ScriptCache[S.ToUpper()]; }
             object[] Script = new object[0];
             switch (S.ToUpper())
             {

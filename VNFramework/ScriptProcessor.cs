@@ -18,16 +18,6 @@ namespace VNFramework
     {
         public static int CountApplicableRollbacks { get; set; }
         public static Boolean AllowScriptShift { get; set; }
-        public static Hashtable EntityBlueprintCollection { get; set; }
-        static long pBlueprintIndex = -1;
-        public static long BlueprintIndex
-        {
-            get
-            {
-                pBlueprintIndex++;
-                return pBlueprintIndex;
-            }
-        }
         public static Stack PastStates = new Stack();
         public static String SongCom = "";
         static String TextArchive = "";
@@ -113,15 +103,16 @@ namespace VNFramework
         }
         public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
         {
-            String SCA = EntityFactory.SelectiveStringOps.ReplaceExclosed(ScriptArchiveContent, "{{", "#", '\"');
-            SCA = EntityFactory.SelectiveStringOps.ReplaceExclosed(SCA, "}}", "#", '\"');
-            SCA = EntityFactory.SelectiveStringOps.RemoveExclosed(SCA, '\n', '#');
+            String SCA = VNFUtils.Strings.ReplaceExclosed(ScriptArchiveContent, "{{", "#", '\"');
+            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", "#", '\"');
+            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '#');
+            SCA = SCA.Replace("\r", "");
             ArrayList IndivScripts = new ArrayList();
-            int NextStart = EntityFactory.SelectiveStringOps.IndexOfExclosed(SCA, "declare_script", '\"');
+            int NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
             SCA = SCA.Remove(0, NextStart + 14);
             do
             {
-                NextStart = EntityFactory.SelectiveStringOps.IndexOfExclosed(SCA, "declare_script", '\"');
+                NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
                 if(NextStart > 0)
                 {
                     IndivScripts.Add(SCA.Remove(NextStart));
@@ -133,38 +124,40 @@ namespace VNFramework
             Hashtable TrueIndivScripts = new Hashtable();
             foreach(String S in IndivScripts)
             {
-                String Nameless = S.Remove(0, S.IndexOf('\"'));
+                String Nameless = S.Remove(0, S.IndexOf('\"') + 1);
                 String Name = Nameless.Remove(Nameless.IndexOf('\"'));
-                Nameless = Nameless.Remove(0, Nameless.IndexOf('\"')).Remove(0, Nameless.IndexOf(':'));
+                Nameless = Nameless.Remove(0, Nameless.IndexOf('\"'));
+                Nameless = Nameless.Remove(0, Nameless.IndexOf(':'));
+                if (Nameless.EndsWith("}")) { Nameless = Nameless + ","; }
                 TrueIndivScripts.Add(Name, Nameless);
             }
             Hashtable EventScripts = new Hashtable();
             foreach(String S in TrueIndivScripts.Keys)
             {
-                EventScripts.Add(S, AssembleEventScript((String)TrueIndivScripts[S]));
+                EventScripts.Add(S.ToUpper(), AssembleEventScript((String)TrueIndivScripts[S]));
             }
             return EventScripts;
         }
         public static Object[] AssembleEventScript(String StringFormatScript)
         {
-            StringFormatScript = EntityFactory.SelectiveStringOps.RemoveExclosed(StringFormatScript, ' ', '\"');
+            StringFormatScript = VNFUtils.Strings.RemoveExclosed(StringFormatScript, ' ', '\"');
             ArrayList SSAssembled = new ArrayList();
-            while (EntityFactory.SelectiveStringOps.ContainsExclosed(StringFormatScript, '{', '\"'))
+            while (VNFUtils.Strings.ContainsExclosed(StringFormatScript, '{', '\"'))
             {
-                StringFormatScript = StringFormatScript.Remove(0, StringFormatScript.IndexOf('{'));
-                int EndIndex = EntityFactory.SelectiveStringOps.IndexOfExclosed(StringFormatScript, "},", '\"');
+                StringFormatScript = StringFormatScript.Remove(0, StringFormatScript.IndexOf('{') + 1);
+                int EndIndex = VNFUtils.Strings.IndexOfExclosed(StringFormatScript, "},", '\"');
                 String FoundScriptShift = StringFormatScript.Remove(EndIndex);
                 StringFormatScript = StringFormatScript.Remove(0, EndIndex + 2);
-                String[] SCommands = EntityFactory.SelectiveStringOps.SplitAtExclosed(FoundScriptShift, ',', '\"');
+                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '#', '\"' });
                 Object[] ThisTrueShift = new Object[SCommands.Length];
                 int CIndex = 0;
                 foreach(String S in SCommands)
                 {
-                    if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 1); }
+                    if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 2); }
                     else if (S.StartsWith("FACTORY"))
                     {
                         String FBlueprint = S.Remove(0, S.IndexOf('#') + 1);
-                        FBlueprint = EntityFactory.SelectiveStringOps.RemoveExclosed(FBlueprint, '#', '\"');
+                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '#', '\"');
                         FBlueprint = FBlueprint.Trim('\n');
                         ThisTrueShift[CIndex] = new VoidDel(delegate ()
                         {
@@ -176,7 +169,9 @@ namespace VNFramework
                     }
                     CIndex++;
                 }
+                SSAssembled.Add(ThisTrueShift);
             }
+            return SSAssembled.ToArray();
         }
         public static Boolean VineGot = false;
         public static String GetVineName()

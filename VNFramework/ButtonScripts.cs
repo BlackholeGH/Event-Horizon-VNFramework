@@ -94,7 +94,7 @@ namespace VNFramework
             public static int MaxPage { get; set; }
             public static String SavePathByIndex(int Index)
             {
-                String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\saves";
+                String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\saves";
                 DirectoryInfo SaveDir = new DirectoryInfo(SaveDirectory);
                 SortedList SortSaves = new SortedList();
                 foreach(FileInfo F in SaveDir.GetFiles())
@@ -114,7 +114,7 @@ namespace VNFramework
                 SortedList SortSaves = new SortedList();
                 ArrayList Saves = new ArrayList();
                 SaveLoadModule.AutoRenumberSaveFiles();
-                String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\saves";
+                String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\saves";
                 DirectoryInfo SaveDir = new DirectoryInfo(SaveDirectory);
                 foreach(FileInfo F in SaveDir.GetFiles())
                 {
@@ -180,7 +180,7 @@ namespace VNFramework
                     Shell.UpdateQueue.Add(NextB);
                     Shell.RenderQueue.Add(NextB);
                 }
-                String ThumbDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\data\\thumbs";
+                String ThumbDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\thumbs";
                 String[] MFS = FetchSaves();
                 String[] TheseSaves = new String[6];
                 DeletePathAccess = new Hashtable();
@@ -218,7 +218,6 @@ namespace VNFramework
                         TAtlasInfo ThisButton = new TAtlasInfo();
                         ThisButton.Atlas = SaveLoadModule.PopulateLoadSlot(ThumbPath);
                         ThisButton.DivDimensions = new Point(3, 1);
-                        ThisButton.SourceRect = new Rectangle(new Point(0, 0), ThisButton.Atlas.Bounds.Size);
                         LoadButtons[i] = new Button("LOADSAVEATPOSITION_" + i, ButtonLocations[i], ThisButton, 0.98f, new VoidDel(delegate() { ButtonScripts.TriggerSpecLoad(); }));
                         SaveAccess.Add(LoadButtons[i].EntityID, TheseSaves[i]);
 
@@ -432,7 +431,6 @@ namespace VNFramework
             TAtlasInfo EA = new TAtlasInfo();
             EA.Atlas = Scroll;
             EA.DivDimensions = new Point(1, 1);
-            EA.SourceRect = new Rectangle(new Point(0, 0), EA.Atlas.Bounds.Size);
             WorldEntity E = new WorldEntity("SCROLL_DRAW_ENTITY", new Vector2(0, 0), EA, 1);
             if (ScrollDimensions.Y == -1)
             {
@@ -478,7 +476,7 @@ namespace VNFramework
         {
             Texture2D A = CreateDynamicCustomButton(Text, Width);
             Texture2D B = CreateCustomButton(Text, new Vector2(Width, -1), new Color(138, 0, 255, 255), new Color(255, 255, 255, 255), new Color(70, 70, 70, 255));
-            Texture2D Out = Shell.DefaultShell.CombineTextures(new Point(A.Width, A.Height + B.Height), A, A.Bounds, new Vector2(), new Vector2(1, 1), B, B.Bounds, new Vector2(0, A.Height), new Vector2(1, 1));
+            Texture2D Out = VNFUtils.CombineTextures(Shell.DefaultShell, new Point(A.Width, A.Height + B.Height), A, A.Bounds, new Vector2(), new Vector2(1, 1), B, B.Bounds, new Vector2(0, A.Height), new Vector2(1, 1));
             return Out;
         }
         public static Texture2D CreateDynamicCustomButton(String Text, float Width)
@@ -521,7 +519,7 @@ namespace VNFramework
             SText.Draw(spriteBatch);
             spriteBatch.End();
             Shell.PubGD.SetRenderTarget(null);
-            Texture2D Out = Shell.GetFromRT(Output);
+            Texture2D Out = VNFUtils.GetFromRT(Output);
             Color[] OutModify = new Color[Out.Width * Out.Height];
             Out.GetData<Color>(OutModify);
             Color Prev = BackgroundColour;
@@ -538,7 +536,6 @@ namespace VNFramework
             TAtlasInfo NewAtlas = new TAtlasInfo();
             NewAtlas.Atlas = CreateDynamicCustomButton(Text, 600);
             NewAtlas.DivDimensions = new Point(2, 1);
-            NewAtlas.SourceRect = new Rectangle(new Point(0, 0), NewAtlas.Atlas.Bounds.Size);
             Button NewB = new Button("BUTTON_CUSTOM_" + Text.ToUpper(), new Vector2(), NewAtlas, 0.91f, Function);
             return NewB;
         }
@@ -882,7 +879,6 @@ namespace VNFramework
             TAtlasInfo TutorialButton = new TAtlasInfo();
             TutorialButton.Atlas = ButtonScripts.CreateDynamicCustomButton("Launch educational experience", 500);
             TutorialButton.DivDimensions = new Point(2, 1);
-            TutorialButton.SourceRect = TutorialButton.Atlas.Bounds;
             Button CommenceTutorial = new Button("BUTTON_MAKE_TUTORIAL", new Vector2(700, 150), TutorialButton, 0.55f, new VoidDel(delegate() { StartTutorial(); }));
             CommenceTutorial.CenterOrigin = false;
             Shell.UpdateQueue.Add(CommenceTutorial);

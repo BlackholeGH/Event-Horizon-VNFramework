@@ -283,12 +283,12 @@ namespace VNFramework
             private Vector2 SCDist = new Vector2(10, 255);
             public EssenseGlow(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, String AlternateParentName) : base(Name, Location, Atlas, Depth)
             {
-                pOrigin = (Shell.ConvertPoint(HitBox.Size) / 2) + SCDist;
+                pOrigin = (VNFUtils.ConvertPoint(HitBox.Size) / 2) + SCDist;
                 FindSofia(AlternateParentName);
             }
             public EssenseGlow(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth) : base(Name, Location, Atlas, Depth)
             {
-                pOrigin = (Shell.ConvertPoint(HitBox.Size) / 2) + SCDist;
+                pOrigin = (VNFUtils.ConvertPoint(HitBox.Size) / 2) + SCDist;
                 FindSofia();
             }
             private void FindSofia()

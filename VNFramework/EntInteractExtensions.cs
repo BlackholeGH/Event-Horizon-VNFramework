@@ -163,7 +163,6 @@ namespace VNFramework
             TAtlasInfo CustomAtlas = new TAtlasInfo();
             CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(DefaultText, BoxWidth);
             CustomAtlas.DivDimensions = new Point(2, 2);
-            CustomAtlas.SourceRect = CustomAtlas.Atlas.Bounds;
             LocalAtlas = CustomAtlas;
             PopulateDropList(DropList);
         }
@@ -181,7 +180,6 @@ namespace VNFramework
             TAtlasInfo CustomAtlas = new TAtlasInfo();
             CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(Text, BoxWidth);
             CustomAtlas.DivDimensions = new Point(2, 2);
-            CustomAtlas.SourceRect = CustomAtlas.Atlas.Bounds;
             LocalAtlas = CustomAtlas;
         }
         public void DepopulateDropList()
@@ -216,7 +214,6 @@ namespace VNFramework
                 TAtlasInfo ButtonAtlas = new TAtlasInfo();
                 ButtonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(Label, BoxWidth);
                 ButtonAtlas.DivDimensions = new Point(2, 1);
-                ButtonAtlas.SourceRect = ButtonAtlas.Atlas.Bounds;
                 Button B = new Button(Name + "_DROPOPTION_" + Label, new Vector2(pDrawCoords.X, CumulativeY), ButtonAtlas, LayerDepth - 0.001f,
                     new VoidDel(delegate ()
                     {
@@ -228,7 +225,7 @@ namespace VNFramework
                 Stickers.Add(B);
                 Shell.UpdateQueue.Add(B);
                 CumulativeY += (LocalAtlas.Atlas.Bounds.Height / 2) + 10;
-                DropBackingTexture = Shell.DefaultShell.GetNovelTextureOfColour(new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(CumulativeY - (pDrawCoords.Y + (LocalAtlas.Atlas.Bounds.Height / 2) + 10))));
+                DropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(CumulativeY - (pDrawCoords.Y + (LocalAtlas.Atlas.Bounds.Height / 2) + 10))));
             }
 
         }
@@ -312,7 +309,7 @@ namespace VNFramework
         }
         public float Output()
         {
-            return (float)(Shell.GetLinearDistance(EndpointA, pDrawCoords) / Shell.GetLinearDistance(EndpointA, EndpointB));
+            return (float)(VNFUtils.GetLinearDistance(EndpointA, pDrawCoords) / VNFUtils.GetLinearDistance(EndpointA, EndpointB));
         }
         public void ForceState(float State)
         {
@@ -353,7 +350,7 @@ namespace VNFramework
                             CZoomFactor = Shell.AutoCamera.ZoomFactor;
                         }
                     }
-                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(Shell.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
+                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
                     Vector2 MouseDerived = CalculatePerpendicularIntersection(EndpointA, EndpointB, FullyAdjustedMouseCoords);
                     float GreatestX = EndpointB.X >= EndpointA.X ? EndpointB.X : EndpointA.X;
                     float LeastX = EndpointB.X >= EndpointA.X ? EndpointA.X : EndpointB.X;
@@ -518,7 +515,7 @@ namespace VNFramework
                             CZoomFactor = Shell.AutoCamera.ZoomFactor;
                         }
                     }
-                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(Shell.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
+                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
                     int MY = (int)FullyAdjustedMouseCoords.Y;
                     if (M.ScrollWheelValue != LastMouseScroll && DetectScrollRectange.Contains(FullyAdjustedMouseCoords) && !Engaged)
                     {
