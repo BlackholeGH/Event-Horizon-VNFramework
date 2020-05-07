@@ -469,8 +469,7 @@ namespace VNFramework
         public float LoadPercentage { get; set; }
         public object LPLockObj = new object();
         protected async Task<object[]> AsyncLoad()
-        {
-            
+        {  
             WriteLine("Preload complete, loading remaining content...");
             ScriptProcessor.ScriptCache = new Hashtable();
 
@@ -800,7 +799,6 @@ namespace VNFramework
             GraphicsDevice.SetRenderTarget(TrueDisplay);
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            //spriteBatch.Draw(((TAtlasInfo)AtlasDirectory["TESTBG"]).Atlas, new Rectangle(0, 0, 1280, 720), new Rectangle(0, 0, 1280, 720), new Color(0,255,255,255), 0f, new Vector2(), SpriteEffects.None, 0f);
             if (!HoldRender)
             {
                 if (AutoCamera == null)
