@@ -548,6 +548,13 @@ namespace VNFramework
             return new object[] { FirstScript, RunFirstAsUnique };
         }
         private WorldEntity LoadBar;
+        public WorldEntity LoadBarObj
+        {
+            get
+            {
+                return LoadBar;
+            }
+        }
         private WorldEntity LoadCover;
         private TextEntity LoadText;
         protected override void LoadContent()
@@ -574,10 +581,12 @@ namespace VNFramework
             CoverAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingCover");
             CoverAtlas.DivDimensions = new Point(1, 1);
 
-            LoadBar = new WorldEntity("LOADBAR", new Vector2((ScreenSize.X / 2) - 250, (ScreenSize.Y / 2) + 100), BarAtlas, 0.5f);
-            LoadCover = new WorldEntity("LOADCOVER", new Vector2((ScreenSize.X / 2) + 243, (ScreenSize.Y / 2) + 107), CoverAtlas, 1f);
+            Vector2 AssumedScreenSize = new Vector2(1280, 720);
+
+            LoadBar = new WorldEntity("LOADBAR", new Vector2((AssumedScreenSize.X / 2) - 250, (AssumedScreenSize.Y / 2) + 100), BarAtlas, 0.5f);
+            LoadCover = new WorldEntity("LOADCOVER", new Vector2((AssumedScreenSize.X / 2) + 243, (AssumedScreenSize.Y / 2) + 107), CoverAtlas, 1f);
             LoadCover.SetManualOrigin(new Vector2(486, 0));
-            LoadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((ScreenSize.X / 2) - 250, (ScreenSize.Y / 2) + 200), 1f);
+            LoadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((AssumedScreenSize.X / 2) - 250, (AssumedScreenSize.Y / 2) + 200), 1f);
             LoadText.BufferLength = 500;
             LoadText.TypeWrite = false;
 
@@ -609,8 +618,8 @@ namespace VNFramework
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         [field: NonSerialized]
         public static event VoidDel MouseLeftClick;
-        MouseState LastMouseState;
-        KeyboardState LastKeyState;
+        protected MouseState LastMouseState;
+        protected KeyboardState LastKeyState;
         public static Boolean ExitOut = false;
         public static Boolean AllowEnter = true;
         public static Boolean DoNextShifter { get; set; }
@@ -619,6 +628,7 @@ namespace VNFramework
         public Queue LoadGraphicsQueue { get; set; }
         protected override void Update(GameTime gameTime)
         {
+            KeyboardState KCurrent = Keyboard.GetState();
             if (LoadOperation != null && !LoadOperation.IsCompleted)
             {
                 try
@@ -638,6 +648,8 @@ namespace VNFramework
                 }
                 finally { Monitor.Exit(LPLockObj); }
                 LoadText.Text = "[F:SYSFONT]" + LastLogLine;
+                if (KCurrent.IsKeyDown(Keys.F11) && !LastKeyState.IsKeyDown(Keys.F11)) { ToggleFullscreen(); }
+                LastKeyState = KCurrent;
             }
             else
             {
@@ -666,13 +678,12 @@ namespace VNFramework
                     LoadOperation.Dispose();
                     LoadOperation = null;
                 }
-                MainUpdate(gameTime);
+                MainUpdate(gameTime, KCurrent);
             }
             base.Update(gameTime);
         }
-        protected void MainUpdate(GameTime gameTime)
+        protected void MainUpdate(GameTime gameTime, KeyboardState KCurrent)
         {
-            KeyboardState KCurrent = Keyboard.GetState();
             if (KCurrent.IsKeyDown(Keys.Escape) && !LastKeyState.IsKeyDown(Keys.Escape))
             {
                 if (ScriptProcessor.ActiveGame())

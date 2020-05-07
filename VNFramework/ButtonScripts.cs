@@ -904,6 +904,7 @@ namespace VNFramework
         public static void OpenMainMenu()
         {
             Shell.GlobalWorldState = "MAIN MENU OPENED";
+            if (Shell.UpdateQueue.Contains(Shell.DefaultShell.LoadBarObj)) { Shell.DeleteQueue.Add(Shell.DefaultShell.LoadBarObj); }
             if (SpoonsTrip)
             {
                 MediaPlayer.Play((Song)Shell.SongDirectory["MEDLEY"]);
