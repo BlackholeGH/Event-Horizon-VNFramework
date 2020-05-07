@@ -14,6 +14,7 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
 
 /*VNF GENERAL TO-DO:
  * Sub-frames to render to
@@ -36,7 +37,7 @@ namespace VNFramework
     }
     public class Shell : Game
     {
-        public const String FrameworkVersion = "1.3.5_DEV";
+        public static String FrameworkVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + " (" + System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion + ")";
         public static Random Rnd = new Random();
         static Hashtable Flags = new Hashtable();
         public static String GlobalWorldState = "DEFAULT";
@@ -314,8 +315,6 @@ namespace VNFramework
             this.IsMouseVisible = true;
             graphics.ApplyChanges();
             Content.RootDirectory = "Content";
-            LooseCamera = true;
-            AutoCamera = new Camera("Default Shell Autocamera");
         }
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
@@ -326,8 +325,11 @@ namespace VNFramework
         protected override void Initialize()
         {
             WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToShortTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
-            WriteLine("Blackhole's Event Horizon Framework (Visual novel implementation): Version " + FrameworkVersion);
+            WriteLine("Blackhole's eVent horizoN Framework");
+            WriteLine("Version: " + FrameworkVersion);
             SaveLoadModule.InitializeAppFolders();
+            LooseCamera = true;
+            AutoCamera = new Camera("Default Shell Autocamera");
             Mute = false;
             GlobalVolume = 0.6f;
             SaveLoadModule.ApplicableSaveType = "FullySerializedBinary";
