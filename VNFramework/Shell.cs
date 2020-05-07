@@ -20,7 +20,6 @@ using System.Runtime.Serialization.Formatters.Binary;
  * Read all scripts from file with above
  * Inbuilt console
  * Make interactive UI elements fire events for simpler use
- * Test
  */
 
 namespace VNFramework
