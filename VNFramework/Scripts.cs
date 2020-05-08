@@ -4098,7 +4098,7 @@ namespace VNFramework
                     Script = new object[]
                     {
                         InitCrookedBasic,
-                        new object[] { "C|GWS:CONTINUE", "T|Sofia|Hello?" },
+                        new object[] { "C|GWS:CONTINUE", "M|CRIMINAL|TRUE", "T|Sofia|Hello?" },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|LAUGHING", "A|CROOKED SOFIA|FADEIN", "T|Crooked Sofia|Ah, what have we here, now?" },
                         new object[] { "C|GWS:CONTINUE", "F|SOFIA|HAPPY", "T|Sofia|It is the me." },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|EXCITED", "T|Crooked Sofia|So I am rightwise seeing." },
@@ -4134,7 +4134,7 @@ namespace VNFramework
                     {
                         InitCrookedBasic,
                         new object[] { "C|GWS:CONTINUE", "T|Sofia|Hello?" },
-                        new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|LAUGHING", "A|CROOKED SOFIA|FADEIN", "T|Crooked Sofia|Ah, what have we here, now?" },
+                        new object[] { "C|GWS:CONTINUE", "M|CRIMINAL|TRUE", "F|CROOKED SOFIA|LAUGHING", "A|CROOKED SOFIA|FADEIN", "T|Crooked Sofia|Ah, what have we here, now?" },
                         new object[] { "C|GWS:CONTINUE", "F|SOFIA|HAPPY", "T|Sofia|It is the me." },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|EXCITED", "T|Crooked Sofia|So I am rightwise seeing." },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|GRINNING", "T|Crooked Sofia|My new potential customer returns." },
@@ -4408,7 +4408,7 @@ namespace VNFramework
                     {
                         InitCrookedBasic,
                         new object[] { "C|GWS:CONTINUE", "T|Sofia|Hello?" },
-                        new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|LAUGHING", "A|CROOKED SOFIA|FADEIN", "T|Crooked Sofia|Ah, what have we here, now?" },
+                        new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|LAUGHING", "A|CROOKED SOFIA|FADEIN", "M|CRIMINAL|TRUE", "T|Crooked Sofia|Ah, what have we here, now?" },
                         new object[] { "C|GWS:CONTINUE", "F|SOFIA|HAPPY", "T|Sofia|It is the me." },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|EXCITED", "T|Crooked Sofia|So I am rightwise seeing." },
                         new object[] { "C|GWS:CONTINUE", "F|CROOKED SOFIA|GRINNING", "T|Crooked Sofia|Our new soon-to-be-saviour returns!" },
