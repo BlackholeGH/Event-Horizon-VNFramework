@@ -36,7 +36,7 @@ namespace VNFramework
         }
         public static Object ReturnMemberOrFuncValue(String PathTree, WorldEntity PresumptiveEntity, Object ExplicitSet)
         {
-            String DP = PathTree;
+            String DP = PathTree.TrimEnd(';');
             Type SuperType = typeof(ScriptProcessor);
             String StaticMemberTree = DP;
             Object InstancedObject = null;
@@ -150,7 +150,18 @@ namespace VNFramework
                                 break;
                             }
                         }
-                        if (InstancedObject == null) { return null; }
+                        if (InstancedObject != null) { continue; }
+                        else if (Count == TreeElements.Length)
+                        {
+                            foreach (var method in SuperType.GetMethods())
+                            {
+                                if (method.Name == S)
+                                {
+                                    return method;
+                                }
+                            }
+                        }
+                        else if (InstancedObject == null) { return null; }
                     }
                     else
                     {
@@ -180,7 +191,18 @@ namespace VNFramework
                                 break;
                             }
                         }
-                        if (InstancedObject == Initial) { return null; }
+                        if (InstancedObject != Initial) { continue; }
+                        else if (Count == TreeElements.Length)
+                        {
+                            foreach (var method in Initial.GetType().GetMethods())
+                            {
+                                if (method.Name == S)
+                                {
+                                    return new object[] { method, Initial };
+                                }
+                            }
+                        }
+                        else if (InstancedObject == Initial) { return null; }
                     }
                     return InstancedObject;
                 }
@@ -386,6 +408,15 @@ namespace VNFramework
                 WorldEntity NewEntity = ConstructDynamicWorldEntity(EntName, Args);
                 return NewEntity;
             }
+            else if (Identifier == "get")
+            {
+                object NewEntity = (WorldEntity)ReturnMemberOrFuncValue(SchemeParams, null, null);
+                if (NewEntity is WorldEntity) { return (WorldEntity)NewEntity; }
+                else
+                {
+                    return null;
+                }
+            }
             else
             {
                 Type CurrentType = CurrentEnt.GetType();
@@ -429,6 +460,49 @@ namespace VNFramework
                 else { ConstructedEntity = Process(SplitScheme[1], Identifier, ConstructedEntity); }
             }
             return ConstructedEntity;
+        }
+        public static VoidDel AssembleVoidDelegate(String Schema)
+        {
+            VoidDel NewVoidDelegate = new VoidDel(delegate() { });
+            String VDSchema = VNFUtils.Strings.RemoveExclosed(Schema, ' ', '\"').Split('\n')[0];
+            if (VDSchema.StartsWith("do="))
+            {
+                NewVoidDelegate = new VoidDel(delegate () { ReturnMemberOrFuncValue(VDSchema.Remove(0, 3), null, null); });
+            }
+            else
+            {
+                object ExtractMethod = ParseRealData(VDSchema);
+                if (ExtractMethod is MethodInfo)
+                {
+                    MethodInfo Method = ((MethodInfo)ExtractMethod);
+                    if (Method.GetParameters().Length == 0) { NewVoidDelegate = new VoidDel(delegate () { Method.Invoke(null, null); }); }
+                }
+                else if (ExtractMethod is VoidDel)
+                {
+                    NewVoidDelegate = (VoidDel)ExtractMethod;
+                }
+                else if (ExtractMethod is object[])
+                {
+                    object[] EM = (object[])ExtractMethod;
+                    if (EM[0] is MethodInfo)
+                    {
+                        MethodInfo Method = (MethodInfo)EM[0];
+                        object OpObj = EM[1];
+                        if (Method.GetParameters().Length == 0)
+                        {
+                            if (Method.DeclaringType == OpObj.GetType())
+                            {
+                                NewVoidDelegate = new VoidDel(delegate () { Method.Invoke(OpObj, null); });
+                            }
+                            else
+                            {
+                                NewVoidDelegate = new VoidDel(delegate () { Method.Invoke(null, null); });
+                            }
+                        }
+                    }
+                }
+            }
+            return NewVoidDelegate;
         }
     }
 }

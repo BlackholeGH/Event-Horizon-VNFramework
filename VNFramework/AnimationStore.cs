@@ -81,6 +81,11 @@ namespace VNFramework
                     Temp.WriteMovement(BFrames);
                     Out = Temp;
                     break;
+                case "MOVEUPIN":
+                    Temp = new Animation("moveupin");
+                    Temp.WriteMovement(Animation.CreateVectorTween(new Vector2(0, -600), 1500, 20));
+                    Out = Temp;
+                    break;
                 case "FALLSHOCK":
                     Temp = new Animation("fallshock");
                     BFrames = Animation.CreateVectorTween(new Vector2(0, -20), 1500, 20);

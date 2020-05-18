@@ -167,6 +167,20 @@ namespace VNFramework
                             }));
                         });
                     }
+                    else if (S.StartsWith("RUN"))
+                    {
+                        String VBlueprint = S.Remove(0, S.IndexOf('#') + 1);
+                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '#', '\"');
+                        VBlueprint = VBlueprint.Trim('\n');
+                        VoidDel VD = EntityFactory.AssembleVoidDelegate(VBlueprint);
+                        ThisTrueShift[CIndex] = new VoidDel(delegate ()
+                        {
+                            Shell.RunQueue.Add(new VoidDel(delegate ()
+                            {
+                                VD();
+                            }));
+                        });
+                    }
                     CIndex++;
                 }
                 SSAssembled.Add(ThisTrueShift);
@@ -529,7 +543,8 @@ namespace VNFramework
          * F||| sets the atlas frame of a specified entity to the given coordinates, if possible.
          * F|| sets the atlas frame of a specified entity to the given named frame state, if possible.
          * G| sets the GlobalWorldState.
-         // * E| Assembles an entity from the given blueprint ID.
+         * U|| updates a given game flag to the specified value.
+         * R||| reads a game flag and then performs the following command if it matches a specified value.
          * H halts script skipping upon occurrence.
          * S|| plays a named sound effect, or stops all sound effects via |#CLOSEALL. Second parameter sets looping.
          * M||| switches the music track to a named song, or stops the song via |#NULL|. Second parameter sets looping. Third if set to "INSTANT" skips the auto fadeout.
@@ -630,16 +645,14 @@ namespace VNFramework
                 {
                     Shell.GlobalWorldState = Parts[1];
                 }
-                /*else if (Parts[0].ToUpper() == "E")
+                else if (Parts[0].ToUpper() == "U")
                 {
-                    if(ScriptProcessor.EntityBlueprintCollection.ContainsKey(Parts[1]))
-                    {
-                        Shell.RunQueue.Add(new VoidDel(delegate ()
-                        {
-                            EntityFactory.Assemble((String)EntityBlueprintCollection[Parts[1]]);
-                        }));
-                    }
-                }*/
+                    U(Parts);
+                }
+                else if (Parts[0].ToUpper() == "R")
+                {
+                    R(Parts);
+                }
             }
             else if (Element is VoidDel)
             {
@@ -739,6 +752,44 @@ namespace VNFramework
                 {
                     Shell.DeleteQueue.Add(NBacking);
                 }
+            }
+        }
+        public static object ParseLiteralValue(String Input)
+        {
+            float f;
+            if (float.TryParse(Input.TrimEnd(new char[] { 'f', 'd' }), out f))
+            {
+                if (Input.Contains("f") || (Input.Contains(".") && !Input.Contains("d"))) { return float.Parse(Input.Replace("f", "")); }
+                else if (Input.Contains("d")) { return double.Parse(Input.Replace("d", "")); }
+                else { return int.Parse(Input); }
+            }
+            else if (Input.ToUpper() == "TRUE" || Input.ToUpper() == "FALSE")
+            {
+                return Input.ToUpper() == "TRUE";
+            }
+            else { return Input; }
+        }
+        private static void U(String[] Parts)
+        {
+            String FlagName = Parts[1].ToUpper();
+            String TextFlagVal = Parts[2];
+            object TrueVal = ParseLiteralValue(TextFlagVal);
+            Shell.UpdateFlag(FlagName, TrueVal);
+        }
+        private static void R(String[] Parts)
+        {
+            String FlagName = Parts[1].ToUpper();
+            String TextFlagComparisonVal = Parts[2];
+            object TrueComparisonVal = ParseLiteralValue(TextFlagComparisonVal);
+            if(Shell.ReadFlag(FlagName).Equals(TrueComparisonVal) && Parts.Length > 3)
+            {
+                String ConditionalCom = "";
+                for(int i = 3; i < Parts.Length; i++)
+                {
+                    ConditionalCom += Parts[i] + "|";
+                }
+                ConditionalCom = ConditionalCom.TrimEnd('|');
+                ActivateScriptElement(ConditionalCom);
             }
         }
         private static void C(String[] Parts)
