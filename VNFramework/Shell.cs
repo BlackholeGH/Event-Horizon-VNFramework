@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 using System.Threading.Tasks;
 using System.Threading;
 using System.IO;
@@ -650,13 +651,19 @@ namespace VNFramework
                 }
                 finally { Monitor.Exit(LPLockObj); }
                 LoadText.Text = "[F:SYSFONT]" + LastLogLine;
-                if (KCurrent.IsKeyDown(Keys.F11) && !LastKeyState.IsKeyDown(Keys.F11)) { ToggleFullscreen(); }
+                if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
                 LastKeyState = KCurrent;
             }
             else
             {
                 if (LoadOperation != null)
                 {
+                    if(LoadOperation.IsFaulted)
+                    {
+                        MessageBox.Show("VNFramework could not launch as the application was unable to read the specified application manifest file.", "eVent horizoN Client Loader");
+                        Exit();
+                        return;
+                    }
                     object[] LoadResult = LoadOperation.GetAwaiter().GetResult();
                     String FirstScript = (String)LoadResult[0];
                     Boolean RunFirstAsUnique = (Boolean)LoadResult[1];
@@ -686,7 +693,7 @@ namespace VNFramework
         }
         protected void MainUpdate(GameTime gameTime, KeyboardState KCurrent)
         {
-            if (KCurrent.IsKeyDown(Keys.Escape) && !LastKeyState.IsKeyDown(Keys.Escape))
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
             {
                 if (ScriptProcessor.ActiveGame())
                 {
@@ -695,25 +702,25 @@ namespace VNFramework
                 }
                 else { ButtonScripts.Quit(); }
             }
-            if (KCurrent.IsKeyDown(Keys.H) && !LastKeyState.IsKeyDown(Keys.H) && ScriptProcessor.ActiveGame())
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && ScriptProcessor.ActiveGame())
             {
                 ButtonScripts.RefreshUIHideState();
             }
             if (AutoCamera != null && LooseCamera)
             {
-                if (KCurrent.IsKeyDown(Keys.R) && !LastKeyState.IsKeyDown(Keys.R))
+                if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R))
                 {
                     AutoCamera.CenterDefault();
                     AutoCamera.ResetZoom();
                 }
-                AutoCamera.MouseDragEnabled = KCurrent.IsKeyDown(Keys.F);
+                AutoCamera.MouseDragEnabled = KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
                 if(!UpdateQueue.Contains(AutoCamera)) { UpdateQueue.Add(AutoCamera); }
             }
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || ExitOut)
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
             {
                 Exit();
             }
-            if (((KCurrent.IsKeyDown(Keys.Enter) && !LastKeyState.IsKeyDown(Keys.Enter)) || DoNextShifter) && AllowEnter)
+            if (((KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter)) || DoNextShifter) && AllowEnter)
             {
                 DoNextShifter = false;
                 Boolean Found = false;
@@ -729,7 +736,7 @@ namespace VNFramework
                 }
                 if(!Found) { GlobalWorldState = "CONTINUE"; }
             }      
-            if (KCurrent.IsKeyDown(Keys.F11) && !LastKeyState.IsKeyDown(Keys.F11)) { ToggleFullscreen(); }
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
             LastKeyState = KCurrent;
             foreach (WorldEntity E in UpdateQueue)
             {
@@ -793,7 +800,7 @@ namespace VNFramework
                 LastCapturedText = CaptureTextrate.Output();
             }
             MouseState Current = Mouse.GetState();
-            if(Current.LeftButton == ButtonState.Pressed && LastMouseState.LeftButton != ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
+            if(Current.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && LastMouseState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
             LastMouseState = Current;
             if (GlobalVoid != null)
             {

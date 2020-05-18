@@ -75,7 +75,8 @@ namespace VNFramework
                 InstancedObject = PresumptiveEntity;
             }
             String[] TreeElements = StaticMemberTree.Split('.');
-            int Count = -1;
+            //Speculatively changed to 0, if this breaks anything set back to -1
+            int Count = 0;
             foreach (String S in TreeElements)
             {
                 Count++;
@@ -204,10 +205,9 @@ namespace VNFramework
                         }
                         else if (InstancedObject == Initial) { return null; }
                     }
-                    return InstancedObject;
                 }
             }
-            return null;
+            return InstancedObject != PresumptiveEntity ? InstancedObject : null;
         }
         public static Object ParseRealData(String DataParameter)
         {
@@ -267,7 +267,7 @@ namespace VNFramework
                         String IsolatedCurls = null;
                         if (VNFUtils.Strings.ContainsExclosed(DP, '{', '\"') && VNFUtils.Strings.ContainsExclosed(DP, '}', '\"'))
                         {
-                            IsolatedCurls = DP.Remove(0, DP.IndexOf('{'));
+                            IsolatedCurls = DP.Remove(0, DP.IndexOf('{') + 1);
                             IsolatedCurls = IsolatedCurls.Remove(IsolatedCurls.LastIndexOf('}'));
                         }
                         if(IsolatedCurls == null && IsolatedLengthOrNone.Length == 0) { return null; }
@@ -292,7 +292,9 @@ namespace VNFramework
                                     TempR[i] = Contents[i];
                                 }
                             }
-                            return TempR.Select(x => Convert.ChangeType(x, RType)).ToArray();
+                            Array TrueTypeArray = Array.CreateInstance(RType, TempR.Length);
+                            Array.Copy(TempR, TrueTypeArray, TempR.Length);
+                            return TrueTypeArray;
                         }
                     }
                     else

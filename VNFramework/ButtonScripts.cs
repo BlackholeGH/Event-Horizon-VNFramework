@@ -983,7 +983,7 @@ namespace VNFramework
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
             ScriptProcessor.PastStates.Clear();
-            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("SOFIA_MAIN_INTRO_SNIFFER", ScriptProcessor.RetrieveScriptByName("SOFIA_MAIN_INTRO"), "SOFIA_MAIN_INTRO"));
+            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("SOFIA_MAIN_INTRO_TS_SNIFFER", ScriptProcessor.RetrieveScriptByName("SOFIA_MAIN_INTRO_TS"), "SOFIA_MAIN_INTRO_TS"));
         }
         public static void BackToMainMenu()
         {

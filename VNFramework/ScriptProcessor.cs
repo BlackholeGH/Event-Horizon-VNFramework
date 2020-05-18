@@ -103,9 +103,9 @@ namespace VNFramework
         }
         public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
         {
-            String SCA = VNFUtils.Strings.ReplaceExclosed(ScriptArchiveContent, "{{", "#", '\"');
-            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", "#", '\"');
-            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '#');
+            String SCA = VNFUtils.Strings.ReplaceExclosed(ScriptArchiveContent, "{{", ">", '\"');
+            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", ">", '\"');
+            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '>');
             SCA = SCA.Replace("\r", "");
             ArrayList IndivScripts = new ArrayList();
             int NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
@@ -148,7 +148,7 @@ namespace VNFramework
                 int EndIndex = VNFUtils.Strings.IndexOfExclosed(StringFormatScript, "},", '\"');
                 String FoundScriptShift = StringFormatScript.Remove(EndIndex);
                 StringFormatScript = StringFormatScript.Remove(0, EndIndex + 2);
-                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '#', '\"' });
+                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '>', '\"' });
                 Object[] ThisTrueShift = new Object[SCommands.Length];
                 int CIndex = 0;
                 foreach(String S in SCommands)
@@ -156,8 +156,8 @@ namespace VNFramework
                     if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 2); }
                     else if (S.StartsWith("FACTORY"))
                     {
-                        String FBlueprint = S.Remove(0, S.IndexOf('#') + 1);
-                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '#', '\"');
+                        String FBlueprint = S.Remove(0, S.IndexOf('>') + 1);
+                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '>', '\"');
                         FBlueprint = FBlueprint.Trim('\n');
                         ThisTrueShift[CIndex] = new VoidDel(delegate ()
                         {
@@ -169,8 +169,8 @@ namespace VNFramework
                     }
                     else if (S.StartsWith("RUN"))
                     {
-                        String VBlueprint = S.Remove(0, S.IndexOf('#') + 1);
-                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '#', '\"');
+                        String VBlueprint = S.Remove(0, S.IndexOf('>') + 1);
+                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '>', '\"');
                         VBlueprint = VBlueprint.Trim('\n');
                         VoidDel VD = EntityFactory.AssembleVoidDelegate(VBlueprint);
                         ThisTrueShift[CIndex] = new VoidDel(delegate ()
@@ -380,8 +380,8 @@ namespace VNFramework
                 {
                     if (Shell.DeleteQueue.Contains(this)) { return; }
                     KeyboardState K = Keyboard.GetState();
-                    if (K.IsKeyDown(Keys.Tab) && !LastCheck) { SkipAll = !SkipAll; }
-                    LastCheck = K.IsKeyDown(Keys.Tab);
+                    if (K.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab) && !LastCheck) { SkipAll = !SkipAll; }
+                    LastCheck = K.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
                     if (CheckForShiftCondition() && (Environment.TickCount - LastTime > 60 || Name == "INTRO_SNIFFER_UNIQUE") && AllowScriptShift)
                     {
                         if ((Shell.GlobalWorldState == "CONTINUE" || Shell.GlobalWorldState == "NEXT") && Name != "INTRO_SNIFFER_UNIQUE") { Shell.GlobalWorldState = "LOADED NEXT SHIFT..."; }
