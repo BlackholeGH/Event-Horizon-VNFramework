@@ -303,8 +303,10 @@ namespace VNFramework
         public static SpriteFont King;
         public static Vector2 ScreenSize = new Vector2(1280, 720);
         public static Shell DefaultShell { get; set; }
-        public Shell()
+        public Shell(String BootManifestFilePath, String BootManifestTitle)
         {
+            pBootManifest = BootManifestFilePath;
+            pBootManifestReadTitle = BootManifestTitle;
             DefaultShell = this;
             pHasConsole = true;
             try { int window_height = Console.WindowHeight; }
@@ -471,6 +473,16 @@ namespace VNFramework
         public static Hashtable Fonts = new Hashtable();
         public float LoadPercentage { get; set; }
         public object LPLockObj = new object();
+        String pBootManifest;
+        String pBootManifestReadTitle;
+        public String BootManifest
+        {
+            get { return pBootManifest; }
+        }
+        public String BootManifestReadTitle
+        {
+            get { return pBootManifestReadTitle; }
+        }
         protected async Task<object[]> AsyncLoad()
         {  
             WriteLine("Preload complete, loading remaining content...");
@@ -493,10 +505,8 @@ namespace VNFramework
             InsertAtlas.SetManualSR(new Rectangle(new Point(0, 0), new Point(320, 180)));
             AtlasDirectory.Add("THUMBBLANK", InsertAtlas);
 
-            String DefaultManifest = "ultrasofiaworld_manifest.ehm";
-            String ManifestTitle = "ULTRASOFIAWORLD";
-            Hashtable Manifests = ManifestReader.ReadManifestFile(DefaultManifest);
-            Hashtable[] Resources = ManifestReader.ParseManifest((String)Manifests[ManifestTitle], this);
+            Hashtable Manifests = ManifestReader.ReadManifestFile(BootManifest);
+            Hashtable[] Resources = ManifestReader.ParseManifest((String)Manifests[BootManifestReadTitle], this);
             String FirstScript = "";
             Boolean RunFirstAsUnique = true;
             WriteLine("Reading application metainfo...");

@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.26730.15
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VNFramework", "VNFramework\VNFramework.csproj", "{354599A0-D845-4BC1-95AC-A03DE95810FA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VNF_Ultrasofiaworld", "VNF_Ultrasofiaworld\VNF_Ultrasofiaworld.csproj", "{51432B4F-90CE-4E3F-87A4-0192F0387C28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{354599A0-D845-4BC1-95AC-A03DE95810FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{354599A0-D845-4BC1-95AC-A03DE95810FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{354599A0-D845-4BC1-95AC-A03DE95810FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51432B4F-90CE-4E3F-87A4-0192F0387C28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51432B4F-90CE-4E3F-87A4-0192F0387C28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51432B4F-90CE-4E3F-87A4-0192F0387C28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51432B4F-90CE-4E3F-87A4-0192F0387C28}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

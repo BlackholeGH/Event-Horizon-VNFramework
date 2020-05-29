@@ -140,8 +140,69 @@ namespace VNFramework
             Out.SetData(texdata);
             return Out;
         }
+        public static Boolean IsNumeric(Object T)
+        {
+            if(T is Int16 || T is Int32 || T is Int64 || T is float || T is double || T is Decimal) { return true; }
+            else { return false; }
+        }
+        public static object MultiAdd(object A, object B)
+        {
+            if(A is String || B is String)
+            {
+                return A.ToString() + B.ToString();
+            }
+            else if(IsNumeric(A) && IsNumeric(B))
+            {
+                Decimal Result = ((Decimal)A) + ((Decimal)B);
+                if(A is Decimal || B is Decimal) { return Result; }
+                else if (A is double || B is double) { return (double)Result; }
+                else if (A is float || B is float) { return (float)Result; }
+                else { return (int)Result; }
+            }
+            else { return "[Undefined addition operation]"; }
+        }
+        public static object MultiSubtract(object A, object B)
+        {
+            if (IsNumeric(A) && IsNumeric(B))
+            {
+                Decimal Result = ((Decimal)A) - ((Decimal)B);
+                if (A is Decimal || B is Decimal) { return Result; }
+                else if (A is double || B is double) { return (double)Result; }
+                else if (A is float || B is float) { return (float)Result; }
+                else { return (int)Result; }
+            }
+            else { return "[Undefined subtraction operation]"; }
+        }
+        public static object MultiMultiply(object A, object B)
+        {
+            if (IsNumeric(A) && IsNumeric(B))
+            {
+                Decimal Result = ((Decimal)A) * ((Decimal)B);
+                if (A is Decimal || B is Decimal) { return Result; }
+                else if (A is double || B is double) { return (double)Result; }
+                else if (A is float || B is float) { return (float)Result; }
+                else { return (int)Result; }
+            }
+            else { return "[Undefined multiplication operation]"; }
+        }
+        public static object MultiDivide(object A, object B)
+        {
+            if (IsNumeric(A) && IsNumeric(B))
+            {
+                Decimal Result = ((Decimal)A) / ((Decimal)B);
+                if (A is Decimal || B is Decimal) { return Result; }
+                else if (A is double || B is double) { return (double)Result; }
+                else if (A is float || B is float) { return (float)Result; }
+                else { return (int)Result; }
+            }
+            else { return "[Undefined division operation]"; }
+        }
         public static class Strings
         {
+            public static String Upperise(String In)
+            {
+                return In.ToUpper();
+            }
             public static String ReplaceExclosed(String Input, String Find, String Replace, char Encloser)
             {
                 Boolean Exclosed = true;
@@ -162,6 +223,31 @@ namespace VNFramework
                     }
                 }
                 return Input;
+            }
+            public static String ReplaceExclosedOutestTier(String Input, String Find, String Replace, char Encloser)
+            {
+                int First = Input.IndexOf(Encloser);
+                int Last = Input.LastIndexOf(Encloser);
+                if (First == Last) { return Input.Replace(Find, Replace); }
+                else
+                {
+                    for (int i = 0; i < Input.Length; i++)
+                    {
+                        if (Input[i] == Find[0] && (i < First && i > Last))
+                        {
+                            for (int ii = 0; ii < Find.Length; ii++)
+                            {
+                                if ((i + ii >= Input.Length) || !(Find[ii] == Input[i + ii])) { break; }
+                                if (ii == Find.Length - 1)
+                                {
+                                    Input = Input.Remove(i) + Replace + Input.Remove(0, i + ii + 1);
+                                    i += Replace.Length - 1;
+                                }
+                            }
+                        }
+                    }
+                    return Input;
+                }
             }
             public static int IndexOfExclosed(String Input, String ContainsString, char Encloser)
             {

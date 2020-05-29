@@ -103,7 +103,8 @@ namespace VNFramework
         }
         public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
         {
-            String SCA = VNFUtils.Strings.ReplaceExclosed(ScriptArchiveContent, "{{", ">", '\"');
+            String SCA = String.Join("\n", ScriptArchiveContent.Split('\n').Select(x => ((String)x).StartsWith("//") ? "" : x));
+            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "{{", ">", '\"');
             SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", ">", '\"');
             SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '>');
             SCA = SCA.Replace("\r", "");

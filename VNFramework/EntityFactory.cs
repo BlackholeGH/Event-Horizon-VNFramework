@@ -37,16 +37,26 @@ namespace VNFramework
         public static Object ReturnMemberOrFuncValue(String PathTree, WorldEntity PresumptiveEntity, Object ExplicitSet)
         {
             String DP = PathTree.TrimEnd(';');
+            String TempDP = VNFUtils.Strings.ReplaceExclosed(DP, "(", "@", '\"');
+            TempDP = VNFUtils.Strings.ReplaceExclosed(TempDP, ")", "@", '\"');
+            TempDP = VNFUtils.Strings.ReplaceExclosedOutestTier(TempDP, ".", "&", '@');
+            int Index = 0;
+            foreach(Char c in DP)
+            {
+                if (TempDP[Index] == '@' && (c == '(' || c == ')')) { TempDP = TempDP.Remove(Index) + c + TempDP.Remove(0, Index + 1); }
+                Index++;
+            }
+            DP = TempDP;
             Type SuperType = typeof(ScriptProcessor);
             String StaticMemberTree = DP;
             Object InstancedObject = null;
             if (PresumptiveEntity is null)
             {
-                if (DP.Contains("."))
+                if (DP.Contains("&"))
                 {
-                    String TypeToFind = DP.Remove(DP.LastIndexOf('.'));
-                    if(!TypeToFind.StartsWith("VNFramework.")) { TypeToFind = "VNFramework." + TypeToFind; }
-                    Type Find = Type.GetType(TypeToFind);
+                    String TypeToFind = DP.Remove(DP.LastIndexOf('&'));
+                    if(!TypeToFind.StartsWith("VNFramework&")) { TypeToFind = "VNFramework&" + TypeToFind; }
+                    Type Find = Type.GetType(VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"'));
                     if (Find != null) { SuperType = Find; }
                     while (!(SuperType.IsAbstract && SuperType.IsSealed))
                     {
@@ -55,9 +65,9 @@ namespace VNFramework
                             InstancedObject = Shell.DefaultShell;
                             break;
                         }
-                        TypeToFind = TypeToFind.Remove(TypeToFind.LastIndexOf('.'));
+                        TypeToFind = TypeToFind.Remove(TypeToFind.LastIndexOf('&'));
                         if(TypeToFind == "VNFramework" || TypeToFind.Length == 0) { break; }
-                        Find = Type.GetType(TypeToFind);
+                        Find = Type.GetType(VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"'));
                         if (Find != null) { SuperType = Find; }
                         else
                         {
@@ -65,16 +75,16 @@ namespace VNFramework
                             break;
                         }
                     }
-                    if(!DP.StartsWith("VNFramework.")) { TypeToFind = TypeToFind.Remove(0, 12); }
+                    if(!DP.StartsWith("VNFramework&")) { TypeToFind = TypeToFind.Remove(0, 12); }
                     StaticMemberTree = DP.Replace(TypeToFind, "");
-                    StaticMemberTree = StaticMemberTree.TrimStart('.');
+                    StaticMemberTree = StaticMemberTree.TrimStart('&');
                 }
             }
             else
             {
                 InstancedObject = PresumptiveEntity;
             }
-            String[] TreeElements = StaticMemberTree.Split('.');
+            String[] TreeElements = StaticMemberTree.Split('&');
             //Speculatively changed to 0, if this breaks anything set back to -1
             int Count = 0;
             foreach (String S in TreeElements)
@@ -209,6 +219,34 @@ namespace VNFramework
             }
             return InstancedObject != PresumptiveEntity ? InstancedObject : null;
         }
+        public static Boolean PerformsInternalOperation(String DataStatement)
+        {
+            if(VNFUtils.Strings.ContainsExclosed(DataStatement, '+', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '-', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '*', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '/', '\"')) { return true; }
+            else { return false; }
+        }
+        public static object[] ExtractStatementsAndOperators(String DataStatement)
+        {
+            ArrayList Out = new ArrayList();
+            while(PerformsInternalOperation(DataStatement))
+            {
+                int FirstOpLoc = -1;
+                char[] Operators = new char[] { '+', '-', '*', '/' };
+                foreach(char Opr in Operators)
+                {
+                    int Ind = VNFUtils.Strings.IndexOfExclosed(DataStatement, new String(new char[] { Opr }), '\"');
+                    if (Ind > 0 && (Ind < FirstOpLoc || FirstOpLoc < 0)) { FirstOpLoc = Ind; }
+                }
+                Out.Add(DataStatement.Remove(FirstOpLoc));
+                DataStatement = DataStatement.Remove(0, FirstOpLoc);
+                Out.Add(DataStatement[0]);
+                DataStatement = DataStatement.Remove(0, 1);
+            }
+            if (DataStatement.Length > 0) { Out.Add(DataStatement); }
+            return Out.ToArray();
+        }
         public static Object ParseRealData(String DataParameter)
         {
             try
@@ -218,7 +256,42 @@ namespace VNFramework
                 {
                     DP = DP.Remove(0, VNFUtils.Strings.IndexOfExclosed(DP, ")", '\"') + 1);
                 }
-                if (!(VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"')) && !(VNFUtils.Strings.ContainsExclosed(DP, '[', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ']', '\"')))
+                if(PerformsInternalOperation(DataParameter))
+                {
+                    object[] StatementsAndOps = ExtractStatementsAndOperators(DataParameter);
+                    for(int i = 0; i < StatementsAndOps.Length; i++)
+                    {
+                        if(StatementsAndOps[i] is String)
+                        {
+                            object TrueVal = ParseRealData((String)StatementsAndOps[i]);
+                            StatementsAndOps[i] = TrueVal;
+                        }
+                    }
+                    //Currently, the Entity factory's statement assembler does not process statements inside brackets first, and operations are performed left to right.
+                    if(StatementsAndOps.Length == 0) { return null; }
+                    object RunningTotal = StatementsAndOps[0];
+                    for(int i = 1; i < StatementsAndOps.Length; i += 2)
+                    {
+                        object Operand2 = StatementsAndOps[i + 1];
+                        switch(StatementsAndOps[i])
+                        {
+                            case '+':
+                                RunningTotal = VNFUtils.MultiAdd(RunningTotal, Operand2);
+                                break;
+                            case '-':
+                                RunningTotal = VNFUtils.MultiDivide(RunningTotal, Operand2);
+                                break;
+                            case '*':
+                                RunningTotal = VNFUtils.MultiMultiply(RunningTotal, Operand2);
+                                break;
+                            case '/':
+                                RunningTotal = VNFUtils.MultiDivide(RunningTotal, Operand2);
+                                break;
+                        }
+                    }
+                    return RunningTotal;
+                }
+                else if (!(VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"')) && !(VNFUtils.Strings.ContainsExclosed(DP, '[', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ']', '\"')))
                 {
                     if (DP[0] == '\"' && DP[DP.Length - 1] == '\"') { return DP.Substring(1, DP.Length - 2); }
                     else
@@ -302,7 +375,7 @@ namespace VNFramework
                         String IndexableIdentifier = DP.Remove(DP.IndexOf('['));
                         String IndexValue = DP.Remove(0, DP.IndexOf('[') + 1);
                         IndexValue = IndexValue.Remove(IndexValue.LastIndexOf(']'));
-                        Object TrueIndex = ReturnMemberOrFuncValue(IndexValue, null, null);
+                        Object TrueIndex = ParseRealData(IndexValue);
                         Object TrueDataStructure = ReturnMemberOrFuncValue(IndexableIdentifier, null, null);
                         Object IndexPull = null;
                         if (TrueDataStructure is IList && TrueIndex is int)
@@ -360,7 +433,15 @@ namespace VNFramework
             if(BroadSearch)
             {
                 ArrayList TheseTypes = new ArrayList();
-                foreach(Assembly ThisAssembly in AppDomain.CurrentDomain.GetAssemblies())
+                Assembly[] RawAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                ArrayList OrderedAssemblies = new ArrayList();
+                OrderedAssemblies.Add(Assembly.GetExecutingAssembly());
+                OrderedAssemblies.Add(typeof(Game).Assembly);
+                foreach(Assembly A in RawAssemblies)
+                {
+                    if(!OrderedAssemblies.Contains(A)) { OrderedAssemblies.Add(A); }
+                }
+                foreach (Assembly ThisAssembly in OrderedAssemblies)
                 {
                     foreach (Type AssType in ThisAssembly.GetTypes())
                     {
