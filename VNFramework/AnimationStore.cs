@@ -412,6 +412,15 @@ namespace VNFramework
                     Temp.WriteRotation(BFrames);
                     Out = Temp;
                     break;
+                case "RIGHTLEFT":
+                    Temp = new Animation("rightleft");
+                    BFrames = Animation.CreateVectorTween(new Vector2(200, 0), 2000, 20);
+                    TempFrames = Animation.CreateVectorTween(new Vector2(-200, 0), 2000, 20);
+                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
+                    Temp.WriteMovement(BFrames);
+                    Temp.Loop = true;
+                    Out = Temp;
+                    break;
             }
             return Out;
         }

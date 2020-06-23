@@ -335,22 +335,20 @@ namespace VNFramework
                 if (Engaged)
                 {
                     AtlasCoordinates.X = 2;
-                    Vector2 COffsetV = new Vector2();
-                    Vector2 CZoomFactor = new Vector2(1, 1);
+                    Camera MyCam = new Camera("");
+                    Vector2 FullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position));
                     if (!CameraImmune)
                     {
                         if (CustomCamera != null)
                         {
-                            COffsetV = CustomCamera.OffsetVector;
-                            CZoomFactor = CustomCamera.ZoomFactor;
+                            MyCam = CustomCamera;
                         }
                         else if (Shell.AutoCamera != null)
                         {
-                            COffsetV = Shell.AutoCamera.OffsetVector;
-                            CZoomFactor = Shell.AutoCamera.ZoomFactor;
+                            MyCam = Shell.AutoCamera;
                         }
+                        FullyAdjustedMouseCoords = MyCam.TranslateCoordsToEquivalent(FullyAdjustedMouseCoords);
                     }
-                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
                     Vector2 MouseDerived = CalculatePerpendicularIntersection(EndpointA, EndpointB, FullyAdjustedMouseCoords);
                     float GreatestX = EndpointB.X >= EndpointA.X ? EndpointB.X : EndpointA.X;
                     float LeastX = EndpointB.X >= EndpointA.X ? EndpointA.X : EndpointB.X;

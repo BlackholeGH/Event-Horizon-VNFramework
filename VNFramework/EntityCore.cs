@@ -13,7 +13,7 @@ using System.Runtime.Serialization;
 
 namespace VNFramework
 {
-    
+
     /// <summary>
     /// The base entity class for all objects that can be added to the VNF game environment, and which function with the Shell's update and render queues.
     /// </summary>
@@ -37,7 +37,7 @@ namespace VNFramework
         public Boolean Clickable { get { return pClickable; } }
         protected Vector2 pOrigin = new Vector2();
         protected Boolean pCO = false;
-        protected ColourShift pColour = new ColourShift(255f,255f,255f,255f);
+        protected ColourShift pColour = new ColourShift(255f, 255f, 255f, 255f);
         public Color ColourValue
         {
             get
@@ -58,7 +58,7 @@ namespace VNFramework
         public TAtlasInfo Atlas { get { return LocalAtlas; } }
         public Boolean SetAtlasFrame(Point Coords)
         {
-            if(Coords.X < LocalAtlas.DivDimensions.X && Coords.Y < LocalAtlas.DivDimensions.Y)
+            if (Coords.X < LocalAtlas.DivDimensions.X && Coords.Y < LocalAtlas.DivDimensions.Y)
             {
                 AtlasCoordinates = Coords;
                 return true;
@@ -78,7 +78,7 @@ namespace VNFramework
             set
             {
                 pCO = value;
-                if(pCO == true)
+                if (pCO == true)
                 {
                     pOrigin = VNFUtils.ConvertPoint(HitBox.Size) / 2;
                 }
@@ -92,14 +92,14 @@ namespace VNFramework
         public void GiveClickFunction(VoidDel Func)
         {
             pClickable = true;
-            MLC = delegate () { if (MouseInBounds() && !SuppressClickable) { Func(); }  };
+            MLC = delegate () { if (MouseInBounds() && !SuppressClickable) { Func(); } };
             Shell.MouseLeftClick += MLC;
         }
         private Texture2D SerializationBackup = null;
         public virtual void OnSerializeDo()
         {
-            foreach(Animation A in AnimationQueue) { A.TimeHang(); }
-            if(LocalAtlas.ReferenceHash == "" || LocalAtlas.ReferenceHash == null)
+            foreach (Animation A in AnimationQueue) { A.TimeHang(); }
+            if (LocalAtlas.ReferenceHash == "" || LocalAtlas.ReferenceHash == null)
             {
                 SerializationBackup = LocalAtlas.Atlas;
             }
@@ -113,17 +113,17 @@ namespace VNFramework
             }
             if (!(this is Button))
             {
-                if(MLCRecord.Length > 0)
+                if (MLCRecord.Length > 0)
                 {
                     GiveClickFunction(ButtonScripts.DelegateFetch(MLCRecord[0]));
                 }
             }
-            if(SerializationBackup != null)
+            if (SerializationBackup != null)
             {
                 LocalAtlas.Atlas = SerializationBackup;
                 SerializationBackup = null;
             }
-            else if(LocalAtlas.ReferenceHash != "" && LocalAtlas.ReferenceHash != null)
+            else if (LocalAtlas.ReferenceHash != "" && LocalAtlas.ReferenceHash != null)
             {
                 LocalAtlas.Atlas = ((TAtlasInfo)Shell.AtlasDirectory[LocalAtlas.ReferenceHash]).Atlas;
             }
@@ -135,7 +135,7 @@ namespace VNFramework
             {
                 Point Size = new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y));
                 if (!pCO) { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y), Size); }
-                else { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y)-new Point(Size.X/2, Size.Y/2), Size); }
+                else { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - new Point(Size.X / 2, Size.Y / 2), Size); }
                 return pHitBox;
             }
             set { pHitBox = value; }
@@ -143,7 +143,7 @@ namespace VNFramework
         public ArrayList AnimationQueue { get; set; }
         public override bool Equals(object obj)
         {
-            if(obj is WorldEntity) { return Equals((WorldEntity)obj); }
+            if (obj is WorldEntity) { return Equals((WorldEntity)obj); }
             else { return false; }
         }
         public override int GetHashCode()
@@ -152,17 +152,17 @@ namespace VNFramework
         }
         public Boolean Equals(WorldEntity B)
         {
-            if(B is null) { return false; }
-            if(B.EntityID == pEntityID) { return true; }
+            if (B is null) { return false; }
+            if (B.EntityID == pEntityID) { return true; }
             else { return false; }
         }
-        public static Boolean operator== (WorldEntity A, WorldEntity B)
+        public static Boolean operator ==(WorldEntity A, WorldEntity B)
         {
-            if(A is null && B is null) { return true; }
+            if (A is null && B is null) { return true; }
             else if (A is null ^ B is null) { return false; }
             return A.Equals(B);
         }
-        public static Boolean operator!= (WorldEntity A, WorldEntity B)
+        public static Boolean operator !=(WorldEntity A, WorldEntity B)
         {
             if (A is null && B is null) { return false; }
             else if (A is null ^ B is null) { return true; }
@@ -170,13 +170,20 @@ namespace VNFramework
         }
         public virtual void MouseLeftClick()
         {
-        
+
         }
+        public Vector2 PseudoMouse { get; set; }
+        public Boolean UsePseudoMouse { get; set; }
         public Boolean MouseInBounds()
         {
             var MouseState = Mouse.GetState();
             //return HitBox.Contains(new Vector2(MouseState.X, MouseState.Y));
-            Vector2 NormalizedMouseVector = Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y));
+            Vector2 NormalizedMouseVector;
+            if (UsePseudoMouse)
+            {
+                NormalizedMouseVector = PseudoMouse;
+            }
+            else { NormalizedMouseVector = Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)); }
             return TextureAwareInBounds(NormalizedMouseVector);
         }
         public Boolean TextureAwareInBounds(Vector2 V)
@@ -186,13 +193,11 @@ namespace VNFramework
             {
                 if (CustomCamera != null)
                 {
-                    ZoomFactor = CustomCamera.ZoomFactor;
-                    V = ((V / ZoomFactor) - (CustomCamera.OffsetVector));
+                    V = CustomCamera.TranslateCoordsToEquivalent(V);
                 }
                 else if (Shell.AutoCamera != null)
                 {
-                    ZoomFactor = Shell.AutoCamera.ZoomFactor;
-                    V = ((V / ZoomFactor) - (Shell.AutoCamera.OffsetVector));
+                    V = Shell.AutoCamera.TranslateCoordsToEquivalent(V);
                 }
             }
             if (HitBox.Contains(V))
@@ -488,6 +493,10 @@ namespace VNFramework
             ZoomLevel = 0d;
             pScale = new Vector2(1, 1);
         }
+        public Vector2 TranslateCoordsToEquivalent(Vector2 GlobalCoords)
+        {
+            return (GlobalCoords / ZoomFactor) - OffsetVector;
+        }
         public Camera(String Name) : base(Name, (new Vector2(1280, 720) / 2), null, 1)
         {
             MouseDragEnabled = false;
@@ -533,6 +542,150 @@ namespace VNFramework
                 if (MouseDragging) { MouseDragging = false; }
                 if (ZoomOpen) { ZoomOpen = false; }
             }
+        }
+    }
+    public class Pane : WorldEntity
+    {
+        public Camera DefaultPaneCamera { get; set; }
+        ArrayList UpdateQueue { get; set; }
+        ArrayList RenderQueue { get; set; }
+        ArrayList DeleteQueue { get; set; }
+        public Color BackgroundColor { get; set; }
+        public GraphicsDevice GraphicsDevice { get; set; }
+        RenderTarget2D pRenderPane;
+        public void AddUpdate(WorldEntity E)
+        {
+            E.CustomCamera = DefaultPaneCamera;
+            E.UsePseudoMouse = true;
+            UpdateQueue.Add(E);
+        }
+        public void AddRender(WorldEntity E)
+        {
+            E.CustomCamera = DefaultPaneCamera;
+            E.UsePseudoMouse = true;
+            RenderQueue.Add(E);
+        }
+        public void AddDelete(WorldEntity E)
+        {
+            DeleteQueue.Add(E);
+        }
+        public RenderTarget2D RenderPane
+        {
+            get { return pRenderPane; }
+        }
+        Point PaneBaseSize;
+        public Pane(String Name, Vector2 Location, float Depth, Point PaneSize, Color BackgroundCol, GraphicsDevice MyGraphicsDevice) : base(Name, Location, null, Depth)
+        {
+            BackgroundColor = BackgroundCol;
+            GraphicsDevice = MyGraphicsDevice;
+            PaneBaseSize = PaneSize;
+            pClickable = true;
+            DefaultPaneCamera = new Camera("CAMERA_PANE_" + Name);
+            UpdateQueue = new ArrayList();
+            RenderQueue = new ArrayList();
+            DeleteQueue = new ArrayList();
+            RenderAlways = true;
+            AllowInternalInteracts = true;
+            Render();
+        }
+        public Boolean AllowInternalInteracts { get; set; }
+        public override void MouseLeftClick()
+        {
+            if(AllowInternalInteracts && MouseInBounds())
+            {
+                var MouseState = Mouse.GetState();
+                Vector2 LocalPosition = LocalCoords(Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)));
+                foreach (WorldEntity E in UpdateQueue)
+                {
+                    E.PseudoMouse = LocalPosition;
+                    if (E.MouseInBounds()) { E.MouseLeftClick(); }
+                }
+            }
+            base.MouseLeftClick();
+        }
+        ~Pane()
+        {
+            Clear();
+        }
+        public Vector2 LocalCoords(Vector2 GlobalCoords)
+        {
+            Vector2 V = GlobalCoords;
+            Vector2 ZoomFactor = new Vector2(1, 1);
+            if (!CameraImmune)
+            {
+                if (CustomCamera != null)
+                {
+                    V = CustomCamera.TranslateCoordsToEquivalent(V);
+                }
+                else if (Shell.AutoCamera != null)
+                {
+                    V = Shell.AutoCamera.TranslateCoordsToEquivalent(V);
+                }
+            }
+            return V - pDrawCoords;
+        }
+        public void Clear()
+        {
+            foreach (WorldEntity E in UpdateQueue)
+            {
+                DeleteQueue.Add(E);
+            }
+            foreach (WorldEntity E in RenderQueue)
+            {
+                DeleteQueue.Add(E);
+            }
+            foreach (WorldEntity E in DeleteQueue)
+            {
+                if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
+                if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+            }
+            DeleteQueue = new ArrayList();
+        }
+        Vector2 PanePseudoMouse = new Vector2();
+        public Boolean RenderAlways { get; set; }
+        public override void Update()
+        {
+            if (AllowInternalInteracts)
+            {
+                var MouseState = Mouse.GetState();
+                PanePseudoMouse = LocalCoords(Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)));
+            }
+            else { PanePseudoMouse = new Vector2(float.NaN, float.NaN); }
+            foreach(WorldEntity E in UpdateQueue)
+            {
+                E.PseudoMouse = PanePseudoMouse;
+                E.Update();
+            }
+            foreach (WorldEntity E in DeleteQueue)
+            {
+                if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
+                if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+            }
+            DeleteQueue = new ArrayList();
+            if (RenderAlways) { Render(); }
+            base.Update();
+        }
+        public void Render()
+        {
+            pRenderPane = new RenderTarget2D(GraphicsDevice, PaneBaseSize.X, PaneBaseSize.Y, false,
+                GraphicsDevice.PresentationParameters.BackBufferFormat,
+                DepthFormat.Depth24);
+            GraphicsDevice.SetRenderTarget(pRenderPane);
+            GraphicsDevice.Clear(BackgroundColor);
+            SpriteBatch spriteBatch = new SpriteBatch(GraphicsDevice);
+            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+            foreach (WorldEntity E in RenderQueue)
+            {
+                if (E.Drawable)
+                {
+                    if (E.CustomCamera != null) { E.Draw(spriteBatch, E.CustomCamera); }
+                    else { E.Draw(spriteBatch, DefaultPaneCamera); }
+                }
+            }
+            spriteBatch.End();
+            LocalAtlas = new TAtlasInfo();
+            LocalAtlas.Atlas = RenderPane;
+            LocalAtlas.DivDimensions = new Point(1, 1);
         }
     }
     /// <summary>
