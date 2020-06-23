@@ -483,7 +483,7 @@ namespace VNFramework
         {
             get { return pBootManifestReadTitle; }
         }
-        protected async Task<object[]> AsyncLoad()
+        protected object[] AsyncLoad()
         {  
             WriteLine("Preload complete, loading remaining content...");
             ScriptProcessor.ScriptCache = new Hashtable();
@@ -610,7 +610,8 @@ namespace VNFramework
             LoadGraphicsQueue = new Queue();
             LoadPercentage = 0f;
 
-            LoadOperation = Task.Run(AsyncLoad);
+            LoadOperation = new Task<object[]>(AsyncLoad);
+            LoadOperation.Start();
         }
         protected Task<object[]> LoadOperation = null;
         /// <summary>

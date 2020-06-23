@@ -309,7 +309,6 @@ namespace VNFramework
                         break;
                     default:
                         throw new SaveLoadException("Error parsing save file: Unknown save format was specified.");
-                        break;
                 }
             }
             else { throw new SaveLoadException("Error parsing save file: File format not specified."); }

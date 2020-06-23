@@ -14,8 +14,17 @@ using System.Reflection;
 
 namespace VNFramework
 {
+    /// <summary>
+    /// The EntityFactory class contains methods that allow objects or delegates to be constructed, or functions to be executed, from String input.
+    /// It constitutes what is essentially a rudimentary code interpreter to augment the VNF scripting system.
+    /// </summary>
     public static class EntityFactory
     {        
+        /// <summary>
+        /// Returns a method identifier and "true" parsed parameter values from a String.
+        /// </summary>
+        /// <param name="MethodOrConstructorData">The method or constructor definition as a String.</param>
+        /// <returns></returns>
         public static Object[] ExtractMethodValues(String MethodOrConstructorData)
         {
             String IsolatedIdentifier = MethodOrConstructorData.Remove(MethodOrConstructorData.IndexOf('('));
@@ -24,6 +33,11 @@ namespace VNFramework
             Object[] TrueParameters = ParseDataList(IsolatedParamList);
             return new Object[] { IsolatedIdentifier, TrueParameters };
         }
+        /// <summary>
+        /// Returns an array of parsed data from a String formatted as a list, comma separated.
+        /// </summary>
+        /// <param name="DataList">Data formatted as a comma-separated list String.</param>
+        /// <returns></returns>
         public static Object[] ParseDataList(String DataList)
         {
             String[] PriorToParse = VNFUtils.Strings.SplitAtExclosed(DataList, ',', '(', ')', '\"');
@@ -34,6 +48,13 @@ namespace VNFramework
             }
             return Out;
         }
+        /// <summary>
+        /// Returns or sets the value of a member or method of a given class from a String input.
+        /// </summary>
+        /// <param name="PathTree">The class/method/member path.</param>
+        /// <param name="PresumptiveEntity">An initial WorldEntity instance on which to perform the path tree search.</param>
+        /// <param name="ExplicitSet">If non-null, the specified instance member will be set to this object or value.</param>
+        /// <returns></returns>
         public static Object ReturnMemberOrFuncValue(String PathTree, WorldEntity PresumptiveEntity, Object ExplicitSet)
         {
             String DP = PathTree.TrimEnd(';');
@@ -55,9 +76,14 @@ namespace VNFramework
                 if (DP.Contains("&"))
                 {
                     String TypeToFind = DP.Remove(DP.LastIndexOf('&'));
-                    if(!TypeToFind.StartsWith("VNFramework&")) { TypeToFind = "VNFramework&" + TypeToFind; }
-                    Type Find = Type.GetType(VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"'));
+                    if(!TypeToFind.StartsWith("VNFramework&") && !TypeToFind.StartsWith("System&")) { TypeToFind = "VNFramework&" + TypeToFind; }
+                    String TrueTTF = VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"');
+                    TrueTTF = TrueTTF.Replace("\\+", "+");
+                    Type Find = typeof(Shell).Assembly.GetType(TrueTTF);
+                    if (Find == null) { Find = Type.GetType(TrueTTF); }
+                    if (Find == null) { Find = typeof(System.Type).Assembly.GetType(TrueTTF); }
                     if (Find != null) { SuperType = Find; }
+                    String TTFPreStaticSearch = TypeToFind;
                     while (!(SuperType.IsAbstract && SuperType.IsSealed))
                     {
                         if(SuperType == typeof(Shell))
@@ -66,7 +92,11 @@ namespace VNFramework
                             break;
                         }
                         TypeToFind = TypeToFind.Remove(TypeToFind.LastIndexOf('&'));
-                        if(TypeToFind == "VNFramework" || TypeToFind.Length == 0) { break; }
+                        if(TypeToFind == "VNFramework" || TypeToFind.Length == 0)
+                        {
+                            TypeToFind = TTFPreStaticSearch;
+                            break;
+                        }
                         Find = Type.GetType(VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"'));
                         if (Find != null) { SuperType = Find; }
                         else
@@ -75,8 +105,8 @@ namespace VNFramework
                             break;
                         }
                     }
-                    if(!DP.StartsWith("VNFramework&")) { TypeToFind = TypeToFind.Remove(0, 12); }
-                    StaticMemberTree = DP.Replace(TypeToFind, "");
+                    if(!DP.StartsWith("VNFramework&") && TypeToFind.StartsWith("VNFramework&")) { TypeToFind = TypeToFind.Remove(0, 12); }
+                    if (TypeToFind.Length > 0) { StaticMemberTree = VNFUtils.Strings.ReplaceExclosed(DP, TypeToFind, "", '('); }
                     StaticMemberTree = StaticMemberTree.TrimStart('&');
                 }
             }
@@ -85,11 +115,16 @@ namespace VNFramework
                 InstancedObject = PresumptiveEntity;
             }
             String[] TreeElements = StaticMemberTree.Split('&');
-            //Speculatively changed to 0, if this breaks anything set back to -1
             int Count = 0;
             foreach (String S in TreeElements)
             {
                 Count++;
+                /*
+                 * Currently, a function return is assumed to be at the end of a parse tree.
+                 * The entity factory interpreter isn't really designed to handle consecutive function calls (nested are fine, and are what this is for).
+                 * However, future changes to allow this are likely possible by setting InstancedObject to the return from the Invoke calls instead of simply returning them.
+                 * Doing that might just work out of the box, but I don't want to try it now and end up breaking this code again.
+                 */
                 if (S.Contains("(") && S.Contains(")"))
                 {
                     String IsolatedIdentifier = S.Remove(S.IndexOf('('));
@@ -106,7 +141,9 @@ namespace VNFramework
                                 int i = 0;
                                 foreach(ParameterInfo pi in me.GetParameters())
                                 {
-                                    if (!CanConvert(pi.ParameterType, TrueParameters[i].GetType()))
+                                    Type ParamType = pi.ParameterType;
+                                    Type GivenType = TrueParameters[i].GetType();
+                                    if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
                                     {
                                         InvocationFlag = false;
                                         break;
@@ -127,7 +164,9 @@ namespace VNFramework
                                 int i = 0;
                                 foreach (ParameterInfo pi in me.GetParameters())
                                 {
-                                    if (!CanConvert(pi.ParameterType, TrueParameters[i].GetType()))
+                                    Type ParamType = pi.ParameterType;
+                                    Type GivenType = TrueParameters[i].GetType();
+                                    if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
                                     {
                                         InvocationFlag = false;
                                         break;
@@ -217,16 +256,28 @@ namespace VNFramework
                     }
                 }
             }
+            #pragma warning disable CS0252 // Possible unintended reference comparison; left hand side needs cast
             return InstancedObject != PresumptiveEntity ? InstancedObject : null;
+            #pragma warning restore CS0252 // Possible unintended reference comparison; left hand side needs cast
         }
+        /// <summary>
+        /// Returns true if a String statement contains an internal basic data operator.
+        /// </summary>
+        /// <param name="DataStatement">A statement expressed as a String.</param>
+        /// <returns></returns>
         public static Boolean PerformsInternalOperation(String DataStatement)
         {
-            if(VNFUtils.Strings.ContainsExclosed(DataStatement, '+', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '-', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '*', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement, '/', '\"')) { return true; }
+            if(VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\+", ""), '+', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\-", ""), '-', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\*", ""), '*', '\"')) { return true; }
+            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\/", ""), '/', '\"')) { return true; }
             else { return false; }
         }
+        /// <summary>
+        /// Splits a single String statement into an array of substatements and internal data operators.
+        /// </summary>
+        /// <param name="DataStatement">A statement expressed as a String.</param>
+        /// <returns></returns>
         public static object[] ExtractStatementsAndOperators(String DataStatement)
         {
             ArrayList Out = new ArrayList();
@@ -237,6 +288,12 @@ namespace VNFramework
                 foreach(char Opr in Operators)
                 {
                     int Ind = VNFUtils.Strings.IndexOfExclosed(DataStatement, new String(new char[] { Opr }), '\"');
+                    String NewSearch = DataStatement;
+                    while (Ind > 0 && DataStatement[Ind - 1] == '\\')
+                    {
+                        NewSearch = NewSearch.Remove(Ind) + "@" + NewSearch.Remove(0, Ind+1);
+                        Ind = VNFUtils.Strings.IndexOfExclosed(NewSearch, new String(new char[] { Opr }), '\"');
+                    }
                     if (Ind > 0 && (Ind < FirstOpLoc || FirstOpLoc < 0)) { FirstOpLoc = Ind; }
                 }
                 Out.Add(DataStatement.Remove(FirstOpLoc));
@@ -247,10 +304,16 @@ namespace VNFramework
             if (DataStatement.Length > 0) { Out.Add(DataStatement); }
             return Out.ToArray();
         }
+        /// <summary>
+        /// Parses data from a single statement formatted as a String, including interpreting and resolving instant declarations and nested functions.
+        /// </summary>
+        /// <param name="DataParameter">Data in a String format.</param>
+        /// <returns></returns>
         public static Object ParseRealData(String DataParameter)
         {
             try
             {
+                if(DataParameter.Length == 0) { return null; }
                 String DP = DataParameter.Replace(";", "");
                 if (DP[0] == '(' && DP.Contains(")"))
                 {
@@ -391,16 +454,28 @@ namespace VNFramework
                 }
                 return null;
             }
-            catch (ArgumentException E) { return null; }
+            catch (ArgumentException) { return null; }
         }
+        /// <summary>
+        /// Dynamically constructs a WorldEntity or subclass based on the type name and provided constructor arguments.
+        /// </summary>
+        /// <param name="TypeName">The simple name of a WorldEntity type.</param>
+        /// <param name="ConstructorArgs">An array of constructor arguments.</param>
+        /// <returns></returns>
         public static WorldEntity ConstructDynamicWorldEntity(String TypeName, Object[] ConstructorArgs)
         {
+            TypeName = TypeName.Replace("\\+", "+");
             if (!TypeName.ToUpper().Contains("VNFRAMEWORK.")) { TypeName = "VNFramework." + TypeName; }
             if (TypeName.ToUpper() != "VNFRAMEWORK.WORLDENTITY")
             {
                 if(TypeName.Contains(".")) { TypeName = TypeName.Remove(0, TypeName.LastIndexOf('.') + 1); }
                 Assembly ThisAssembly = Assembly.GetExecutingAssembly();
+                Assembly VNFAssembly = typeof(Shell).Assembly;
                 Type[] TheseTypes = ThisAssembly.GetTypes();
+                if(ThisAssembly != VNFAssembly)
+                {
+                    TheseTypes = TheseTypes.Concat(VNFAssembly.GetTypes()).ToArray();
+                }
                 foreach(Type T in TheseTypes)
                 {
                     if(T.IsSubclassOf(typeof(WorldEntity)) && T.Name == TypeName)
@@ -412,6 +487,12 @@ namespace VNFramework
             }
             return (WorldEntity)ConstructDynamicObject(TypeName, ConstructorArgs, false);
         }
+        /// <summary>
+        /// Returns true if two types can be (directly) interconverted.
+        /// </summary>
+        /// <param name="Type1">The first type.</param>
+        /// <param name="Type2">The second type.</param>
+        /// <returns></returns>
         public static Boolean CanConvert(Type Type1, Type Type2)
         {
             Type PosNul1 = Nullable.GetUnderlyingType(Type1);
@@ -419,25 +500,32 @@ namespace VNFramework
             if (PosNul1 != null) { Type1 = PosNul1; }
             if (PosNul2 != null) { Type2 = PosNul2; }
             if (Type1 == Type2) { return true; }
-            Boolean CConvert = false;
             try
             {
                 Convert.ChangeType(Activator.CreateInstance(Type1), Type2);
-                CConvert = true;
+                return true;
             }
-            catch (Exception e) { }
-            return CConvert;
+            catch (Exception) { return false; }
         }
+        /// <summary>
+        /// Dynamically constructs and returns an object based on the type name and constructor arguments.
+        /// </summary>
+        /// <param name="TypeName">Either a qualified type name, or a simple type name to search for.</param>
+        /// <param name="ConstructorArgs">Arguments for the type constructor.</param>
+        /// <param name="BroadSearch">If true, the type name will be used as a search paramter and all project assemblies will be searched for a matching type name.</param>
+        /// <returns></returns>
         public static Object ConstructDynamicObject(String TypeName, Object[] ConstructorArgs, Boolean BroadSearch)
         {
-            if(BroadSearch)
+            TypeName = TypeName.Replace("\\+", "+");
+            if (BroadSearch)
             {
                 ArrayList TheseTypes = new ArrayList();
                 Assembly[] RawAssemblies = AppDomain.CurrentDomain.GetAssemblies();
                 ArrayList OrderedAssemblies = new ArrayList();
                 OrderedAssemblies.Add(Assembly.GetExecutingAssembly());
+                OrderedAssemblies.Add(typeof(Shell).Assembly);
                 OrderedAssemblies.Add(typeof(Game).Assembly);
-                foreach(Assembly A in RawAssemblies)
+                foreach (Assembly A in RawAssemblies)
                 {
                     if(!OrderedAssemblies.Contains(A)) { OrderedAssemblies.Add(A); }
                 }
@@ -481,6 +569,13 @@ namespace VNFramework
             }
             return null;
         }
+        /// <summary>
+        /// Processes an entity factory command, either creating or ammending a constructed WorldEntity.
+        /// </summary>
+        /// <param name="SchemeParams">The paramters/definition for the current scheme; the operation to be performed in the factory, as a String.</param>
+        /// <param name="Identifier">An optional scheme identifier String, to specify unique operations such as new entity creation or retrieval of existing entities.</param>
+        /// <param name="CurrentEnt">The current working WorldEntity. Null if there is no current entity.</param>
+        /// <returns></returns>
         public static WorldEntity Process(String SchemeParams, String Identifier, WorldEntity CurrentEnt)
         {
             if(Identifier == "new")
@@ -529,6 +624,11 @@ namespace VNFramework
                 return CurrentEnt;
             }
         }
+        /// <summary>
+        /// Assembles a WorldEntity object based on a String schema/blueprint.
+        /// </summary>
+        /// <param name="Schema">The String "blueprint" for a WorldEntity.</param>
+        /// <returns></returns>
         public static WorldEntity Assemble(String Schema)
         {
             WorldEntity ConstructedEntity = null;
@@ -544,6 +644,11 @@ namespace VNFramework
             }
             return ConstructedEntity;
         }
+        /// <summary>
+        /// Assmbles an anonymous delegate void of delegate type VoidDel based on a given String schema/blueprint.
+        /// </summary>
+        /// <param name="Schema">A blueprint for the delegate to be created.</param>
+        /// <returns></returns>
         public static VoidDel AssembleVoidDelegate(String Schema)
         {
             VoidDel NewVoidDelegate = new VoidDel(delegate() { });

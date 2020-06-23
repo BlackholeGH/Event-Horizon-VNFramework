@@ -141,6 +141,15 @@ namespace VNFramework
             set { pHitBox = value; }
         }
         public ArrayList AnimationQueue { get; set; }
+        public override bool Equals(object obj)
+        {
+            if(obj is WorldEntity) { return Equals((WorldEntity)obj); }
+            else { return false; }
+        }
+        public override int GetHashCode()
+        {
+            return (int)(EntityID % (UInt32.MaxValue - Int32.MaxValue));
+        }
         public Boolean Equals(WorldEntity B)
         {
             if(B is null) { return false; }
@@ -226,9 +235,9 @@ namespace VNFramework
         public WorldEntity(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth)
         {
             pEntityID = IDIterator;
+            IDIterator++;
             TransientAnimation = false;
             ManualHorizontalFlip = false;
-            IDIterator++;
             pName = Name;
             pDrawCoords = Location;
             LayerDepth = Depth;
@@ -689,7 +698,6 @@ namespace VNFramework
             Vector2 LinebreakAmmendment = new Vector2(); //Vector representing the degree to which all subsequent text chunks should be additionally shifted due to manual line breaks
             ArrayList RebuildChunks = new ArrayList(); //The new set of chunks broken up correctly to include line breaks
             ArrayList NewChunkRegistry = new ArrayList(); //Collection of new text chunks created by auto-inserted line breaks, that will be depopulated as they are processed
-            Boolean TCOn = false;
             int i = 0;
             while(i < Initial.Length || NewChunkRegistry.Count > 0)
             {
@@ -716,7 +724,6 @@ namespace VNFramework
                     RollingLocationMod = new Vector2(RollingLocationMod.X - CurrentPixelTotal, RollingLocationMod.Y + (int)TC.Font.MeasureString(" ").Y);
                     LinebreakAmmendment += new Vector2(-CurrentPixelTotal, (int)TC.Font.MeasureString(" ").Y);
                     CurrentPixelTotal = 0;
-                    TCOn = true;
                     TC.Linebreak = false;
                     Initial[i].Linebreak = false;
                 }

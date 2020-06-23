@@ -197,6 +197,23 @@ namespace VNFramework
             }
             else { return "[Undefined division operation]"; }
         }
+        public static class SysProperties
+        {
+            public static String DayOfWeek
+            {
+                get
+                {
+                    return System.DateTime.Now.DayOfWeek.ToString();
+                }
+            }
+            public static String Time
+            {
+                get
+                {
+                    return System.DateTime.Now.ToString("hh:mm tt");
+                }
+            }
+        }
         public static class Strings
         {
             public static String Upperise(String In)
@@ -233,7 +250,7 @@ namespace VNFramework
                 {
                     for (int i = 0; i < Input.Length; i++)
                     {
-                        if (Input[i] == Find[0] && (i < First && i > Last))
+                        if (Input[i] == Find[0] && (i < First || i > Last))
                         {
                             for (int ii = 0; ii < Find.Length; ii++)
                             {

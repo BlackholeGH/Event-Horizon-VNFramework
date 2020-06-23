@@ -183,7 +183,7 @@ namespace VNFramework
                             RectDims[i - 1] = Convert.ToInt32(ATLParams[i]);
                         }
                     }
-                    catch (FormatException E) { throw new ManifestReaderException("Manifest is invalid: Texture extraction bounds are in an incorrect format."); }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Texture extraction bounds are in an incorrect format."); }
                     Task<Texture2D> NewGTask = new Task<Texture2D>(() =>
                     {
                         return VNFUtils.ExtractTexture(MyShell, Stem, new Rectangle(RectDims[0], RectDims[1], RectDims[2], RectDims[3]));
@@ -220,7 +220,7 @@ namespace VNFramework
                         X = Convert.ToInt32(Divs[0]);
                         Y = Convert.ToInt32(Divs[1]);
                     }
-                    catch (FormatException E) { throw new ManifestReaderException("Manifest is invalid: Texture division sizes are in an incorrect format."); }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Texture division sizes are in an incorrect format."); }
                     TexAssembly.DivDimensions = new Point(X, Y);
                 }
                 else if (EntrySegment[i].ToUpper().StartsWith("FL:"))
@@ -236,7 +236,7 @@ namespace VNFramework
                         X = Convert.ToInt32(FrameDivs[0]);
                         Y = Convert.ToInt32(FrameDivs[1]);
                     }
-                    catch (FormatException E) { throw new ManifestReaderException("Manifest is invalid: Texture division sizes are in an incorrect format."); }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Texture division sizes are in an incorrect format."); }
                     TexAssembly.FrameLookup.Add(FrameKey, new Point(X, Y));
                 }
             }
