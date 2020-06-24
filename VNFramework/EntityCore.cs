@@ -248,6 +248,7 @@ namespace VNFramework
             LayerDepth = Depth;
             CustomCamera = null;
             CameraImmune = false;
+            InitStateHash();
             PseudoMouse = new Vector2(float.NaN, float.NaN);
             if (Atlas != null)
             {
@@ -290,11 +291,44 @@ namespace VNFramework
                 pDrawable = value;
             }
         }
+        /// <summary>
+        /// The EntityStates hashtable contains information about different ways a WorldEntity is behaving, such as how it is moving or shifting in the world. This can be used as a reference for animation controllers.
+        /// </summary>
+        public Hashtable EntityStates
+        {
+            get
+            {
+                Hashtable StatesCopy;
+                lock(pStateHash.SyncRoot)
+                {
+                    StatesCopy = (Hashtable)pStateHash.Clone();
+                }
+                return StatesCopy;
+            }
+        }
+        private Hashtable pStateHash = new Hashtable();
+
+        private void InitStateHash()
+        {
+            String[] State = new String[] { "NORTHSOUTH", "EASTWEST", "ROTATION", "SCALEHORIZ", "SCALEVERT", "RED", "GREEN", "BLUE", "ALPHA" };
+            lock (pStateHash.SyncRoot)
+            {
+                foreach (String S in State)
+                {
+                    pStateHash.Add(S, new object[] { 0f, 0 });
+                }
+            }
+        }
         public ArrayList Stickers { get; set; }
         public void Move(Vector2 V)
         {
             pDrawCoords += V;
-            if(Stickers != null && Stickers.Count > 0)
+            lock (pStateHash.SyncRoot)
+            {
+                pStateHash["NORTHSOUTH"] = new object[] { V.Y, V.Y != 0 ? 2 : 0 };
+                pStateHash["EASTWEST"] = new object[] { V.X, V.X != 0 ? 2 : 0 };
+            }
+            if (Stickers != null && Stickers.Count > 0)
             {
                 foreach(WorldEntity E in Stickers)
                 {
@@ -305,6 +339,10 @@ namespace VNFramework
         public void Rotate(float R)
         {
             pRotation += R;
+            lock (pStateHash.SyncRoot)
+            {
+                pStateHash["ROTATION"] = new object[] { R, R != 0 ? 2 : 0 };
+            }
             if (Stickers != null && Stickers.Count > 0)
             {
                 foreach (WorldEntity E in Stickers)
@@ -315,7 +353,12 @@ namespace VNFramework
         }
         public void Scale(Vector2 S)
         {
-            if(InvertXScaling && InvertYScaling) { S = new Vector2(-S.X, -S.Y); }
+            lock (pStateHash.SyncRoot)
+            {
+                pStateHash["SCALEVERT"] = new object[] { S.Y, S.Y != 0 ? 2 : 0 };
+                pStateHash["SCALEHORIZ"] = new object[] { S.X, S.X != 0 ? 2 : 0 };
+            }
+            if (InvertXScaling && InvertYScaling) { S = new Vector2(-S.X, -S.Y); }
             else if (InvertXScaling) { S = new Vector2(-S.X, S.Y); }
             else if (InvertYScaling) { S = new Vector2(S.X, -S.Y); }
             Vector2 ManualSet = new Vector2();
@@ -351,6 +394,13 @@ namespace VNFramework
         public void Colour(ColourShift C)
         {
             pColour = ColourShift.Constrain(pColour + C);
+            lock (pStateHash.SyncRoot)
+            {
+                pStateHash["RED"] = new object[] { C.R, C.R != 0 ? 2 : 0 };
+                pStateHash["GREEN"] = new object[] { C.G, C.G != 0 ? 2 : 0 };
+                pStateHash["BLUE"] = new object[] { C.B, C.B != 0 ? 2 : 0 };
+                pStateHash["ALPHA"] = new object[] { C.A, C.A != 0 ? 2 : 0 };
+            }
             if (Stickers != null && Stickers.Count > 0)
             {
                 foreach (WorldEntity E in Stickers)
@@ -400,6 +450,17 @@ namespace VNFramework
         private Boolean TrueVerticalFlip { get { return ManualVerticalFlip ^ AutoVerticalFlip; } }
         public virtual void Update()
         {
+            lock (pStateHash.SyncRoot)
+            {
+                foreach (object[] State in pStateHash)
+                {
+                    if ((int)State[1] > 0)
+                    {
+                        State[1] = ((int)State[1]) - 1;
+                        if((int)State[1] == 0) { State[0] = 0f; }
+                    }
+                }
+            }
             foreach(Animation A in AnimationQueue)
             {
                 if (!ButtonScripts.Paused)
