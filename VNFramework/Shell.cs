@@ -757,6 +757,7 @@ namespace VNFramework
                 if (E.Clickable) { MouseLeftClick -= E.MLCOut; }
                 if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
                 if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+                E.ManualDispose();
             }
             DeleteQueue = new ArrayList();
             foreach (VoidDel V in RunQueue)
@@ -859,7 +860,6 @@ namespace VNFramework
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
             spriteBatch.Draw(TrueDisplay, new Rectangle(0, 0, (int)ScreenSize.X, (int)ScreenSize.Y), Color.White);
             spriteBatch.End();
-
             base.Draw(gameTime);
         }
     }

@@ -78,7 +78,7 @@ namespace VNFramework
         public String AnimName { get; set; }
         public Boolean Loop { get; set; }
         Boolean pSpent = false;
-        public int TimeElapsed { get { return Environment.TickCount - StartTime; } }
+        public int TimeElapsed { get { return StartTime > 0 ? Environment.TickCount - StartTime : 0; } }
         private int HungTime = -1;
         public void TimeHang()
         {
@@ -188,9 +188,9 @@ namespace VNFramework
             float OutFloat = 0f;
             ColourShift OutColour = new ColourShift(0, 0, 0, 0);
             int OutMode = -1;
+            if (Frames.Count > 0) { cSpent = false; }
             int[] K = new int[Frames.Count];
             Frames.Keys.CopyTo(K, 0);
-            if (Frames.Count > 0) { cSpent = false; }
             foreach (int T in K)
             {
                 if (T <= Time)
@@ -394,7 +394,11 @@ namespace VNFramework
                 Point ACo = GetFrame(FrameFrames);
                 if (ACo != new Point(-1, -1)) { Operand.SetAtlasFrame(ACo); }
             }
-            if (!Loop) { pSpent = true; }
+            if (!Loop)
+            {
+                pSpent = true;
+                if (AnimationRegInternal.Contains(this)) { AnimationRegInternal.Remove(this); }
+            }
             else
             {
                 pStarted = false;
@@ -411,6 +415,7 @@ namespace VNFramework
         /// <param name="Operand">The WorldEntity being animated by this operation.</param>
         public void Step(WorldEntity Operand)
         {
+            if(Environment.TickCount - StartTime > 20000 && StartTime > 0) { int t = 0; }
             if (!pTrigger) { return; }
             cSpent = true;
             if (pMove) { Operand.Move(GetVector(MovementFrames)); }
@@ -424,7 +429,11 @@ namespace VNFramework
             }
             if (cSpent)
             {
-                if (!Loop) { pSpent = true; }
+                if (!Loop)
+                {
+                    pSpent = true;
+                    if (AnimationRegInternal.Contains(this)) { AnimationRegInternal.Remove(this); }
+                }
                 else
                 {
                     pStarted = false;

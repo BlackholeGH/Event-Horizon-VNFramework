@@ -273,7 +273,11 @@ namespace VNFramework
                     StartTime = Environment.TickCount - PausedTimeElapsed;
                     PausedTimeElapsed = -1;
                 }
-                if(Environment.TickCount - StartTime > Lifespan) { Shell.DeleteQueue.Add(this); }
+                if(Environment.TickCount - StartTime > Lifespan)
+                {
+                    Shell.DeleteQueue.Add(this);
+                    ManualDispose();
+                }
             }
         }
         [Serializable]

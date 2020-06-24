@@ -248,6 +248,7 @@ namespace VNFramework
             LayerDepth = Depth;
             CustomCamera = null;
             CameraImmune = false;
+            PseudoMouse = new Vector2(float.NaN, float.NaN);
             if (Atlas != null)
             {
                 LocalAtlas = (TAtlasInfo)Atlas;
@@ -260,7 +261,16 @@ namespace VNFramework
         }
         ~WorldEntity()
         {
-            if(Clickable) { Shell.MouseLeftClick -= MLC; }
+            ManualDispose();
+        }
+        public void ManualDispose()
+        {
+            if (Clickable) { Shell.MouseLeftClick -= MLC; }
+            foreach (Animation A in AnimationQueue)
+            {
+                A.AutoWipe();
+            }
+            AnimationQueue = new ArrayList();
         }
         public ulong EntityID { get { return pEntityID; } }
         public String Name { get { return pName; } }
@@ -622,7 +632,10 @@ namespace VNFramework
                     V = Shell.AutoCamera.TranslateCoordsToEquivalent(V);
                 }
             }
-            return V - pDrawCoords;
+            Vector2 Size = new Vector2((LocalAtlas.FrameSize().X * pScale.X), (LocalAtlas.FrameSize().Y * pScale.Y));
+            Vector2 InternalOriginCoords = pCO ? pDrawCoords - (Size/2) : pDrawCoords;
+            V = (V - InternalOriginCoords) / pScale;
+            return V;
         }
         public void Clear()
         {
@@ -638,10 +651,11 @@ namespace VNFramework
             {
                 if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
                 if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+                E.ManualDispose();
             }
             DeleteQueue = new ArrayList();
         }
-        Vector2 PanePseudoMouse = new Vector2();
+        Vector2 PanePseudoMouse = new Vector2(float.NaN, float.NaN);
         public Boolean RenderAlways { get; set; }
         public override void Update()
         {
@@ -667,9 +681,13 @@ namespace VNFramework
         }
         public void Render()
         {
-            pRenderPane = new RenderTarget2D(GraphicsDevice, PaneBaseSize.X, PaneBaseSize.Y, false,
-                GraphicsDevice.PresentationParameters.BackBufferFormat,
-                DepthFormat.Depth24);
+            if (pRenderPane == null || pRenderPane.Bounds.Size != PaneBaseSize)
+            {
+                if (pRenderPane != null) { pRenderPane.Dispose(); }
+                pRenderPane = new RenderTarget2D(GraphicsDevice, PaneBaseSize.X, PaneBaseSize.Y, false,
+                    GraphicsDevice.PresentationParameters.BackBufferFormat,
+                    DepthFormat.Depth24);
+            }
             GraphicsDevice.SetRenderTarget(pRenderPane);
             GraphicsDevice.Clear(BackgroundColor);
             SpriteBatch spriteBatch = new SpriteBatch(GraphicsDevice);

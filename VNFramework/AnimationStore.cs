@@ -16,8 +16,8 @@ namespace VNFramework
     {
         public static Animation Retrieve(String Name)
         {
-            Animation Out = new Animation("null");
-            Animation Temp;
+            Animation Out = null;
+            Animation Temp = null;
             SortedList BFrames;
             SortedList TempFrames;
             int Velocity;
