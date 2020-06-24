@@ -919,18 +919,18 @@ namespace VNFramework
             WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
             Shell.UpdateQueue.Add(MainMenuBackdrop);
             Shell.RenderQueue.Add(MainMenuBackdrop);
-            //Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
-            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
+            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
+            //Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
             Button.CenterOrigin = false;
-            //Shell.UpdateQueue.Add(Button);
-            //Shell.RenderQueue.Add(Button);
-            Pane TestPane = new Pane("TEST_PANE", new Vector2(200, 200), 1f, new Point(300, 300), Color.Gold, Shell.PubGD);
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            /*Pane TestPane = new Pane("TEST_PANE", new Vector2(200, 200), 1f, new Point(300, 300), Color.Gold, Shell.PubGD);
             TestPane.AddUpdate(Button);
             TestPane.AddRender(Button);
             TestPane.AnimationQueue.Add(Animation.Retrieve("RIGHTLEFT"));
             TestPane.Scale(new Vector2(0, -0.5f));
             Shell.UpdateQueue.Add(TestPane);
-            Shell.RenderQueue.Add(TestPane);
+            Shell.RenderQueue.Add(TestPane);*/
             Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f, delegate () { ButtonScripts.LoadSaveMenu(); });
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
@@ -991,7 +991,7 @@ namespace VNFramework
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
             ScriptProcessor.PastStates.Clear();
-            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("SOFIA_MAIN_INTRO_TS_SNIFFER", ScriptProcessor.RetrieveScriptByName("SOFIA_MAIN_INTRO_TS"), "SOFIA_MAIN_INTRO_TS"));
+            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("SOFIA_MAIN_INTRO_SNIFFER", ScriptProcessor.RetrieveScriptByName("SOFIA_MAIN_INTRO"), "SOFIA_MAIN_INTRO"));
         }
         public static void BackToMainMenu()
         {

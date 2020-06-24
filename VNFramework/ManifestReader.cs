@@ -260,6 +260,7 @@ namespace VNFramework
                         foreach (String Key in ExtractedScripts.Keys)
                         {
                             ScriptProcessor.ScriptCache.Add(Key, ExtractedScripts[Key]);
+                            Shell.WriteLine("Added script " + Key + " to cache.");
                         }
                         Reader.Close();
                         return true;

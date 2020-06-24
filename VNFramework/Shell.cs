@@ -483,7 +483,7 @@ namespace VNFramework
             get { return pBootManifestReadTitle; }
         }
         protected object[] AsyncLoad()
-        {  
+        {
             WriteLine("Preload complete, loading remaining content...");
             ScriptProcessor.ScriptCache = new Hashtable();
 

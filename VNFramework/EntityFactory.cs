@@ -267,10 +267,10 @@ namespace VNFramework
         /// <returns></returns>
         public static Boolean PerformsInternalOperation(String DataStatement)
         {
-            if(VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\+", ""), '+', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\-", ""), '-', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\*", ""), '*', '\"')) { return true; }
-            else if (VNFUtils.Strings.ContainsExclosed(DataStatement.Replace("\\/", ""), '/', '\"')) { return true; }
+            if(VNFUtils.Strings.IndexOfExclosed(DataStatement.Replace("\\+", ""), "+", '(', ')', '\"') > 0) { return true; }
+            else if (VNFUtils.Strings.IndexOfExclosed(DataStatement.Replace("\\-", ""), "-", '(', ')', '\"') > 0) { return true; }
+            else if (VNFUtils.Strings.IndexOfExclosed(DataStatement.Replace("\\*", ""), "*", '(', ')', '\"') > 0) { return true; }
+            else if (VNFUtils.Strings.IndexOfExclosed(DataStatement.Replace("\\/", ""), "/", '(', ')', '\"') > 0) { return true; }
             else { return false; }
         }
         /// <summary>
@@ -287,12 +287,12 @@ namespace VNFramework
                 char[] Operators = new char[] { '+', '-', '*', '/' };
                 foreach(char Opr in Operators)
                 {
-                    int Ind = VNFUtils.Strings.IndexOfExclosed(DataStatement, new String(new char[] { Opr }), '\"');
+                    int Ind = VNFUtils.Strings.IndexOfExclosed(DataStatement, new String(new char[] { Opr }), '(', ')', '\"');
                     String NewSearch = DataStatement;
                     while (Ind > 0 && DataStatement[Ind - 1] == '\\')
                     {
                         NewSearch = NewSearch.Remove(Ind) + "@" + NewSearch.Remove(0, Ind+1);
-                        Ind = VNFUtils.Strings.IndexOfExclosed(NewSearch, new String(new char[] { Opr }), '\"');
+                        Ind = VNFUtils.Strings.IndexOfExclosed(NewSearch, new String(new char[] { Opr }), '(', ')', '\"');
                     }
                     if (Ind > 0 && (Ind < FirstOpLoc || FirstOpLoc < 0)) { FirstOpLoc = Ind; }
                 }
@@ -342,7 +342,7 @@ namespace VNFramework
                                 RunningTotal = VNFUtils.MultiAdd(RunningTotal, Operand2);
                                 break;
                             case '-':
-                                RunningTotal = VNFUtils.MultiDivide(RunningTotal, Operand2);
+                                RunningTotal = VNFUtils.MultiSubtract(RunningTotal, Operand2);
                                 break;
                             case '*':
                                 RunningTotal = VNFUtils.MultiMultiply(RunningTotal, Operand2);

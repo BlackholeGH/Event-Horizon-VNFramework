@@ -182,6 +182,16 @@ namespace VNFramework
                             }));
                         });
                     }
+                    else if (S.StartsWith("MERGE_IN"))
+                    {
+                        String MergeName = S.Replace("MERGE_IN=\"", "").Remove(S.Length - 2);
+                        object[] MergeScript = ScriptProcessor.RetrieveScriptByName(MergeName);
+                        for(int i = 0; i < MergeScript.Length; i++)
+                        {
+                            SSAssembled.Add(MergeScript[i]);
+                        }
+                        CIndex--;
+                    }
                     CIndex++;
                 }
                 SSAssembled.Add(ThisTrueShift);

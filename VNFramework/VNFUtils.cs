@@ -153,8 +153,8 @@ namespace VNFramework
             }
             else if(IsNumeric(A) && IsNumeric(B))
             {
-                Decimal Result = ((Decimal)A) + ((Decimal)B);
-                if(A is Decimal || B is Decimal) { return Result; }
+                Decimal Result = Convert.ToDecimal(A) + Convert.ToDecimal(B);
+                if (A is Decimal || B is Decimal) { return Result; }
                 else if (A is double || B is double) { return (double)Result; }
                 else if (A is float || B is float) { return (float)Result; }
                 else { return (int)Result; }
@@ -165,7 +165,7 @@ namespace VNFramework
         {
             if (IsNumeric(A) && IsNumeric(B))
             {
-                Decimal Result = ((Decimal)A) - ((Decimal)B);
+                Decimal Result = Convert.ToDecimal(A) - Convert.ToDecimal(B);
                 if (A is Decimal || B is Decimal) { return Result; }
                 else if (A is double || B is double) { return (double)Result; }
                 else if (A is float || B is float) { return (float)Result; }
@@ -177,7 +177,7 @@ namespace VNFramework
         {
             if (IsNumeric(A) && IsNumeric(B))
             {
-                Decimal Result = ((Decimal)A) * ((Decimal)B);
+                Decimal Result = Convert.ToDecimal(A) * Convert.ToDecimal(B);
                 if (A is Decimal || B is Decimal) { return Result; }
                 else if (A is double || B is double) { return (double)Result; }
                 else if (A is float || B is float) { return (float)Result; }
@@ -189,7 +189,7 @@ namespace VNFramework
         {
             if (IsNumeric(A) && IsNumeric(B))
             {
-                Decimal Result = ((Decimal)A) / ((Decimal)B);
+                Decimal Result = Convert.ToDecimal(A) / Convert.ToDecimal(B);
                 if (A is Decimal || B is Decimal) { return Result; }
                 else if (A is double || B is double) { return (double)Result; }
                 else if (A is float || B is float) { return (float)Result; }
@@ -266,6 +266,47 @@ namespace VNFramework
                     return Input;
                 }
             }
+            public static int IndexOfExclosed(String Input, String ContainsString, char EncloseCommence, char EncloseCease)
+            {
+                return IndexOfExclosed(Input, ContainsString, EncloseCommence, EncloseCease, '\0');
+            }
+            public static int IndexOfExclosed(String Input, String ContainsString, char EncloseCommence, char EncloseCease, char HigherLevel)
+            {
+                Boolean Exclosed = true;
+                Boolean HLevelEnc = false;
+                int i = -1;
+                foreach (char C in Input)
+                {
+                    i++;
+                    if (!HLevelEnc)
+                    {
+                        if (HigherLevel != '\0' && C == HigherLevel)
+                        {
+                            HLevelEnc = true;
+                            Exclosed = false;
+                        }
+                        else
+                        {
+                            if (C == EncloseCommence && Exclosed) { Exclosed = false; }
+                            else if (C == EncloseCease && !Exclosed) { Exclosed = true; }
+                        }
+                    }
+                    else if (HigherLevel != '\0' && C == HigherLevel)
+                    {
+                        HLevelEnc = false;
+                        Exclosed = true;
+                    }
+                    if (Input[i] == ContainsString[0] && Exclosed)
+                    {
+                        for (int ii = 0; ii < ContainsString.Length; ii++)
+                        {
+                            if ((i + ii >= Input.Length) || !(ContainsString[ii] == Input[i + ii])) { break; }
+                            if (ii == ContainsString.Length - 1) { return i; }
+                        }
+                    }
+                }
+                return -1;
+            }
             public static int IndexOfExclosed(String Input, String ContainsString, char Encloser)
             {
                 Boolean Exclosed = true;
@@ -282,6 +323,53 @@ namespace VNFramework
                     }
                 }
                 return -1;
+            }
+            public static Boolean ContainsExclosed(String Input, String ContainsString, char Encloser)
+            {
+                return IndexOfExclosed(Input, ContainsString, Encloser) != -1;
+            }
+            public static Boolean ContainsExclosed(String Input, String ContainsString, char EncloseCommence, char EncloseCease)
+            {
+                return ContainsExclosed(Input, ContainsString, EncloseCommence, EncloseCease, '\0');
+            }
+            public static Boolean ContainsExclosed(String Input, String ContainsString, char EncloseCommence, char EncloseCease, char HigherLevel)
+            {
+                return IndexOfExclosed(Input, ContainsString, EncloseCommence, EncloseCease, HigherLevel) != -1;
+            }
+            public static Boolean ContainsExclosed(String Input, char ContainsChar, char EncloseCommence, char EncloseCease)
+            {
+                return ContainsExclosed(Input, ContainsChar, EncloseCommence, EncloseCease, '\0');
+            }
+            public static Boolean ContainsExclosed(String Input, char ContainsChar, char EncloseCommence, char EncloseCease, char HigherLevel)
+            {
+                Boolean Exclosed = true;
+                Boolean HLevelEnc = false;
+                foreach (char C in Input)
+                {
+                    if (!HLevelEnc)
+                    {
+                        if (HigherLevel != '\0' && C == HigherLevel)
+                        {
+                            HLevelEnc = true;
+                            Exclosed = false;
+                        }
+                        else
+                        {
+                            if (C == EncloseCommence && Exclosed) { Exclosed = false; }
+                            else if (C == EncloseCease && !Exclosed) { Exclosed = true; }
+                        }
+                    }
+                    else if (HigherLevel != '\0' && C == HigherLevel)
+                    {
+                        HLevelEnc = false;
+                        Exclosed = true;
+                    }
+                    if (C == ContainsChar && Exclosed)
+                    {
+                        return true;
+                    }
+                }
+                return false;
             }
             public static Boolean ContainsExclosed(String Input, char ContainsChar, char Encloser)
             {

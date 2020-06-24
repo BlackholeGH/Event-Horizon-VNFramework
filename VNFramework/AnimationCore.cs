@@ -415,7 +415,6 @@ namespace VNFramework
         /// <param name="Operand">The WorldEntity being animated by this operation.</param>
         public void Step(WorldEntity Operand)
         {
-            if(Environment.TickCount - StartTime > 20000 && StartTime > 0) { int t = 0; }
             if (!pTrigger) { return; }
             cSpent = true;
             if (pMove) { Operand.Move(GetVector(MovementFrames)); }

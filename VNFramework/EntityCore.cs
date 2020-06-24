@@ -452,7 +452,7 @@ namespace VNFramework
         {
             lock (pStateHash.SyncRoot)
             {
-                foreach (object[] State in pStateHash)
+                foreach (object[] State in pStateHash.Values)
                 {
                     if ((int)State[1] > 0)
                     {
