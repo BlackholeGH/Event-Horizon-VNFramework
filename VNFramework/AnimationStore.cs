@@ -191,6 +191,13 @@ namespace VNFramework
                     Temp.WriteMovement(BFrames);
                     Out = Temp;
                     break;
+                case "CREDITSROLL":
+                    Temp = new Animation("creditsroll");
+                    SortedList CreditsMovement = Animation.CreateVectorTween(new Vector2(0, -11300), 100800, 20);
+                    Temp.WriteMovement(CreditsMovement);
+                    Temp.AutoTrigger = false;
+                    Out = Temp;
+                    break;
                 case "SPIRALOUT":
                     Temp = new Animation("spiralout");
                     BFrames = new SortedList();
@@ -420,6 +427,38 @@ namespace VNFramework
                     Temp.WriteMovement(BFrames);
                     Temp.Loop = true;
                     Out = Temp;
+                    break;
+                case "MYSTICMOVEMENT":
+                    Animation MysticMovement = new Animation("mysticmovement");
+                    SortedList A = Animation.CreateVectorTween(new Vector2(-530, 0), 800, 20);
+                    MysticMovement.WriteMovement(A);
+                    A = Animation.CreateVectorTween(new Vector2(-0.06f, -0.06f), 800, 20);
+                    SortedList B = Animation.CreateVectorTween(new Vector2(-1.76f, 0), 20, 20);
+                    A = Animation.MergeFrames(A, B);
+                    MysticMovement.WriteScaling(A);
+                    Out = MysticMovement;
+                    break;
+                case "SOFIAMOVEMENT":
+                    Animation SofiaMovement = new Animation("sofiamovement");
+                    A = Animation.CreateVectorTween(new Vector2(-100, 0), 200, 20);
+                    SofiaMovement.WriteMovement(A);
+                    Out = SofiaMovement;
+                    break;
+                case "COOLMOVEMENT":
+                    Animation CoolMovement = new Animation("coolmovement");
+                    A = Animation.CreateVectorTween(new Vector2(0, 0), 800, 20);
+                    B = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
+                    A = Animation.MergeFrames(A, B);
+                    CoolMovement.WriteMovement(A);
+                    Out = CoolMovement;
+                    break;
+                case "KINGMOVEMENT":
+                    Animation KingMovement = new Animation("kingmovement");
+                    A = Animation.CreateVectorTween(new Vector2(0, 0), 1000, 20);
+                    B = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
+                    A = Animation.MergeFrames(A, B);
+                    KingMovement.WriteMovement(A);
+                    Out = KingMovement;
                     break;
             }
             return Out;

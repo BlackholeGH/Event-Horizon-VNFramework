@@ -482,6 +482,13 @@ namespace VNFramework
         {
             get { return pBootManifestReadTitle; }
         }
+        public VoidDel PullAutoShift
+        {
+            get
+            {
+                return new VoidDel(delegate () { if (Shell.AllowEnter) { Shell.DoNextShifter = true; } });
+            }
+        }
         protected object[] AsyncLoad()
         {
             WriteLine("Preload complete, loading remaining content...");
@@ -505,39 +512,46 @@ namespace VNFramework
             AtlasDirectory.Add("THUMBBLANK", InsertAtlas);
 
             Hashtable Manifests = ManifestReader.ReadManifestFile(BootManifest);
-            Hashtable[] Resources = ManifestReader.ParseManifest((String)Manifests[BootManifestReadTitle], this);
+            object[] Resources = ManifestReader.ParseManifest((String)Manifests[BootManifestReadTitle], this);
             String FirstScript = "";
             Boolean RunFirstAsUnique = true;
             WriteLine("Reading application metainfo...");
-            if (Resources[0].ContainsKey("startatscript"))
+            if (((Hashtable)Resources[0]).ContainsKey("startatscript"))
             {
-                FirstScript = (String)Resources[0]["startatscript"];
+                FirstScript = (String)((Hashtable)Resources[0])["startatscript"];
             }
-            if (Resources[0].ContainsKey("useunique"))
+            if (((Hashtable)Resources[0]).ContainsKey("useunique"))
             {
-                RunFirstAsUnique = (Boolean)Resources[0]["useunique"];
+                RunFirstAsUnique = (Boolean)((Hashtable)Resources[0])["useunique"];
             }
+            WriteLine("Ingesting utility scripts...");
+            ManifestReader.IngestScriptFile("vnf_utils.esa");
             WriteLine("Ingesting application scripts...");
-            foreach (String key in Resources[1].Keys)
+            int i = 0;
+            foreach (String Script in ((ArrayList)Resources[1]))
             {
-                ManifestReader.IngestScriptFile((String)Resources[1][key]);
+                ManifestReader.IngestScriptFile(Script);
+                i++;
+                Monitor.Enter(LPLockObj);
+                LoadPercentage = (float)(0.95f + (0.05 * (i / ((ArrayList)Resources[1]).Count)));
+                Monitor.Exit(LPLockObj);
             }
             WriteLine("Integrating loaded resources...");
-            foreach (object key in Resources[2].Keys)
+            foreach (object key in ((Hashtable)Resources[2]).Keys)
             {
-                Fonts.Add(key, (SpriteFont)Resources[2][key]);
+                Fonts.Add(key, (SpriteFont)((Hashtable)Resources[2])[key]);
             }
-            foreach (object key in Resources[3].Keys)
+            foreach (object key in ((Hashtable)Resources[3]).Keys)
             {
-                SFXDirectory.Add(key, (SoundEffect)Resources[3][key]);
+                SFXDirectory.Add(key, (SoundEffect)((Hashtable)Resources[3])[key]);
             }
-            foreach (object key in Resources[4].Keys)
+            foreach (object key in ((Hashtable)Resources[4]).Keys)
             {
-                SongDirectory.Add(key, (Song)Resources[4][key]);
+                SongDirectory.Add(key, (Song)((Hashtable)Resources[4])[key]);
             }
-            foreach (String key in Resources[5].Keys)
+            foreach (String key in ((Hashtable)Resources[5]).Keys)
             {
-                AtlasDirectory.Add(key, (TAtlasInfo)Resources[5][key]);
+                AtlasDirectory.Add(key, (TAtlasInfo)((Hashtable)Resources[5])[key]);
             }
             ArrayList ADKeys = new ArrayList();
             foreach (String K in AtlasDirectory.Keys)

@@ -83,7 +83,6 @@
     <Compile Include="MatmutEnts.cs" />
     <Compile Include="SaveLoadModule.cs" />
     <Compile Include="ScriptProcessor.cs" />
-    <Compile Include="Scripts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Shell.cs" />
     <Compile Include="SofiaEnts.cs" />

@@ -14,8 +14,15 @@ using System.Text.RegularExpressions;
 
 namespace VNFramework
 {
-    public static partial class ScriptProcessor
+    public static class ScriptProcessor
     {
+        public static Hashtable ScriptCache { get; set; }
+        public static object[] RetrieveScriptByName(String S)
+        {
+            if (ScriptCache.ContainsKey(S.ToUpper())) { return (object[])ScriptCache[S.ToUpper()]; }
+            object[] Script = new object[0];
+            return Script;
+        }
         public static int CountApplicableRollbacks { get; set; }
         public static Boolean AllowScriptShift { get; set; }
         public static Stack PastStates = new Stack();
@@ -107,6 +114,8 @@ namespace VNFramework
             SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "{{", ">", '\"');
             SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", ">", '\"');
             SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '>');
+            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "{", "£", '>', '\"');
+            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "}", "$", '>', '\"');
             SCA = SCA.Replace("\r", "");
             ArrayList IndivScripts = new ArrayList();
             int NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
@@ -129,6 +138,8 @@ namespace VNFramework
                 String Name = Nameless.Remove(Nameless.IndexOf('\"'));
                 Nameless = Nameless.Remove(0, Nameless.IndexOf('\"'));
                 Nameless = Nameless.Remove(0, Nameless.IndexOf(':'));
+                Nameless = Nameless.TrimEnd(' ');
+                Nameless = Nameless.TrimEnd('\n');
                 if (Nameless.EndsWith("}")) { Nameless = Nameless + ","; }
                 TrueIndivScripts.Add(Name, Nameless);
             }
@@ -159,6 +170,8 @@ namespace VNFramework
                     {
                         String FBlueprint = S.Remove(0, S.IndexOf('>') + 1);
                         FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '>', '\"');
+                        FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "£", "{", '\"');
+                        FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "$", "}", '\"');
                         FBlueprint = FBlueprint.Trim('\n');
                         ThisTrueShift[CIndex] = new VoidDel(delegate ()
                         {
@@ -172,6 +185,8 @@ namespace VNFramework
                     {
                         String VBlueprint = S.Remove(0, S.IndexOf('>') + 1);
                         VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '>', '\"');
+                        VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "£", "{", '\"');
+                        VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "$", "}", '\"');
                         VBlueprint = VBlueprint.Trim('\n');
                         VoidDel VD = EntityFactory.AssembleVoidDelegate(VBlueprint);
                         ThisTrueShift[CIndex] = new VoidDel(delegate ()
@@ -184,7 +199,8 @@ namespace VNFramework
                     }
                     else if (S.StartsWith("MERGE_IN"))
                     {
-                        String MergeName = S.Replace("MERGE_IN=\"", "").Remove(S.Length - 2);
+                        String MergeName = S.Replace("MERGE_IN=\"", "");
+                        MergeName = MergeName.Remove(MergeName.Length - 1);
                         object[] MergeScript = ScriptProcessor.RetrieveScriptByName(MergeName);
                         for(int i = 0; i < MergeScript.Length; i++)
                         {
@@ -457,7 +473,8 @@ namespace VNFramework
                 CountApplicableRollbacks = 0;
                 foreach (object O in CurrentShift)
                 {
-                    ActivateScriptElement(O, SkipAll);
+                    int RCode = ActivateScriptElement(O, SkipAll);
+                    if(RCode == 2) { break; }
                     if (SkipAll && O is String && ((String)O).Split('|')[0].ToUpper() == "T")
                     {
                         foreach (WorldEntity E in Shell.UpdateQueue)
@@ -555,7 +572,7 @@ namespace VNFramework
          * F|| sets the atlas frame of a specified entity to the given named frame state, if possible.
          * G| sets the GlobalWorldState.
          * U|| updates a given game flag to the specified value.
-         * R||| reads a game flag and then performs the following command if it matches a specified value.
+         * R||| reads a game flag and then performs the following command if it matches a specified value, or if an optional comparison operator is true.
          * H halts script skipping upon occurrence.
          * S|| plays a named sound effect, or stops all sound effects via |#CLOSEALL. Second parameter sets looping.
          * M||| switches the music track to a named song, or stops the song via |#NULL|. Second parameter sets looping. Third if set to "INSTANT" skips the auto fadeout.
@@ -609,7 +626,7 @@ namespace VNFramework
         {
             ActivateScriptElement(Element, false);
         }
-        static public void ActivateScriptElement(object Element, Boolean SnifferSkipping)
+        static public int ActivateScriptElement(object Element, Boolean SnifferSkipping)
         {
             if (Element is String)
             {
@@ -627,6 +644,7 @@ namespace VNFramework
                 else if (Parts[0].ToUpper() == "B")
                 {
                     B(Parts);
+                    return 2;
                 }
                 else if (Parts[0].ToUpper() == "D")
                 {
@@ -671,6 +689,7 @@ namespace VNFramework
                 VoidDel E = (VoidDel)Element;
                 E();
             }
+            return 1;
         }
         private static void T(String[] Parts, Boolean SnifferSkipping)
         {
@@ -791,11 +810,40 @@ namespace VNFramework
         {
             String FlagName = Parts[1].ToUpper();
             String TextFlagComparisonVal = Parts[2];
+            String Mode = "=";
+            if (TextFlagComparisonVal.Contains(":"))
+            {
+                String[] ModeSplit = TextFlagComparisonVal.Split(':');
+                TextFlagComparisonVal = ModeSplit[0];
+                Mode = ModeSplit[1];
+            }
             object TrueComparisonVal = ParseLiteralValue(TextFlagComparisonVal);
-            if(Shell.ReadFlag(FlagName).Equals(TrueComparisonVal) && Parts.Length > 3)
+            Boolean ActivateCond = false;
+            switch (Mode)
+            {
+                case "=":
+                    ActivateCond = Shell.ReadFlag(FlagName).Equals(TrueComparisonVal);
+                    break;
+                case "!=":
+                    ActivateCond = !Shell.ReadFlag(FlagName).Equals(TrueComparisonVal);
+                    break;
+                case ">":
+                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) > Convert.ToDecimal(TrueComparisonVal);
+                    break;
+                case ">=":
+                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) >= Convert.ToDecimal(TrueComparisonVal);
+                    break;
+                case "<":
+                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) < Convert.ToDecimal(TrueComparisonVal);
+                    break;
+                case "<=":
+                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) <= Convert.ToDecimal(TrueComparisonVal);
+                    break;
+            }
+            if (ActivateCond && Parts.Length > 3)
             {
                 String ConditionalCom = "";
-                for(int i = 3; i < Parts.Length; i++)
+                for (int i = 3; i < Parts.Length; i++)
                 {
                     ConditionalCom += Parts[i] + "|";
                 }
@@ -912,29 +960,68 @@ namespace VNFramework
         }
         private static void A(String[]Parts)
         {
-            WorldEntity O = Shell.GetEntityByName(Parts[1]);
-            if (O != null)
+            ArrayList AddAnimatees = new ArrayList();
+            if(Parts[1].ToUpper() == "#ALL")
             {
-                WorldEntity AnimatedObject = (WorldEntity)O;
+                foreach (WorldEntity E in Shell.UpdateQueue) { if (!(E is ScriptSniffer)) { AddAnimatees.Add(E); } }
+            }
+            else if(Parts[1].ToUpper() == "#ALL-NON-UI")
+            {
+                foreach (WorldEntity E in Shell.UpdateQueue)
+                {
+                    if (!(E is ScriptSniffer) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                }
+            }
+            else if (Parts[1].ToUpper() == "#ALL-NON-UI-SOFIA")
+            {
+                foreach (WorldEntity E in Shell.UpdateQueue)
+                {
+                    if (!(E is ScriptSniffer) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E is Sofia.BigSofia) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                }
+            }
+            else if (Parts[1].ToUpper() == "#GLOBAL_END_LOOPS")
+            {
+                Animation.GlobalEndLoops();
+            }
+            else if (Parts[1].ToUpper() == "#GLOBAL_MANUAL_TRIGGER")
+            {
+                Animation.GlobalManualTrigger(Parts[2]);
+            }
+            else { AddAnimatees.Add(Shell.GetEntityByName(Parts[1])); }
+            WorldEntity[] Animatees = AddAnimatees.ToArray().Select(x => (WorldEntity)x).ToArray();
+            if (Animatees[0] != null)
+            {
                 if (Parts.Length == 3 || Parts.Length == 4)
                 {
-                    if (Parts[2] == "#DISMISS") { O.AnimationQueue.Clear(); }
+                    if (Parts[2] == "#DISMISS")
+                    {
+                        for (int i = 0; i < Animatees.Length; i++)
+                        {
+                            WorldEntity AnimatedObject = Animatees[i];
+                            AnimatedObject.AnimationQueue.Clear();
+                        }
+                    }
                     else
                     {
                         Animation R = Animation.Retrieve(Parts[2]);
-                        if (R.AnimName.ToUpper() != "NULL") { AnimatedObject.AnimationQueue.Add(R); }
-                        if (Parts.Length == 4)
+                        if (Parts.Length == 4 && R != null)
                         {
                             if (Parts[3].ToUpper() == "LOOP") { R.Loop = true; }
                             else { R.Loop = false; }
                         }
+                        for (int i = 0; i < Animatees.Length; i++)
+                        {
+                            WorldEntity AnimatedObject = Animatees[i];
+                            if (R.AnimName.ToUpper() != "NULL") { AnimatedObject.AnimationQueue.Add(R.Clone()); }
+                        }
+                        R.AutoWipe();
                     }
                 }
                 else if (Parts.Length == 7)
                 {
                     //Parameters are seperated by commas, parameters within parameters are seperated by "="
                     //A looped vector tween: A|[entityname]|50=50,1000,20||||loop
-                    Animation New = new Animation(AnimatedObject.Name + "_animation_scriptdefined");
+                    Animation New = new Animation(Animatees[0].Name + "_animation_scriptdefined");
                     if (Parts[2].Length > 0)
                     {
                         String[] MV = Parts[2].Split(',');
@@ -963,7 +1050,12 @@ namespace VNFramework
                         New.WriteColouring(Animation.CreateColourTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
                     }
                     if (Parts[6].Length > 0 && Parts[6].ToUpper() == "LOOP") { New.Loop = true; }
-                    AnimatedObject.AnimationQueue.Add(New);
+                    for (int i = 0; i < Animatees.Length; i++)
+                    {
+                        WorldEntity AnimatedObject = Animatees[i];
+                        AnimatedObject.AnimationQueue.Add(New.Clone());
+                    }
+                    New.AutoWipe();
                 }
                 else { throw (new ScriptParseException("The animation command does not take the specified number of parameters: " + (Parts.Length - 1))); }
             }

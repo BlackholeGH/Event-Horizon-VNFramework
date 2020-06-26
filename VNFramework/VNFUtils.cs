@@ -266,6 +266,53 @@ namespace VNFramework
                     return Input;
                 }
             }
+            /// <summary>
+            /// This String replacer method will replace all instances of an occurrence of a substring in a String with another, if said occurrence is enclosed within one set of characters, but not also enclosed within another.
+            /// </summary>
+            /// <param name="Input">An input String.</param>
+            /// <param name="Find">The substring to find.</param>
+            /// <param name="Replace">The string to replace with.</param>
+            /// <param name="ValidEncloser">All replacing should be enclosed between two of this parameter.</param>
+            /// <param name="InvalidEncloser">No replacing can take place between two of this parameter.</param>
+            /// <returns></returns>
+            public static String ReplaceEnclosedExclosed(String Input, String Find, String Replace, char ValidEncloser, char InvalidEncloser)
+            {
+                Boolean ValidEnclosed = false;
+                Boolean InvalidEnclosed = false;
+                for (int i = 0; i < Input.Length; i++)
+                {
+                    Char C = Input[i];
+                    if (!InvalidEnclosed)
+                    {
+                        if (InvalidEncloser != '\0' && C == InvalidEncloser)
+                        {
+                            InvalidEnclosed = true;
+                        }
+                        else
+                        {
+                            if (C == ValidEncloser && !ValidEnclosed) { ValidEnclosed = true; }
+                            else if (C == ValidEncloser && ValidEnclosed) { ValidEnclosed = false; }
+                        }
+                    }
+                    else if (InvalidEncloser != '\0' && C == InvalidEncloser)
+                    {
+                        InvalidEnclosed = false;
+                    }
+                    if (Input[i] == Find[0] && ValidEnclosed && !InvalidEnclosed)
+                    {
+                        for(int ii = 0; ii < Find.Length; ii++)
+                        {
+                            if ((i + ii >= Input.Length) || !(Find[ii] == Input[i + ii])) { break; }
+                            if (ii == Find.Length - 1)
+                            {
+                                Input = Input.Remove(i) + Replace + Input.Remove(0, i + ii + 1);
+                                i += Replace.Length - 1;
+                            }
+                        }
+                    }
+                }
+                return Input;
+            }
             public static int IndexOfExclosed(String Input, String ContainsString, char EncloseCommence, char EncloseCease)
             {
                 return IndexOfExclosed(Input, ContainsString, EncloseCommence, EncloseCease, '\0');
@@ -383,15 +430,15 @@ namespace VNFramework
             }
             public static String RemoveExclosed(String Input, char RemChar, char Encloser)
             {
-                String Output = "";
+                StringBuilder Output = new StringBuilder();
                 Boolean Remove = true;
                 foreach (char C in Input)
                 {
                     if (C == Encloser) { Remove = !Remove; }
                     if (C == RemChar && Remove) { continue; }
-                    else { Output += C; }
+                    else { Output.Append(C); }
                 }
-                return Output;
+                return Output.ToString();
             }
             public static String[] SplitAtExclosed(String Input, char SplitChar, char EncloseCommence, char EncloseCease)
             {
@@ -400,7 +447,7 @@ namespace VNFramework
             public static String[] SplitAtExclosed(String Input, char SplitChar, char EncloseCommence, char EncloseCease, char HigherLevel)
             {
                 ArrayList Splits = new ArrayList();
-                String Current = "";
+                StringBuilder Current = new StringBuilder();
                 Boolean Split = true;
                 Boolean HLevelEnc = false;
                 foreach (char C in Input)
@@ -425,30 +472,30 @@ namespace VNFramework
                     }
                     if (C == SplitChar && Split)
                     {
-                        Splits.Add(Current);
-                        Current = "";
+                        Splits.Add(Current.ToString());
+                        Current = new StringBuilder();
                     }
-                    else { Current += C; }
+                    else { Current.Append(C); }
                 }
-                Splits.Add(Current);
+                Splits.Add(Current.ToString());
                 return Splits.ToArray().Select(o => (String)o).ToArray();
             }
             public static String[] SplitAtExclosed(String Input, char SplitChar, char Encloser)
             {
                 ArrayList Splits = new ArrayList();
-                String Current = "";
+                StringBuilder Current = new StringBuilder();
                 Boolean Split = true;
                 foreach (char C in Input)
                 {
                     if (C == Encloser) { Split = !Split; }
                     if (C == SplitChar && Split)
                     {
-                        Splits.Add(Current);
-                        Current = "";
+                        Splits.Add(Current.ToString());
+                        Current = new StringBuilder();
                     }
-                    else { Current += C; }
+                    else { Current.Append(C); }
                 }
-                Splits.Add(Current);
+                Splits.Add(Current.ToString());
                 return Splits.ToArray().Select(o => (String)o).ToArray();
             }
             /// <summary>
@@ -461,7 +508,7 @@ namespace VNFramework
             public static String[] SplitAtExclosed(String Input, char SplitChar, char[] Enclosers)
             {
                 ArrayList Splits = new ArrayList();
-                String Current = "";
+                StringBuilder Current = new StringBuilder();
                 Boolean[] Enclosed = new Boolean[Enclosers.Length];
                 for (int i = 0; i < Enclosed.Length; i++)
                 {
@@ -490,12 +537,12 @@ namespace VNFramework
                     }
                     if (C == SplitChar && SplitNow)
                     {
-                        Splits.Add(Current);
-                        Current = "";
+                        Splits.Add(Current.ToString());
+                        Current = new StringBuilder();
                     }
-                    else { Current += C; }
+                    else { Current.Append(C); }
                 }
-                if (Current.Length > 0) { Splits.Add(Current); }
+                if (Current.Length > 0) { Splits.Add(Current.ToString()); }
                 return Splits.ToArray().Select(o => (String)o).ToArray();
             }
         }

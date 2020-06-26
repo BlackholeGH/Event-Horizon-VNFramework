@@ -25,34 +25,58 @@ namespace VNFramework
             CrookedKnowledgeFlag = 0;
             StoryFlag = 0;
         }
-        public static byte KingFlag
+        public static void SofiaReturnScript()
         {
-            get { return (byte)Shell.ReadFlag("KING"); }
+            WorldEntity OurSofia = Shell.GetEntityByName("SOFIA");
+            OurSofia.AnimationQueue.Clear();
+            Animation FreshTween = new Animation("sofia_return_tween");
+            SortedList TweenFrames = Animation.CreateVectorTween(new Vector2(0, 405 - OurSofia.DrawCoords.Y), 1000, 20);
+            FreshTween.WriteMovement(TweenFrames);
+            OurSofia.AnimationQueue.Add(FreshTween);
+        }
+        public static void EndQuakes()
+        {
+            foreach (WorldEntity E in Shell.RenderQueue)
+            {
+                foreach (Animation A in E.AnimationQueue)
+                {
+                    if (A.AnimName == "lastingquake" || A.AnimName == "shakequake") { A.Jump(E); }
+                }
+            }
+        }
+        public static Vector2 EndTextPosition()
+        {
+            String TextContent = System.DateTime.Now.DayOfWeek.ToString().ToUpper() + ". GILLETTE RESIDENCE. " + System.DateTime.Now.ToString("hh:mm tt") + "...";
+            return new Vector2(640 - (Shell.Default.MeasureString(TextContent).X / 2), 500);
+        }
+        public static int KingFlag
+        {
+            get { return (int)Shell.ReadFlag("KING"); }
             set { Shell.UpdateFlag("KING", value); }
         }
-        public static byte CrookedFlag
+        public static int CrookedFlag
         {
-            get { return (byte)Shell.ReadFlag("CROOKED"); }
+            get { return (int)Shell.ReadFlag("CROOKED"); }
             set { Shell.UpdateFlag("CROOKED", value); }
         }
-        public static byte ParanoidFlag
+        public static int ParanoidFlag
         {
-            get { return (byte)Shell.ReadFlag("PARANOID"); }
+            get { return (int)Shell.ReadFlag("PARANOID"); }
             set { Shell.UpdateFlag("PARANOID", value); }
         }
-        public static byte CrookedKnowledgeFlag
+        public static int CrookedKnowledgeFlag
         {
-            get { return (byte)Shell.ReadFlag("KNOWLEDGE"); }
+            get { return (int)Shell.ReadFlag("KNOWLEDGE"); }
             set { Shell.UpdateFlag("KNOWLEDGE", value); }
         }
-        public static byte MysticFlag
+        public static int MysticFlag
         {
-            get { return (byte)Shell.ReadFlag("MYSTIC"); }
+            get { return (int)Shell.ReadFlag("MYSTIC"); }
             set { Shell.UpdateFlag("MYSTIC", value); }
         }
-        public static byte StoryFlag
+        public static int StoryFlag
         {
-            get { return (byte)Shell.ReadFlag("STORY"); }
+            get { return (int)Shell.ReadFlag("STORY"); }
             set { Shell.UpdateFlag("STORY", value); }
         }
         public static String GetContextualLocation()

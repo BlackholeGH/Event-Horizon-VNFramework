@@ -87,11 +87,11 @@ namespace VNFramework
             }
             else { return null; }
         }
-        public static Hashtable[] ParseManifest(String Manifest, Shell MyShell)
+        public static object[] ParseManifest(String Manifest, Shell MyShell)
         {
             Shell.WriteLine("Parsing manifest contents.");
             Hashtable MetaDirectory = new Hashtable();
-            Hashtable ScriptDirectory = new Hashtable();
+            ArrayList ScriptDirectory = new ArrayList();
             Hashtable FontDirectory = new Hashtable();
             Hashtable SFXDirectory = new Hashtable();
             Hashtable SongDirectory = new Hashtable();
@@ -119,7 +119,7 @@ namespace VNFramework
                         break;
                     case "SCRIPT":
                         StrContent = (String)EntityFactory.ParseRealData(EntrySegment[1]);
-                        ScriptDirectory.Add(StrContent, StrContent);
+                        ScriptDirectory.Add(StrContent);
                         break;
                     case "FONT":
                         DirIndex = EntityFactory.ParseRealData(EntrySegment[1]);
@@ -154,12 +154,12 @@ namespace VNFramework
                 try
                 {
                     Monitor.Enter(MyShell.LPLockObj);
-                    MyShell.LoadPercentage = (float)0.99 * ((float)ReadProg / MEntries.Length);
+                    MyShell.LoadPercentage = (float)0.95 * ((float)ReadProg / MEntries.Length);
                 }
                 finally { Monitor.Exit(MyShell.LPLockObj); }
             }
             Shell.WriteLine("Finished reading manifest.");
-            return new Hashtable[] { MetaDirectory, ScriptDirectory, FontDirectory, SFXDirectory, SongDirectory, AtlasDirectory };
+            return new object[] { MetaDirectory, ScriptDirectory, FontDirectory, SFXDirectory, SongDirectory, AtlasDirectory };
         }
         private static TAtlasInfo ParseTextureAtlas(String[] EntrySegment, Hashtable StemAtlasTemps, Shell MyShell)
         {

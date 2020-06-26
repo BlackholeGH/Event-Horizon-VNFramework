@@ -298,12 +298,15 @@ namespace VNFramework
         {
             get
             {
-                Hashtable StatesCopy;
+                Hashtable StatesReal = new Hashtable();
                 lock(pStateHash.SyncRoot)
                 {
-                    StatesCopy = (Hashtable)pStateHash.Clone();
+                    foreach(String K in pStateHash.Keys)
+                    {
+                        StatesReal.Add(K, ((object[])pStateHash[K])[0]);
+                    }
                 }
-                return StatesCopy;
+                return StatesReal;
             }
         }
         private Hashtable pStateHash = new Hashtable();
@@ -615,6 +618,7 @@ namespace VNFramework
             }
         }
     }
+    [Serializable]
     public class Pane : WorldEntity
     {
         public Camera DefaultPaneCamera { get; set; }
