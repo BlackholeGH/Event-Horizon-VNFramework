@@ -256,13 +256,21 @@ namespace VNFramework
                     {
                         StreamReader Reader = new StreamReader(F.OpenRead());
                         String ScriptContent = Reader.ReadToEnd();
-                        Hashtable ExtractedScripts = ScriptProcessor.ExtractEventScriptArchive(ScriptContent);
+                        Reader.Close();
+                        Hashtable ExtractedScripts = new Hashtable();
+                        try
+                        {
+                            ExtractedScripts = ScriptProcessor.ExtractEventScriptArchive(ScriptContent);
+                        }
+                        catch(Exception E)
+                        {
+                            throw new ManifestReaderException("Could not extract EventScriptArchive file \"" + FName + "\". Check for a malformed script! Error: " + E.Message + E.StackTrace);
+                        }
                         foreach (String Key in ExtractedScripts.Keys)
                         {
                             ScriptProcessor.ScriptCache.Add(Key, ExtractedScripts[Key]);
                             Shell.WriteLine("Added script " + Key + " to cache.");
                         }
-                        Reader.Close();
                         return true;
                     }
                 }
