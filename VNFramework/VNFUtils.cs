@@ -442,9 +442,13 @@ namespace VNFramework
             }
             public static String[] SplitAtExclosed(String Input, char SplitChar, char EncloseCommence, char EncloseCease)
             {
-                return SplitAtExclosed(Input, SplitChar, EncloseCommence, EncloseCease, '\0');
+                return SplitAtExclosed(Input, SplitChar, new char[] { EncloseCommence }, new char[] { EncloseCease }, '\0');
             }
             public static String[] SplitAtExclosed(String Input, char SplitChar, char EncloseCommence, char EncloseCease, char HigherLevel)
+            {
+                return SplitAtExclosed(Input, SplitChar, new char[] { EncloseCommence }, new char[] { EncloseCease }, HigherLevel);
+            }
+            public static String[] SplitAtExclosed(String Input, char SplitChar, char[] EncloseCommence, char[] EncloseCease, char HigherLevel)
             {
                 ArrayList Splits = new ArrayList();
                 StringBuilder Current = new StringBuilder();
@@ -457,20 +461,18 @@ namespace VNFramework
                         if (HigherLevel != '\0' && C == HigherLevel)
                         {
                             HLevelEnc = true;
-                            Split = false;
                         }
                         else
                         {
-                            if (C == EncloseCommence && Split) { Split = false; }
-                            else if (C == EncloseCease && !Split) { Split = true; }
+                            if (EncloseCommence.Contains(C) && Split) { Split = false; }
+                            else if (EncloseCease.Contains(C) && !Split) { Split = true; }
                         }
                     }
                     else if (HigherLevel != '\0' && C == HigherLevel)
                     {
                         HLevelEnc = false;
-                        Split = true;
                     }
-                    if (C == SplitChar && Split)
+                    if (C == SplitChar && Split && !HLevelEnc)
                     {
                         Splits.Add(Current.ToString());
                         Current = new StringBuilder();
@@ -516,15 +518,13 @@ namespace VNFramework
                 }
                 foreach (char C in Input)
                 {
-                    int Set = -1;
                     for (int i = 0; i < Enclosers.Length; i++)
                     {
-                        if (Set >= 0) { Enclosed[i] = Enclosed[Set]; }
-                        else if (C == Enclosers[i])
+                        if (C == Enclosers[i])
                         {
                             Enclosed[i] = !Enclosed[i];
-                            Set = i;
                         }
+                        if(Enclosed[i]) { break; }
                     }
                     Boolean SplitNow = true;
                     foreach (Boolean B in Enclosed)

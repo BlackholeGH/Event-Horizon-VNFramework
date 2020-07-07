@@ -30,7 +30,8 @@ namespace VNFramework
             String IsolatedIdentifier = MethodOrConstructorData.Remove(MethodOrConstructorData.IndexOf('('));
             String IsolatedParamList = MethodOrConstructorData.Remove(0, MethodOrConstructorData.IndexOf('(') + 1);
             IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
-            Object[] TrueParameters = ParseDataList(IsolatedParamList);
+            Object[] TrueParameters = new Object[0];
+            if (IsolatedParamList.Length > 0) { TrueParameters = ParseDataList(IsolatedParamList); }
             return new Object[] { IsolatedIdentifier, TrueParameters };
         }
         /// <summary>
@@ -40,7 +41,7 @@ namespace VNFramework
         /// <returns></returns>
         public static Object[] ParseDataList(String DataList)
         {
-            String[] PriorToParse = VNFUtils.Strings.SplitAtExclosed(DataList, ',', '(', ')', '\"');
+            String[] PriorToParse = VNFUtils.Strings.SplitAtExclosed(DataList, ',', new char[] { '(', '{' }, new char[] { ')', '}' }, '\"');
             Object[] Out = new Object[PriorToParse.Length];
             for(int i = 0; i < PriorToParse.Length; i++)
             {
@@ -75,7 +76,8 @@ namespace VNFramework
             {
                 if (DP.Contains("&"))
                 {
-                    String TypeToFind = DP.Remove(DP.LastIndexOf('&'));
+                    String TypeToFind = DP;
+                    TypeToFind = TypeToFind.Remove(TypeToFind.LastIndexOf('&'));
                     if(!TypeToFind.StartsWith("VNFramework&") && !TypeToFind.StartsWith("System&")) { TypeToFind = "VNFramework&" + TypeToFind; }
                     String TrueTTF = VNFUtils.Strings.ReplaceExclosed(TypeToFind, "&", ".", '\"');
                     TrueTTF = TrueTTF.Replace("\\+", "+");
@@ -106,7 +108,10 @@ namespace VNFramework
                         }
                     }
                     if(!DP.StartsWith("VNFramework&") && TypeToFind.StartsWith("VNFramework&")) { TypeToFind = TypeToFind.Remove(0, 12); }
-                    if (TypeToFind.Length > 0) { StaticMemberTree = VNFUtils.Strings.ReplaceExclosed(DP, TypeToFind, "", '('); }
+                    if (TypeToFind.Length > 0)
+                    {
+                        if (DP.StartsWith(TypeToFind)) { StaticMemberTree = DP.Remove(0, TypeToFind.Length); }
+                    }
                     StaticMemberTree = StaticMemberTree.TrimStart('&');
                 }
             }
@@ -130,7 +135,8 @@ namespace VNFramework
                     String IsolatedIdentifier = S.Remove(S.IndexOf('('));
                     String IsolatedParamList = S.Remove(0, S.IndexOf('(') + 1);
                     IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
-                    Object[] TrueParameters = ParseDataList(IsolatedParamList);
+                    Object[] TrueParameters = new Object[0];
+                    if (IsolatedParamList.Length > 0) { TrueParameters = ParseDataList(IsolatedParamList); }
                     if(InstancedObject is null)
                     {
                         foreach (var me in SuperType.GetMethods())
@@ -384,7 +390,8 @@ namespace VNFramework
                         IsolatedIdentifier = IsolatedIdentifier.Remove(IsolatedIdentifier.IndexOf('('));
                         String IsolatedParamList = DP.Remove(0, DP.IndexOf('(') + 1);
                         IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
-                        Object[] TrueParameters = ParseDataList(IsolatedParamList);
+                        Object[] TrueParameters = new Object[0];
+                        if (IsolatedParamList.Length > 0) { TrueParameters = ParseDataList(IsolatedParamList); }
                         return ConstructDynamicObject(IsolatedIdentifier, TrueParameters, true);
                     }
                     else
@@ -555,7 +562,9 @@ namespace VNFramework
                     Boolean SetAndMake = true;
                     for (int i = 0; i < ConstructorArgs.Length; i++)
                     {
-                        if (!CanConvert(ConstructorArgs[i].GetType(), C.GetParameters()[i].ParameterType))
+                        Type ParamType = C.GetParameters()[i].ParameterType;
+                        Type GivenType = ConstructorArgs[i].GetType();
+                        if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
                         {
                             SetAndMake = false;
                             break;
@@ -580,6 +589,7 @@ namespace VNFramework
         {
             if(Identifier == "new")
             {
+                if(SchemeParams.Contains("BigSofia")) { int t = 0; }
                 Object[] FullConstructorInfo = ExtractMethodValues(SchemeParams);
                 String EntName = (String)FullConstructorInfo[0];
                 Object[] Args = (Object[])FullConstructorInfo[1];

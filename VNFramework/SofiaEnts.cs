@@ -187,7 +187,7 @@ namespace VNFramework
             }
             else
             {
-                if (CrookedKnowledgeFlag == 0) { return "SOFIA_CROOKED_NO_KNOWLEDGE"; } //Done
+                if (CrookedKnowledgeFlag == 0) { return "SOFIA_CROOKED_RETURN_NO_KNOWLEDGE"; } //Done
                 else { return "SOFIA_CROOKED_FINAL"; } //Done
             }
         }

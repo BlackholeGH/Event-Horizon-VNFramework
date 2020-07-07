@@ -111,11 +111,11 @@ namespace VNFramework
         public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
         {
             String SCA = String.Join("\n", ScriptArchiveContent.Split('\n').Select(x => ((String)x).StartsWith("//") ? "" : x));
-            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "{{", ">", '\"');
-            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", ">", '\"');
-            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '>');
-            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "{", "£", '>', '\"');
-            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "}", "$", '>', '\"');
+            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "{{", "^", '\"');
+            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", "^", '\"');
+            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '^');
+            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "{", "£", '^', '\"');
+            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "}", "$", '^', '\"');
             SCA = SCA.Replace("\r", "");
             ArrayList IndivScripts = new ArrayList();
             int NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
@@ -160,7 +160,7 @@ namespace VNFramework
                 int EndIndex = VNFUtils.Strings.IndexOfExclosed(StringFormatScript, "},", '\"');
                 String FoundScriptShift = StringFormatScript.Remove(EndIndex);
                 StringFormatScript = StringFormatScript.Remove(0, EndIndex + 2);
-                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '>', '\"' });
+                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '\"', '^' });
                 Object[] ThisTrueShift = new Object[SCommands.Length];
                 int CIndex = 0;
                 foreach(String S in SCommands)
@@ -168,8 +168,8 @@ namespace VNFramework
                     if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 2); }
                     else if (S.StartsWith("FACTORY"))
                     {
-                        String FBlueprint = S.Remove(0, S.IndexOf('>') + 1);
-                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '>', '\"');
+                        String FBlueprint = S.Remove(0, S.IndexOf('^') + 1);
+                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '^', '\"');
                         FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "£", "{", '\"');
                         FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "$", "}", '\"');
                         FBlueprint = FBlueprint.Trim('\n');
@@ -183,8 +183,8 @@ namespace VNFramework
                     }
                     else if (S.StartsWith("RUN"))
                     {
-                        String VBlueprint = S.Remove(0, S.IndexOf('>') + 1);
-                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '>', '\"');
+                        String VBlueprint = S.Remove(0, S.IndexOf('^') + 1);
+                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '^', '\"');
                         VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "£", "{", '\"');
                         VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "$", "}", '\"');
                         VBlueprint = VBlueprint.Trim('\n');
@@ -622,9 +622,9 @@ namespace VNFramework
                 LabelEntity = "";
             }
         }
-        static public void ActivateScriptElement(object Element)
+        static public int ActivateScriptElement(object Element)
         {
-            ActivateScriptElement(Element, false);
+            return ActivateScriptElement(Element, false);
         }
         static public int ActivateScriptElement(object Element, Boolean SnifferSkipping)
         {
@@ -680,7 +680,7 @@ namespace VNFramework
                 }
                 else if (Parts[0].ToUpper() == "R")
                 {
-                    R(Parts);
+                    return R(Parts);
                 }
             }
             else if (Element is VoidDel)
@@ -806,7 +806,7 @@ namespace VNFramework
             object TrueVal = ParseLiteralValue(TextFlagVal);
             Shell.UpdateFlag(FlagName, TrueVal);
         }
-        private static void R(String[] Parts)
+        private static int R(String[] Parts)
         {
             String FlagName = Parts[1].ToUpper();
             String TextFlagComparisonVal = Parts[2];
@@ -814,8 +814,8 @@ namespace VNFramework
             if (TextFlagComparisonVal.Contains(":"))
             {
                 String[] ModeSplit = TextFlagComparisonVal.Split(':');
-                TextFlagComparisonVal = ModeSplit[0];
-                Mode = ModeSplit[1];
+                TextFlagComparisonVal = ModeSplit[1];
+                Mode = ModeSplit[0];
             }
             object TrueComparisonVal = ParseLiteralValue(TextFlagComparisonVal);
             Boolean ActivateCond = false;
@@ -848,8 +848,9 @@ namespace VNFramework
                     ConditionalCom += Parts[i] + "|";
                 }
                 ConditionalCom = ConditionalCom.TrimEnd('|');
-                ActivateScriptElement(ConditionalCom);
+                return ActivateScriptElement(ConditionalCom);
             }
+            return 1;
         }
         private static void C(String[] Parts)
         {
@@ -963,20 +964,20 @@ namespace VNFramework
             ArrayList AddAnimatees = new ArrayList();
             if(Parts[1].ToUpper() == "#ALL")
             {
-                foreach (WorldEntity E in Shell.UpdateQueue) { if (!(E is ScriptSniffer)) { AddAnimatees.Add(E); } }
+                foreach (WorldEntity E in Shell.UpdateQueue) { if (!(E is ScriptSniffer) && !(E is Camera)) { AddAnimatees.Add(E); } }
             }
             else if(Parts[1].ToUpper() == "#ALL-NON-UI")
             {
                 foreach (WorldEntity E in Shell.UpdateQueue)
                 {
-                    if (!(E is ScriptSniffer) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                    if (!(E is ScriptSniffer) && !(E is Camera) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
                 }
             }
             else if (Parts[1].ToUpper() == "#ALL-NON-UI-SOFIA")
             {
                 foreach (WorldEntity E in Shell.UpdateQueue)
                 {
-                    if (!(E is ScriptSniffer) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E is Sofia.BigSofia) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                    if (!(E is ScriptSniffer) && !(E is Camera) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E is Sofia.BigSofia) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
                 }
             }
             else if (Parts[1].ToUpper() == "#GLOBAL_END_LOOPS")
@@ -989,7 +990,7 @@ namespace VNFramework
             }
             else { AddAnimatees.Add(Shell.GetEntityByName(Parts[1])); }
             WorldEntity[] Animatees = AddAnimatees.ToArray().Select(x => (WorldEntity)x).ToArray();
-            if (Animatees[0] != null)
+            if (Animatees.Length > 0 && Animatees[0] != null)
             {
                 if (Parts.Length == 3 || Parts.Length == 4)
                 {
@@ -1006,7 +1007,7 @@ namespace VNFramework
                         Animation R = Animation.Retrieve(Parts[2]);
                         if (Parts.Length == 4 && R != null)
                         {
-                            if (Parts[3].ToUpper() == "LOOP") { R.Loop = true; }
+                            if (Parts[3].ToUpper() == "LOOP" || Parts[3].ToUpper() == "TRUE") { R.Loop = true; }
                             else { R.Loop = false; }
                         }
                         for (int i = 0; i < Animatees.Length; i++)
@@ -1059,7 +1060,7 @@ namespace VNFramework
                 }
                 else { throw (new ScriptParseException("The animation command does not take the specified number of parameters: " + (Parts.Length - 1))); }
             }
-            else { throw (new ScriptParseException("Entity animation command could not locate the specified entity: " + Parts[1])); }
+            else if (Animatees.Length > 0) { throw (new ScriptParseException("Entity animation command could not locate the specified entity: " + Parts[1])); }
         }
         private static void F(String[] Parts)
         {
