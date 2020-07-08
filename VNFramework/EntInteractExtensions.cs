@@ -382,6 +382,7 @@ namespace VNFramework
     /// A scrollbar object that renders an accompanying graphics frame. Extends the WorldEntity class.
     /// </summary>
     [Serializable]
+    [Obsolete("ScrollBar is deprecated and inefficient; preferably, a VerticalScrollPane should be used.")]
     public class ScrollBar : WorldEntity
     {
         protected Boolean Engaged = false;
@@ -563,7 +564,7 @@ namespace VNFramework
         }
     }
     [Serializable]
-    public class AutoTextScrollPane : WorldEntity
+    public class VerticalScrollPane : WorldEntity
     {
         protected Boolean Engaged = false;
         public Boolean Enabled { get; set; }
@@ -575,9 +576,20 @@ namespace VNFramework
         {
             return ((pDrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
         }
-        protected Pane MyTextPane;
+        public Pane AssociatedPane
+        {
+            get
+            {
+                return pAssociatedPane;
+            }
+            set
+            {
+                pAssociatedPane = value;
+            }
+        }
+        protected Pane pAssociatedPane;
         protected Point pPaneDimensions;
-        public AutoTextScrollPane(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Point PaneDimensions, Color BackgroundColour) : base(Name, Location, Atlas, Depth)
+        public VerticalScrollPane(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Point PaneDimensions, Color BackgroundColour) : base(Name, Location, Atlas, Depth)
         {
             Enabled = true;
             MinHeight = (int)pDrawCoords.Y;
@@ -589,11 +601,11 @@ namespace VNFramework
             CenterOrigin = true;
             DetectScrollRectange = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
             LastMouseScroll = Mouse.GetState().ScrollWheelValue;
-            MyTextPane = new Pane(Name + "_ATTACHED_PANE", new Vector2((int)pDrawCoords.X - 20 - PaneDimensions.X, MinHeight - (HitBox.Height / 2)), Depth, PaneDimensions, BackgroundColour, Shell.PubGD);
+            pAssociatedPane = new Pane(Name + "_ATTACHED_PANE", new Vector2((int)pDrawCoords.X - 20 - PaneDimensions.X, MinHeight - (HitBox.Height / 2)), Depth, PaneDimensions, BackgroundColour, Shell.PubGD);
         }
-        ~AutoTextScrollPane()
+        ~VerticalScrollPane()
         {
-            MyTextPane.Clear();
+            pAssociatedPane.Clear();
         }
         public override void MouseLeftClick()
         {
@@ -611,23 +623,28 @@ namespace VNFramework
             {
                 return pTotalScrollHeight;
             }
+            set
+            {
+                pTotalScrollHeight = value;
+                if (pTotalScrollHeight <= ScrollFrameHeight) { HideBar = true; }
+                else { HideBar = false; }
+            }
         }
         public void JumpTo(float Fraction)
         {
             float Pos = Fraction * (MaxHeight - MinHeight);
             pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
         }
-        public void SetText(String Text)
+        public void SetAsTextPane(String Text)
         {
-            TextEntity T = new TextEntity(Name + "_TEXT_ENTITY", "", new Vector2(20, 20), 1f);
+            pAssociatedPane.Clear();
+            TextEntity T = new TextEntity(Name + "_SCROLL_TEXT_ENTITY", "", new Vector2(20, 20), 1f);
             T.TypeWrite = false;
             T.BufferLength = pPaneDimensions.X - 40;
             T.Text = Text;
-            MyTextPane.AddUpdate(T);
-            MyTextPane.AddRender(T);
-            pTotalScrollHeight = T.VerticalLength() + 40;
-            if (TotalScrollHeight <= ScrollFrameHeight) { HideBar = true; }
-            else { HideBar = false; }
+            pAssociatedPane.AddUpdate(T);
+            pAssociatedPane.AddRender(T);
+            TotalScrollHeight = T.VerticalLength() + 40;
         }
         public override void Update()
         {
@@ -682,14 +699,14 @@ namespace VNFramework
                 }
             }
             int YDown = (int)(((float)(pDrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
-            MyTextPane.DefaultPaneCamera.QuickMoveTo(new Vector2(640, YDown + 360));
-            MyTextPane.Update();
+            pAssociatedPane.DefaultPaneCamera.QuickMoveTo(new Vector2(640, YDown + 360));
+            pAssociatedPane.Update();
             base.Update();
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
             if (!HideBar) { base.Draw(spriteBatch); }
-            MyTextPane.Draw(spriteBatch);
+            pAssociatedPane.Draw(spriteBatch);
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
@@ -697,7 +714,7 @@ namespace VNFramework
             else
             {
                 if (!HideBar) { base.Draw(spriteBatch, camera); }
-                MyTextPane.Draw(spriteBatch, camera);
+                pAssociatedPane.Draw(spriteBatch, camera);
             }
         }
     }
