@@ -12,7 +12,7 @@ using System.Threading;
 using System.Collections;
 using System.Text.RegularExpressions;
 
-namespace VNFramework
+namespace VNF_Ultrasofiaworld
 {
     public static class Sofia
     {

@@ -53,7 +53,7 @@ namespace VNFramework
     /// An animation object that contains information for frame-by-frame animations in multiple domains that can be played on a given WorldEntity object.
     /// </summary>
     [Serializable]
-    partial class Animation
+    public partial class Animation
     {
         private static ArrayList AnimationRegInternal = new ArrayList();
         public static void GlobalEndLoops()

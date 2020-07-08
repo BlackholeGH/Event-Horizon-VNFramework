@@ -68,7 +68,7 @@ namespace VNFramework
                 if (Label != "") { TextArchive += ("[C:PURPLE]" + Label + "[N]"); }
                 TextArchive += Text;
             }
-            Shell.WriteLine(Label + ": " + Text);
+            //Shell.WriteLine(Label + ": " + Text);
         }
         public static void RollbackArchive()
         {

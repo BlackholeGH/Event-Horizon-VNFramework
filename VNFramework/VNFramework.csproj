@@ -7,7 +7,7 @@
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{354599A0-D845-4BC1-95AC-A03DE95810FA}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>VNFramework</RootNamespace>
     <AssemblyName>VNFramework</AssemblyName>
@@ -70,7 +70,10 @@
     <SignManifests>false</SignManifests>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject />
+    <StartupObject>VNFramework.Launcher</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="AnimationCore.cs" />
@@ -79,6 +82,7 @@
     <Compile Include="EntInteractExtensions.cs" />
     <Compile Include="EntityCore.cs" />
     <Compile Include="EntityFactory.cs" />
+    <Compile Include="Launcher.cs" />
     <Compile Include="ManifestReader.cs" />
     <Compile Include="MatmutEnts.cs" />
     <Compile Include="SaveLoadModule.cs" />

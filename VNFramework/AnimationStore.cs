@@ -12,7 +12,7 @@ using Microsoft.Xna.Framework.Media;
 
 namespace VNFramework
 {
-    partial class Animation
+    public partial class Animation
     {
         public static Animation Retrieve(String Name)
         {
