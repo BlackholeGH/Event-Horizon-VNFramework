@@ -555,8 +555,150 @@ namespace VNFramework
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)pDrawCoords.X - 20 - pDisplayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((MinHeight - (HitBox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(pDisplayRect.Width * camera.ZoomFactor.X), (int)(pDisplayRect.Height * camera.ZoomFactor.Y)), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
-            if (!HideBar) { base.Draw(spriteBatch, camera); }
+            else
+            {
+                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)pDrawCoords.X - 20 - pDisplayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((MinHeight - (HitBox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(pDisplayRect.Width * camera.ZoomFactor.X), (int)(pDisplayRect.Height * camera.ZoomFactor.Y)), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+                if (!HideBar) { base.Draw(spriteBatch, camera); }
+            }
+        }
+    }
+    [Serializable]
+    public class AutoTextScrollPane : WorldEntity
+    {
+        protected Boolean Engaged = false;
+        public Boolean Enabled { get; set; }
+        protected int MinHeight;
+        protected int MaxHeight;
+        protected int ScrollFrameHeight;
+        protected Rectangle DetectScrollRectange;
+        public float ExtentPosition()
+        {
+            return ((pDrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
+        }
+        protected Pane MyTextPane;
+        protected Point pPaneDimensions;
+        public AutoTextScrollPane(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Point PaneDimensions, Color BackgroundColour) : base(Name, Location, Atlas, Depth)
+        {
+            Enabled = true;
+            MinHeight = (int)pDrawCoords.Y;
+            MaxHeight = (int)(pDrawCoords.Y + PaneDimensions.Y - HitBox.Height);
+            ScrollFrameHeight = (int)PaneDimensions.Y;
+            pPaneDimensions = PaneDimensions;
+            pClickable = true;
+            Shell.MouseLeftClick += MLC;
+            CenterOrigin = true;
+            DetectScrollRectange = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
+            LastMouseScroll = Mouse.GetState().ScrollWheelValue;
+            MyTextPane = new Pane(Name + "_ATTACHED_PANE", new Vector2((int)pDrawCoords.X - 20 - PaneDimensions.X, MinHeight - (HitBox.Height / 2)), Depth, PaneDimensions, BackgroundColour, Shell.PubGD);
+        }
+        ~AutoTextScrollPane()
+        {
+            MyTextPane.Clear();
+        }
+        public override void MouseLeftClick()
+        {
+            if (MouseInBounds() && Enabled)
+            {
+                if (!Engaged) { Engaged = true; }
+            }
+        }
+        int LastMouseScroll = 0;
+        Boolean HideBar = false;
+        protected float pTotalScrollHeight = 0;
+        public float TotalScrollHeight
+        {
+            get
+            {
+                return pTotalScrollHeight;
+            }
+        }
+        public void JumpTo(float Fraction)
+        {
+            float Pos = Fraction * (MaxHeight - MinHeight);
+            pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
+        }
+        public void SetText(String Text)
+        {
+            TextEntity T = new TextEntity(Name + "_TEXT_ENTITY", "", new Vector2(20, 20), 1f);
+            T.TypeWrite = false;
+            T.BufferLength = pPaneDimensions.X - 40;
+            T.Text = Text;
+            MyTextPane.AddUpdate(T);
+            MyTextPane.AddRender(T);
+            pTotalScrollHeight = T.VerticalLength() + 40;
+            if (TotalScrollHeight <= ScrollFrameHeight) { HideBar = true; }
+            else { HideBar = false; }
+        }
+        public override void Update()
+        {
+            if (!HideBar)
+            {
+                MouseState M = Mouse.GetState();
+                if (Enabled)
+                {
+                    Vector2 COffsetV = new Vector2();
+                    Vector2 CZoomFactor = new Vector2(1, 1);
+                    if (!CameraImmune)
+                    {
+                        if (CustomCamera != null)
+                        {
+                            COffsetV = CustomCamera.OffsetVector;
+                            CZoomFactor = CustomCamera.ZoomFactor;
+                        }
+                        else if (Shell.AutoCamera != null)
+                        {
+                            COffsetV = Shell.AutoCamera.OffsetVector;
+                            CZoomFactor = Shell.AutoCamera.ZoomFactor;
+                        }
+                    }
+                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
+                    int MY = (int)FullyAdjustedMouseCoords.Y;
+                    if (M.ScrollWheelValue != LastMouseScroll && DetectScrollRectange.Contains(FullyAdjustedMouseCoords) && !Engaged)
+                    {
+                        if (pDrawCoords.Y >= MinHeight && pDrawCoords.Y <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, pDrawCoords.Y + -(int)(((float)(M.ScrollWheelValue - LastMouseScroll) * (float)(ScrollFrameHeight)) / (2 * (float)TotalScrollHeight))); }
+                        if (pDrawCoords.Y < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
+                        else if (pDrawCoords.Y > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
+                    }
+                    LastMouseScroll = M.ScrollWheelValue;
+                    if (Engaged)
+                    {
+                        AtlasCoordinates.X = 2;
+                        if (MY < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
+                        else if (MY > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
+                        else if (MY >= MinHeight && MY <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MY); }
+                        if (M.LeftButton != ButtonState.Pressed) { Engaged = false; }
+                    }
+                    else
+                    {
+                        if (MouseInBounds()) { AtlasCoordinates.X = 1; }
+                        else { AtlasCoordinates.X = 0; }
+                    }
+                }
+                else
+                {
+                    AtlasCoordinates.X = 0;
+                    Engaged = false;
+                    LastMouseScroll = M.ScrollWheelValue;
+                }
+            }
+            int YDown = (int)(((float)(pDrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            MyTextPane.DefaultPaneCamera.QuickMoveTo(new Vector2(640, YDown + 360));
+            MyTextPane.Update();
+            base.Update();
+        }
+        public override void Draw(SpriteBatch spriteBatch)
+        {
+            if (!HideBar) { base.Draw(spriteBatch); }
+            MyTextPane.Draw(spriteBatch);
+        }
+        public override void Draw(SpriteBatch spriteBatch, Camera camera)
+        {
+            if (CameraImmune) { Draw(spriteBatch); }
+            else
+            {
+                if (!HideBar) { base.Draw(spriteBatch, camera); }
+                MyTextPane.Draw(spriteBatch, camera);
+            }
         }
     }
 }

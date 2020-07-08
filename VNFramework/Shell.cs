@@ -205,12 +205,16 @@ namespace VNFramework
         private static object CWriteLockObj = new object();
         public static void WriteLine(String Text)
         {
+            pLastLogLine = Text;
+            if (Text[0] != '[' && Text[Text.Length - 1] != ']')
+            {
+                Text = "[" + System.DateTime.Now.ToLongTimeString() + "] " + Text;
+            }
             try
             {
                 Monitor.Enter(CWriteLockObj);
                 InternalLog += Text + "\n";
                 if (pHasConsole) { Console.WriteLine(Text); }
-                pLastLogLine = Text;
             }
             finally { Monitor.Exit(CWriteLockObj); }
         }
@@ -326,7 +330,7 @@ namespace VNFramework
         /// </summary>
         protected override void Initialize()
         {
-            WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToShortTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
+            WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
             SaveLoadModule.InitializeAppFolders();
@@ -634,7 +638,7 @@ namespace VNFramework
         protected override void UnloadContent()
         {
             WriteLine("Client closing...");
-            WriteLine("[SHELL EXITING AT " + System.DateTime.Now.ToShortTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
+            WriteLine("[SHELL EXITING AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             SaveLoadModule.WriteFinals();
         }
 

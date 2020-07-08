@@ -87,6 +87,10 @@ namespace VNFramework
             TextArchive = "";
             Shell.WriteLine("Dialogue archive wiped.");
         }
+        public static String PullArchiveText()
+        {
+            return TextArchive;
+        }
         public static Texture2D[] PullArchive()
         {
             return ButtonScripts.CreateDynamicScroll(TextArchive, 1000);

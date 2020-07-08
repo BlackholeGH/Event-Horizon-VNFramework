@@ -548,8 +548,8 @@ namespace VNFramework
                 if (E is TextEntity) { E.Drawable = false; }
                 if (E is Button) { ((Button)E).Enabled = false; }
             }
-            Texture2D[] SB = ScriptProcessor.PullArchive();
-            ScrollBar Archive = new ScrollBar("ARCHIVE_SCROLLBAR", new Vector2(1080, 95), (TAtlasInfo)Shell.AtlasDirectory["SCROLLBAR"], 0.98f, SB, 600);
+            AutoTextScrollPane Archive = new AutoTextScrollPane("ARCHIVE_SCROLLBAR", new Vector2(1080, 95), (TAtlasInfo)Shell.AtlasDirectory["SCROLLBAR"], 0.98f, new Point(1000, 600), Color.Gray);
+            Archive.SetText(ScriptProcessor.PullArchiveText());
             Archive.JumpTo(1f);
             Shell.UpdateQueue.Add(Archive);
             Shell.RenderQueue.Add(Archive);
@@ -561,7 +561,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
-                if (E is ScrollBar && !Shell.DeleteQueue.Contains(E))
+                if (E is AutoTextScrollPane && !Shell.DeleteQueue.Contains(E))
                 {
                     Shell.DeleteQueue.Add(E);
                 }
