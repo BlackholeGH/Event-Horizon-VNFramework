@@ -28,7 +28,11 @@ namespace VNFramework
         protected Boolean pDrawable = true;
         protected TAtlasInfo LocalAtlas;
         protected Vector2 pDrawCoords;
-        protected Point AtlasCoordinates = new Point(0, 0);
+        protected Point pAtlasCoordinates = new Point(0, 0);
+        public Point AtlasCoordinates
+        {
+            get { return pAtlasCoordinates; }
+        }
         protected Boolean pClickable = false;
         protected float pRotation = 0f;
         public float RotationRads { get { return pRotation; } }
@@ -60,7 +64,7 @@ namespace VNFramework
         {
             if (Coords.X < LocalAtlas.DivDimensions.X && Coords.Y < LocalAtlas.DivDimensions.Y)
             {
-                AtlasCoordinates = Coords;
+                pAtlasCoordinates = Coords;
                 return true;
             }
             return false;
@@ -219,7 +223,7 @@ namespace VNFramework
                 }
                 Vector2 PublicCorner = new Vector2(HitBox.X, HitBox.Y);
                 Vector2 LocalCoord = V - PublicCorner;
-                Vector2 AtlasConformity = new Vector2(((float)LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, ((float)LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y);
+                Vector2 AtlasConformity = new Vector2(((float)LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, ((float)LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y);
                 LocalCoord += AtlasConformity;
                 Color Comparitor = OrderedAtlas[(int)LocalCoord.X, (int)LocalCoord.Y];
                 if (Comparitor.A != 0) { return true; }
@@ -260,6 +264,7 @@ namespace VNFramework
             MLCRecord = new string[0];
             AnimationQueue = new ArrayList();
             Stickers = new ArrayList();
+            MyBehaviours = new ArrayList();
         }
         ~WorldEntity()
         {
@@ -452,6 +457,7 @@ namespace VNFramework
         private Boolean AutoVerticalFlip = false;
         private Boolean TrueHorizontalFlip { get { return ManualHorizontalFlip ^ AutoHorizontalFlip; } }
         private Boolean TrueVerticalFlip { get { return ManualVerticalFlip ^ AutoVerticalFlip; } }
+        public ArrayList MyBehaviours { get; set; }
         public virtual void Update()
         {
             lock (pStateHash.SyncRoot)
@@ -464,6 +470,10 @@ namespace VNFramework
                         if((int)State[1] == 0) { State[0] = 0f; }
                     }
                 }
+            }
+            foreach(Behaviours.IVNFBehaviour Component in MyBehaviours)
+            {
+                Component.UpdateFunctionality(this);
             }
             foreach(Animation A in AnimationQueue)
             {
@@ -515,12 +525,12 @@ namespace VNFramework
         protected SpriteEffects LocalSpriteEffect = SpriteEffects.None;
         public virtual void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y), new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y))), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X)*AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
+            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y), new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y))), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X)*pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
         }
         public virtual void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
+            else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
         }
     }
     /// <summary>

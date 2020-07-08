@@ -447,7 +447,7 @@ namespace VNFramework
         {
             public BigSofia(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, ArrayList InitialStates) : base(Name, Location, Atlas, Depth)
             {
-                AtlasCoordinates = new Point(3, 2);
+                pAtlasCoordinates = new Point(3, 2);
                 BasePosition = Location;
                 States = InitialStates;
                 SpewFreqencyOne = 2000;
@@ -549,8 +549,8 @@ namespace VNFramework
                         {
                             AX = Shell.Rnd.Next(0, 2);
                         }
-                        AtlasCoordinates = new Point(AX, AY);
-                        if(MyMask != null && AtlasCoordinates != new Point(0, 0)) { MyMask.Drawable = false; }
+                        pAtlasCoordinates = new Point(AX, AY);
+                        if(MyMask != null && pAtlasCoordinates != new Point(0, 0)) { MyMask.Drawable = false; }
                         else if (MyMask != null) { MyMask.Drawable = true; }
                     }
                 }

@@ -589,7 +589,6 @@ namespace VNFramework
         {
             if(Identifier == "new")
             {
-                if(SchemeParams.Contains("BigSofia")) { int t = 0; }
                 Object[] FullConstructorInfo = ExtractMethodValues(SchemeParams);
                 String EntName = (String)FullConstructorInfo[0];
                 Object[] Args = (Object[])FullConstructorInfo[1];

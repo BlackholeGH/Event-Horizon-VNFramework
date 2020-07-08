@@ -64,7 +64,7 @@ namespace VNFramework
         {
             if (MouseInBounds() && Enabled)
             {
-                if (AutoUpdateFrameState) { AtlasCoordinates.X = 1; }
+                if (AutoUpdateFrameState) { pAtlasCoordinates.X = 1; }
                 if (OnHoverDo != null && !pHoverActive)
                 {
                     OnHoverDo();
@@ -73,7 +73,7 @@ namespace VNFramework
             }
             else
             {
-                if (AutoUpdateFrameState) { AtlasCoordinates.X = 0; }
+                if (AutoUpdateFrameState) { pAtlasCoordinates.X = 0; }
                 if (OnHoverReleaseDo != null && pHoverActive && Enabled)
                 {
                     OnHoverReleaseDo();
@@ -143,11 +143,11 @@ namespace VNFramework
             base.Update();
             if (pToggle)
             {
-                AtlasCoordinates.Y = 1;
+                pAtlasCoordinates.Y = 1;
             }
             else
             {
-                AtlasCoordinates.Y = 0;
+                pAtlasCoordinates.Y = 0;
             }
         }
     }
@@ -337,7 +337,7 @@ namespace VNFramework
                 MouseState M = Mouse.GetState();
                 if (Engaged)
                 {
-                    AtlasCoordinates.X = 2;
+                    pAtlasCoordinates.X = 2;
                     Camera MyCam = new Camera("");
                     Vector2 FullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position));
                     if (!CameraImmune)
@@ -369,58 +369,92 @@ namespace VNFramework
                 }
                 else
                 {
-                    if (MouseInBounds()) { AtlasCoordinates.X = 1; }
-                    else { AtlasCoordinates.X = 0; }
+                    if (MouseInBounds()) { pAtlasCoordinates.X = 1; }
+                    else { pAtlasCoordinates.X = 0; }
                 }
             }
             else
             {
-                AtlasCoordinates.X = 0;
+                pAtlasCoordinates.X = 0;
                 Enabled = false;
             }
             base.Update();
         }
+    }
+    public interface IScrollBar
+    {
+        Boolean Engaged { get; set; }
+        Boolean Enabled { get; set; }
+        Boolean HideBar { get; }
+        int ScrollFrameHeight { get; }
+        float TotalScrollHeight { get; }
+        int MaxHeight { get; }
+        int MinHeight { get; }
+        Rectangle DetectScrollRectangle { get; }
+        float ExtentPosition();
+        void JumpTo(float Fraction);
     }
     /// <summary>
     /// A scrollbar object that renders an accompanying graphics frame. Extends the WorldEntity class.
     /// </summary>
     [Serializable]
     [Obsolete("ScrollBar is deprecated and inefficient; preferably, a VerticalScrollPane should be used.")]
-    public class ScrollBar : WorldEntity
+    public class ScrollBar : WorldEntity, IScrollBar
     {
-        protected Boolean Engaged = false;
+        public Boolean Engaged { get; set; }
         public Boolean Enabled { get; set; }
-        protected int MinHeight;
-        protected int MaxHeight;
+        public Boolean HideBar
+        {
+            get { return pHideBar; }
+        }
+        protected int pMinHeight;
+        protected int pMaxHeight;
+        public int MinHeight
+        {
+            get { return pMinHeight; }
+        }
+        public int MaxHeight
+        {
+            get { return pMaxHeight; }
+        }
+        protected Rectangle pDetectScrollRectangle;
+        public Rectangle DetectScrollRectangle
+        {
+            get { return pDetectScrollRectangle; }
+        }
         protected Rectangle pDisplayRect = new Rectangle();
         public Rectangle DisplayRect { get { return pDisplayRect; } }
         public Texture2D[] DisplayScrollR;
         public Texture2D DisplayScroll = null;
-        protected int ScrollFrameHeight;
-        protected Rectangle DetectScrollRectange;
+        protected int pScrollFrameHeight;
+        public int ScrollFrameHeight
+        {
+            get { return pScrollFrameHeight; }
+        }
         public float ExtentPosition()
         {
-            return ((pDrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
+            return ((pDrawCoords.Y - pMinHeight) / (pMaxHeight - pMinHeight));
         }
         public ScrollBar(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Texture2D[] ScrollPlane, int ScrollHeight) : base(Name, Location, Atlas, Depth)
         {
             Enabled = true;
-            MinHeight = (int)pDrawCoords.Y;
-            MaxHeight = (int)(pDrawCoords.Y + ScrollHeight - HitBox.Height);
+            pMinHeight = (int)pDrawCoords.Y;
+            pMaxHeight = (int)(pDrawCoords.Y + ScrollHeight - HitBox.Height);
             foreach (Texture2D T in ScrollPlane)
             {
                 pTotalScrollHeight += T.Bounds.Height;
             }
             DisplayScrollR = ScrollPlane;
-            ScrollFrameHeight = ScrollHeight;
+            pScrollFrameHeight = ScrollHeight;
             DisplayScroll = CalculateDisplayTexture(DisplayScrollR);
-            if (TotalScrollHeight <= ScrollFrameHeight) { HideBar = true; }
+            if (TotalScrollHeight <= ScrollFrameHeight) { pHideBar = true; }
             pClickable = true;
             Shell.MouseLeftClick += MLC;
             CenterOrigin = true;
             pDisplayRect = new Rectangle(0, 0, DisplayScrollR[0].Width, ScrollFrameHeight);
-            DetectScrollRectange = new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, MinHeight - (HitBox.Height / 2), pDisplayRect.Width + 20 + (HitBox.Width / 2), pDisplayRect.Height);
+            pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, pMinHeight - (HitBox.Height / 2), pDisplayRect.Width + 20 + (HitBox.Width / 2), pDisplayRect.Height);
             LastMouseScroll = Mouse.GetState().ScrollWheelValue;
+            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(LastMouseScroll));
         }
         ~ScrollBar()
         {
@@ -448,7 +482,7 @@ namespace VNFramework
             }
         }
         int LastMouseScroll = 0;
-        Boolean HideBar = false;
+        Boolean pHideBar = false;
         protected float pTotalScrollHeight = 0;
         public float TotalScrollHeight
         {
@@ -459,12 +493,12 @@ namespace VNFramework
         }
         public void JumpTo(float Fraction)
         {
-            float Pos = Fraction * (MaxHeight - MinHeight);
-            pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
+            float Pos = Fraction * (pMaxHeight - pMinHeight);
+            pDrawCoords = new Vector2(pDrawCoords.X, pMinHeight + Pos);
         }
         public Texture2D CalculateDisplayTexture(Texture2D[] ScrollSequence)
         {
-            int DRSH = (int)(((float)(pDrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            int DRSH = (int)(((float)(pDrawCoords.Y - pMinHeight) / (float)(pMaxHeight - pMinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
             int StartTIndex = (int)Math.Floor((double)DRSH / 2000d);
             Texture2D One = DisplayScrollR[StartTIndex];
             Texture2D Two = null;
@@ -497,84 +531,57 @@ namespace VNFramework
         }
         public override void Update()
         {
-            if (!HideBar)
+            base.Update();
+            if (!pHideBar)
             {
-                MouseState M = Mouse.GetState();
-                if (Enabled)
-                {
-                    Vector2 COffsetV = new Vector2();
-                    Vector2 CZoomFactor = new Vector2(1, 1);
-                    if (!CameraImmune)
-                    {
-                        if (CustomCamera != null)
-                        {
-                            COffsetV = CustomCamera.OffsetVector;
-                            CZoomFactor = CustomCamera.ZoomFactor;
-                        }
-                        else if (Shell.AutoCamera != null)
-                        {
-                            COffsetV = Shell.AutoCamera.OffsetVector;
-                            CZoomFactor = Shell.AutoCamera.ZoomFactor;
-                        }
-                    }
-                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
-                    int MY = (int)FullyAdjustedMouseCoords.Y;
-                    if (M.ScrollWheelValue != LastMouseScroll && DetectScrollRectange.Contains(FullyAdjustedMouseCoords) && !Engaged)
-                    {
-                        if (pDrawCoords.Y >= MinHeight && pDrawCoords.Y <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, pDrawCoords.Y + -(int)(((float)(M.ScrollWheelValue - LastMouseScroll) * (float)(ScrollFrameHeight)) / (2 * (float)DisplayScroll.Height))); }
-                        if (pDrawCoords.Y < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
-                        else if (pDrawCoords.Y > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
-                    }
-                    LastMouseScroll = M.ScrollWheelValue;
-                    if (Engaged)
-                    {
-                        AtlasCoordinates.X = 2;
-                        if (MY < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
-                        else if (MY > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
-                        else if (MY >= MinHeight && MY <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MY); }
-                        if (M.LeftButton != ButtonState.Pressed) { Engaged = false; }
-                    }
-                    else
-                    {
-                        if (MouseInBounds()) { AtlasCoordinates.X = 1; }
-                        else { AtlasCoordinates.X = 0; }
-                    }
-                }
-                else
-                {
-                    AtlasCoordinates.X = 0;
-                    Engaged = false;
-                    LastMouseScroll = M.ScrollWheelValue;
-                }
                 DisplayScroll.Dispose();
                 DisplayScroll = CalculateDisplayTexture(DisplayScrollR);
             }
-            base.Update();
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(DisplayScroll, new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, MinHeight - (HitBox.Height / 2), pDisplayRect.Width, pDisplayRect.Height), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
-            if (!HideBar) { base.Draw(spriteBatch); }
+            spriteBatch.Draw(DisplayScroll, new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, pMinHeight - (HitBox.Height / 2), pDisplayRect.Width, pDisplayRect.Height), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+            if (!pHideBar) { base.Draw(spriteBatch); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)pDrawCoords.X - 20 - pDisplayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((MinHeight - (HitBox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(pDisplayRect.Width * camera.ZoomFactor.X), (int)(pDisplayRect.Height * camera.ZoomFactor.Y)), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
-                if (!HideBar) { base.Draw(spriteBatch, camera); }
+                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)pDrawCoords.X - 20 - pDisplayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((pMinHeight - (HitBox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(pDisplayRect.Width * camera.ZoomFactor.X), (int)(pDisplayRect.Height * camera.ZoomFactor.Y)), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+                if (!pHideBar) { base.Draw(spriteBatch, camera); }
             }
         }
     }
     [Serializable]
-    public class VerticalScrollPane : WorldEntity
+    public class VerticalScrollPane : WorldEntity, IScrollBar
     {
-        protected Boolean Engaged = false;
+        public Boolean Engaged { get; set; }
         public Boolean Enabled { get; set; }
-        protected int MinHeight;
-        protected int MaxHeight;
-        protected int ScrollFrameHeight;
-        protected Rectangle DetectScrollRectange;
+        public Boolean HideBar
+        {
+            get { return pHideBar; }
+        }
+        protected int pMinHeight;
+        protected int pMaxHeight;
+        public int MinHeight
+        {
+            get { return pMinHeight; }
+        }
+        public int MaxHeight
+        {
+            get { return pMaxHeight; }
+        }
+        protected Rectangle pDetectScrollRectangle;
+        public Rectangle DetectScrollRectangle
+        {
+            get { return pDetectScrollRectangle; }
+        }
+        protected int pScrollFrameHeight;
+        public int ScrollFrameHeight
+        {
+            get { return pScrollFrameHeight; }
+        }
         public float ExtentPosition()
         {
             return ((pDrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
@@ -595,16 +602,17 @@ namespace VNFramework
         public VerticalScrollPane(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Point PaneDimensions, Color BackgroundColour) : base(Name, Location, Atlas, Depth)
         {
             Enabled = true;
-            MinHeight = (int)pDrawCoords.Y;
-            MaxHeight = (int)(pDrawCoords.Y + PaneDimensions.Y - HitBox.Height);
-            ScrollFrameHeight = (int)PaneDimensions.Y;
+            pMinHeight = (int)pDrawCoords.Y;
+            pMaxHeight = (int)(pDrawCoords.Y + PaneDimensions.Y - HitBox.Height);
+            pScrollFrameHeight = (int)PaneDimensions.Y;
             pPaneDimensions = PaneDimensions;
             pClickable = true;
             Shell.MouseLeftClick += MLC;
             CenterOrigin = true;
-            DetectScrollRectange = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
+            pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
             LastMouseScroll = Mouse.GetState().ScrollWheelValue;
             pAssociatedPane = new Pane(Name + "_ATTACHED_PANE", new Vector2((int)pDrawCoords.X - 20 - PaneDimensions.X, MinHeight - (HitBox.Height / 2)), Depth, PaneDimensions, BackgroundColour, Shell.PubGD);
+            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(LastMouseScroll));
         }
         ~VerticalScrollPane()
         {
@@ -618,7 +626,7 @@ namespace VNFramework
             }
         }
         int LastMouseScroll = 0;
-        Boolean HideBar = false;
+        Boolean pHideBar = false;
         protected float pTotalScrollHeight = 0;
         public float TotalScrollHeight
         {
@@ -629,8 +637,8 @@ namespace VNFramework
             set
             {
                 pTotalScrollHeight = value;
-                if (pTotalScrollHeight <= ScrollFrameHeight) { HideBar = true; }
-                else { HideBar = false; }
+                if (pTotalScrollHeight <= ScrollFrameHeight) { pHideBar = true; }
+                else { pHideBar = false; }
             }
         }
         public void JumpTo(float Fraction)
@@ -648,67 +656,25 @@ namespace VNFramework
             pAssociatedPane.AddUpdate(T);
             pAssociatedPane.AddRender(T);
             TotalScrollHeight = T.VerticalLength() + 40;
+            UpdatePaneCameraPos();
         }
-        public override void Update()
+        void UpdatePaneCameraPos()
         {
-            if (!HideBar)
-            {
-                MouseState M = Mouse.GetState();
-                if (Enabled)
-                {
-                    Vector2 COffsetV = new Vector2();
-                    Vector2 CZoomFactor = new Vector2(1, 1);
-                    if (!CameraImmune)
-                    {
-                        if (CustomCamera != null)
-                        {
-                            COffsetV = CustomCamera.OffsetVector;
-                            CZoomFactor = CustomCamera.ZoomFactor;
-                        }
-                        else if (Shell.AutoCamera != null)
-                        {
-                            COffsetV = Shell.AutoCamera.OffsetVector;
-                            CZoomFactor = Shell.AutoCamera.ZoomFactor;
-                        }
-                    }
-                    Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
-                    int MY = (int)FullyAdjustedMouseCoords.Y;
-                    if (M.ScrollWheelValue != LastMouseScroll && DetectScrollRectange.Contains(FullyAdjustedMouseCoords) && !Engaged)
-                    {
-                        if (pDrawCoords.Y >= MinHeight && pDrawCoords.Y <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, pDrawCoords.Y + -(int)(((float)(M.ScrollWheelValue - LastMouseScroll) * (float)(ScrollFrameHeight)) / (2 * (float)TotalScrollHeight))); }
-                        if (pDrawCoords.Y < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
-                        else if (pDrawCoords.Y > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
-                    }
-                    LastMouseScroll = M.ScrollWheelValue;
-                    if (Engaged)
-                    {
-                        AtlasCoordinates.X = 2;
-                        if (MY < MinHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MinHeight); }
-                        else if (MY > MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MaxHeight); }
-                        else if (MY >= MinHeight && MY <= MaxHeight) { pDrawCoords = new Vector2(pDrawCoords.X, MY); }
-                        if (M.LeftButton != ButtonState.Pressed) { Engaged = false; }
-                    }
-                    else
-                    {
-                        if (MouseInBounds()) { AtlasCoordinates.X = 1; }
-                        else { AtlasCoordinates.X = 0; }
-                    }
-                }
-                else
-                {
-                    AtlasCoordinates.X = 0;
-                    Engaged = false;
-                    LastMouseScroll = M.ScrollWheelValue;
-                }
-            }
             int YDown = (int)(((float)(pDrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
             pAssociatedPane.DefaultPaneCamera.QuickMoveTo(new Vector2(640, YDown + 360));
             pAssociatedPane.Update();
+        }
+        public override void Update()
+        {
             base.Update();
+            if (!pHideBar)
+            {
+                UpdatePaneCameraPos();
+            }
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
-            if (!HideBar) { base.Draw(spriteBatch); }
+            if (!pHideBar) { base.Draw(spriteBatch); }
             pAssociatedPane.Draw(spriteBatch);
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
@@ -716,7 +682,7 @@ namespace VNFramework
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                if (!HideBar) { base.Draw(spriteBatch, camera); }
+                if (!pHideBar) { base.Draw(spriteBatch, camera); }
                 pAssociatedPane.Draw(spriteBatch, camera);
             }
         }
