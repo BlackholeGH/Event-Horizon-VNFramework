@@ -111,6 +111,10 @@ namespace VNFramework
         public Boolean Rotate { get { return pRotate; } }
         public Boolean Colour { get { return pColour; } }
         public Boolean Frames { get { return Frames; } }
+        public void ReRegisterSelf()
+        {
+            if(!AnimationRegInternal.Contains(this)) { AnimationRegInternal.Add(this); }
+        }
         public Animation(String Name)
         {
             AnimationRegInternal.Add(this);

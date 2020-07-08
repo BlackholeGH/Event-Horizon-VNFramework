@@ -260,8 +260,11 @@ namespace VNFramework
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            if (DroppedDown) { spriteBatch.Draw(DropBackingTexture, pDrawCoords + camera.OffsetVector + new Vector2(0, (LocalAtlas.Atlas.Bounds.Height / 2)), DropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.ScaleSize, SpriteEffects.None, LayerDepth - 0.002f); }
-            base.Draw(spriteBatch, camera);
+            else
+            {
+                if (DroppedDown) { spriteBatch.Draw(DropBackingTexture, pDrawCoords + camera.OffsetVector + new Vector2(0, (LocalAtlas.Atlas.Bounds.Height / 2)), DropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.ScaleSize, SpriteEffects.None, LayerDepth - 0.002f); }
+                base.Draw(spriteBatch, camera);
+            }
         }
     }
     /// <summary>

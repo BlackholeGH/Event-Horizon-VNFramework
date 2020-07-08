@@ -108,6 +108,7 @@ namespace VNFramework
         {
             foreach (Animation A in AnimationQueue)
             {
+                A.ReRegisterSelf();
                 A.UnHang();
                 if (A.Started && A.TimeElapsed > 100) { A.Jump(this); }
             }
@@ -518,8 +519,8 @@ namespace VNFramework
         }
         public virtual void Draw(SpriteBatch spriteBatch, Camera camera)
         {
-            if(CameraImmune) { Draw(spriteBatch); }
-            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
+            if (CameraImmune) { Draw(spriteBatch); }
+            else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * AtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * AtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
         }
     }
     /// <summary>
@@ -1238,20 +1239,23 @@ namespace VNFramework
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            if (!TypeWrite)
-            {
-                foreach (TextChunk TC in TextChunkR)
-                {
-                    if (TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
-                }
-            }
             else
             {
-                foreach (TextChunk TC in ProgressiveChunks)
+                if (!TypeWrite)
                 {
-                    if (TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                    foreach (TextChunk TC in TextChunkR)
+                    {
+                        if (TC.RainbowMode) { TC.Rainbow(); }
+                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                    }
+                }
+                else
+                {
+                    foreach (TextChunk TC in ProgressiveChunks)
+                    {
+                        if (TC.RainbowMode) { TC.Rainbow(); }
+                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                    }
                 }
             }
         }
