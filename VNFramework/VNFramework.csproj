@@ -78,7 +78,6 @@
   <ItemGroup>
     <Compile Include="AnimationCore.cs" />
     <Compile Include="AnimationStore.cs" />
-    <Compile Include="ButtonScripts.cs" />
     <Compile Include="Behaviours.cs" />
     <Compile Include="EntInteractExtensions.cs" />
     <Compile Include="EntityCore.cs" />
@@ -86,6 +85,7 @@
     <Compile Include="Launcher.cs" />
     <Compile Include="ManifestReader.cs" />
     <Compile Include="MatmutEnts.cs" />
+    <Compile Include="ButtonScripts.cs" />
     <Compile Include="SaveLoadModule.cs" />
     <Compile Include="ScriptProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

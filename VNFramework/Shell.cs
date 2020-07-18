@@ -18,9 +18,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Reflection;
 
 /*VNF GENERAL TO-DO:
- * Read all scripts from file
  * Inbuilt console
- * Make interactive UI elements fire events for simpler use
  */
 
 namespace VNFramework
@@ -199,6 +197,10 @@ namespace VNFramework
             if (S.Flags != null) { Flags = (Hashtable)S.Flags.Clone(); }
             UpdateQueue = new ArrayList(NewUEnts);
             RenderQueue = new ArrayList(NewREnts);
+            foreach (WorldEntity W in ReconstructEnts)
+            {
+                W.ResubscribeEvents();
+            }
             ButtonScripts.UnHideUI();
         }
         public static VoidDel GlobalVoid = null;
@@ -772,7 +774,6 @@ namespace VNFramework
             }
             foreach (WorldEntity E in DeleteQueue)
             {
-                if (E.Clickable) { MouseLeftClick -= E.MLCOut; }
                 if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
                 if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
                 E.ManualDispose();

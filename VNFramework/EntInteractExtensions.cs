@@ -19,12 +19,6 @@ namespace VNFramework
     [Serializable]
     public class Button : WorldEntity
     {
-        [field: NonSerialized]
-        public event VoidDel OnClickDo;
-        public event VoidDel OnHoverDo;
-        public event VoidDel OnHoverReleaseDo;
-        protected String[] OHDRecord;
-        protected String[] OHRDRecord;
         public Boolean Enabled { get; set; }
         public Boolean AutoUpdateFrameState { get; set; }
         public Boolean ViableClick
@@ -34,29 +28,37 @@ namespace VNFramework
                 return (MouseInBounds() && Enabled);
             }
         }
-        public Button(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, VoidDel iOnClickDo) : base(Name, Location, Atlas, Depth)
+        public Button(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth) : base(Name, Location, Atlas, Depth)
         {
             Enabled = true;
             AutoUpdateFrameState = true;
-            pClickable = true;
-            OnClickDo += iOnClickDo;
-            Shell.MouseLeftClick += MLC;
+            //OnClickDo += iOnClickDo;
             if (!(this is DropMenu)) { CenterOrigin = true; }
         }
-        public Button(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, VoidDel iOnClickDo, VoidDel iOnHoverDo, VoidDel iOnHoverReleaseDo) : base(Name, Location, Atlas, Depth)
+        public override void AddEventTriggers()
         {
-            Enabled = true;
-            AutoUpdateFrameState = true;
-            pClickable = true;
-            OnClickDo += iOnClickDo;
-            OnHoverDo += iOnHoverDo;
-            OnHoverReleaseDo += iOnHoverReleaseDo;
-            Shell.MouseLeftClick += MLC;
-            CenterOrigin = true;
+            base.AddEventTriggers();
+            Shell.MouseLeftClick += ButtonPressFunctionTrigger;
         }
-        public override void MouseLeftClick()
+        public override void RemoveEventTriggers()
         {
-            if (MouseInBounds() && Enabled && (OnHoverDo == null || pHoverActive)) { OnClickDo(); }
+            base.RemoveEventTriggers();
+            Shell.MouseLeftClick -= ButtonPressFunctionTrigger;
+        }
+        [field: NonSerialized]
+        public event VoidDel ButtonPressFunction;
+        [field: NonSerialized]
+        public event VoidDel ButtonHoverFunction;
+        [field: NonSerialized]
+        public event VoidDel ButtonHoverReleaseFunction;
+        public override void ClickTrigger()
+        {
+            ButtonPressFunctionTrigger();
+            base.ClickTrigger();
+        }
+        protected virtual void ButtonPressFunctionTrigger()
+        {
+            if (MouseInBounds() && Enabled && pHoverActive) { ButtonPressFunction?.Invoke(); }
         }
         protected Boolean pHoverActive = false;
         public Boolean HoverActive { get { return pHoverActive; } }
@@ -65,18 +67,18 @@ namespace VNFramework
             if (MouseInBounds() && Enabled)
             {
                 if (AutoUpdateFrameState) { pAtlasCoordinates.X = 1; }
-                if (OnHoverDo != null && !pHoverActive)
+                if (!pHoverActive)
                 {
-                    OnHoverDo();
+                    ButtonHoverFunction?.Invoke();
                     pHoverActive = true;
                 }
             }
             else
             {
                 if (AutoUpdateFrameState) { pAtlasCoordinates.X = 0; }
-                if (OnHoverReleaseDo != null && pHoverActive && Enabled)
+                if (pHoverActive && Enabled)
                 {
-                    OnHoverReleaseDo();
+                    ButtonHoverReleaseFunction?.Invoke();
                     pHoverActive = false;
                 }
             }
@@ -86,29 +88,6 @@ namespace VNFramework
         {
             base.OnDeserializeDo();
             AutoUpdateFrameState = true;
-            if (MLCRecord != null && MLCRecord.Length > 0)
-            {
-                foreach (String S in MLCRecord)
-                {
-                    OnClickDo += ButtonScripts.DelegateFetch(S);
-                }
-            }
-            if (OHDRecord != null && OHDRecord.Length > 0)
-            {
-                foreach (String S in OHDRecord)
-                {
-                    OnHoverDo += ButtonScripts.DelegateFetch(S);
-                }
-            }
-            if (OHRDRecord != null && OHRDRecord.Length > 0)
-            {
-                foreach (String S in OHRDRecord)
-                {
-                    OnHoverReleaseDo += ButtonScripts.DelegateFetch(S);
-                }
-            }
-            MLC = new VoidDel(MouseLeftClick);
-            Shell.MouseLeftClick += MLC;
         }
     }
     /// <summary>
@@ -125,7 +104,7 @@ namespace VNFramework
                 return pToggle;
             }
         }
-        public Checkbox(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Boolean InitialToggle, VoidDel iOnClickDo) : base(Name, Location, Atlas, Depth, iOnClickDo)
+        public Checkbox(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Boolean InitialToggle) : base(Name, Location, Atlas, Depth)
         {
             pToggle = InitialToggle;
         }
@@ -133,10 +112,10 @@ namespace VNFramework
         {
             pToggle = State;
         }
-        public override void MouseLeftClick()
+        protected override void ButtonPressFunctionTrigger()
         {
             if (MouseInBounds() && Enabled) { pToggle = !pToggle; }
-            base.MouseLeftClick();
+            base.ButtonPressFunctionTrigger();
         }
         public override void Update()
         {
@@ -157,7 +136,7 @@ namespace VNFramework
     [Serializable]
     public class DropMenu : Checkbox
     {
-        public DropMenu(String Name, Vector2 Location, float Depth, int Width, String DefaultText, String[] DropList, Boolean InitialToggle, VoidDel iOnClickDo) : base(Name, Location, null, Depth, InitialToggle, iOnClickDo)
+        public DropMenu(String Name, Vector2 Location, float Depth, int Width, String DefaultText, String[] DropList, Boolean InitialToggle) : base(Name, Location, null, Depth, InitialToggle)
         {
             BoxWidth = Width;
             TAtlasInfo CustomAtlas = new TAtlasInfo();
@@ -201,7 +180,7 @@ namespace VNFramework
                     SetTopText(B.Name.Remove(0, B.Name.IndexOf("_DROPOPTION_") + 12));
                     function();
                 });
-                B.OnClickDo += NewClickFunction;
+                B.ButtonPressFunction += NewClickFunction;
             }
         }
         Texture2D DropBackingTexture = null;
@@ -214,11 +193,8 @@ namespace VNFramework
                 TAtlasInfo ButtonAtlas = new TAtlasInfo();
                 ButtonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(Label, BoxWidth);
                 ButtonAtlas.DivDimensions = new Point(2, 1);
-                Button B = new Button(Name + "_DROPOPTION_" + Label, new Vector2(pDrawCoords.X, CumulativeY), ButtonAtlas, LayerDepth - 0.001f,
-                    new VoidDel(delegate ()
-                    {
-                        SetTopText(Label);
-                    }));
+                Button B = new Button(Name + "_DROPOPTION_" + Label, new Vector2(pDrawCoords.X, CumulativeY), ButtonAtlas, LayerDepth - 0.001f);
+                B.SubscribeToEvent(EventNames.ButtonPressFunction, typeof(Button).GetMethod("SetTopText"), new object[] { Label });
                 B.CenterOrigin = false;
                 B.Enabled = DroppedDown;
                 MyDropEntities.Add(B);
@@ -283,8 +259,6 @@ namespace VNFramework
             Enabled = true;
             EndpointA = endpointA;
             EndpointB = endpointB;
-            pClickable = true;
-            Shell.MouseLeftClick += MLC;
             CenterOrigin = true;
             ForceState(InitialValue);
         }
@@ -323,11 +297,29 @@ namespace VNFramework
             Vector2 Extension = (B - A) * Output;
             return A + Extension;
         }
-        public override void MouseLeftClick()
+        public override void AddEventTriggers()
+        {
+            base.AddEventTriggers();
+            Shell.MouseLeftClick += SliderClickFunctionTrigger;
+        }
+        public override void RemoveEventTriggers()
+        {
+            base.RemoveEventTriggers();
+            Shell.MouseLeftClick -= SliderClickFunctionTrigger;
+        }
+        public override void ClickTrigger()
+        {
+            SliderClickFunctionTrigger();
+            base.ClickTrigger();
+        }
+        [field: NonSerialized]
+        public event VoidDel SliderClickFunction;
+        protected virtual void SliderClickFunctionTrigger()
         {
             if (MouseInBounds() && Enabled)
             {
                 if (!Engaged) { Engaged = true; }
+                SliderClickFunction?.Invoke();
             }
         }
         public override void Update()
@@ -448,8 +440,6 @@ namespace VNFramework
             pScrollFrameHeight = ScrollHeight;
             DisplayScroll = CalculateDisplayTexture(DisplayScrollR);
             if (TotalScrollHeight <= ScrollFrameHeight) { pHideBar = true; }
-            pClickable = true;
-            Shell.MouseLeftClick += MLC;
             CenterOrigin = true;
             pDisplayRect = new Rectangle(0, 0, DisplayScrollR[0].Width, ScrollFrameHeight);
             pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, pMinHeight - (HitBox.Height / 2), pDisplayRect.Width + 20 + (HitBox.Width / 2), pDisplayRect.Height);
@@ -474,11 +464,29 @@ namespace VNFramework
             DisplayScrollR = null;
             DisplayScroll = null;
         }
-        public override void MouseLeftClick()
+        public override void AddEventTriggers()
+        {
+            base.AddEventTriggers();
+            Shell.MouseLeftClick += ScrollBarClickFunctionTrigger;
+        }
+        public override void RemoveEventTriggers()
+        {
+            base.RemoveEventTriggers();
+            Shell.MouseLeftClick -= ScrollBarClickFunctionTrigger;
+        }
+        public override void ClickTrigger()
+        {
+            ScrollBarClickFunctionTrigger();
+            base.ClickTrigger();
+        }
+        [field: NonSerialized]
+        public event VoidDel ScrollBarClickFunction;
+        protected virtual void ScrollBarClickFunctionTrigger()
         {
             if (MouseInBounds() && Enabled)
             {
                 if (!Engaged) { Engaged = true; }
+                ScrollBarClickFunction?.Invoke();
             }
         }
         int LastMouseScroll = 0;
@@ -606,8 +614,6 @@ namespace VNFramework
             pMaxHeight = (int)(pDrawCoords.Y + PaneDimensions.Y - HitBox.Height);
             pScrollFrameHeight = (int)PaneDimensions.Y;
             pPaneDimensions = PaneDimensions;
-            pClickable = true;
-            Shell.MouseLeftClick += MLC;
             CenterOrigin = true;
             pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
             LastMouseScroll = Mouse.GetState().ScrollWheelValue;
@@ -618,11 +624,29 @@ namespace VNFramework
         {
             pAssociatedPane.Clear();
         }
-        public override void MouseLeftClick()
+        public override void AddEventTriggers()
+        {
+            base.AddEventTriggers();
+            Shell.MouseLeftClick += ScrollBarClickFunctionTrigger;
+        }
+        public override void RemoveEventTriggers()
+        {
+            base.RemoveEventTriggers();
+            Shell.MouseLeftClick -= ScrollBarClickFunctionTrigger;
+        }
+        public override void ClickTrigger()
+        {
+            ScrollBarClickFunctionTrigger();
+            base.ClickTrigger();
+        }
+        [field: NonSerialized]
+        public event VoidDel ScrollBarClickFunction;
+        protected virtual void ScrollBarClickFunctionTrigger()
         {
             if (MouseInBounds() && Enabled)
             {
                 if (!Engaged) { Engaged = true; }
+                ScrollBarClickFunction?.Invoke();
             }
         }
         int LastMouseScroll = 0;
@@ -686,5 +710,9 @@ namespace VNFramework
                 pAssociatedPane.Draw(spriteBatch, camera);
             }
         }
+    }
+    public interface ITextInputReceiver
+    {
+        void DoTextInputActionable(Behaviours.TextInputBehaviour MyTextInputBehaviour);
     }
 }

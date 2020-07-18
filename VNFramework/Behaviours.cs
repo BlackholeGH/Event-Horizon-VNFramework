@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
+using System.Collections;
 
 namespace VNFramework
 {
@@ -13,6 +14,57 @@ namespace VNFramework
         public interface IVNFBehaviour
         {
             void UpdateFunctionality(WorldEntity BehaviourOwner);
+            void Clear();
+        }
+        public class TextInputBehaviour : IVNFBehaviour
+        {
+            public TextInputBehaviour()
+            {
+                InputUpdated = false;
+                Shell.DefaultShell.Window.TextInput += HandleTextInputEvent;
+            }
+            public void Clear()
+            {
+                Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
+            }
+            void HandleTextInputEvent(object EventSender, TextInputEventArgs e)
+            {
+                if(e.Key != Keys.Enter && e.Key != Keys.Back)
+                {
+                    if(e.Character != '\0') { ConstructHeldString.Append(e.Character.ToString()[0]); }
+                    InputUpdated = true;
+                }
+                else if(e.Key == Keys.Back)
+                {
+                    ConstructHeldString.Remove(ConstructHeldString.Length - 2, 1);
+                    InputUpdated = true;
+                }
+                else if(e.Key == Keys.Enter)
+                {
+                    pLastHeldString = HeldString;
+                    ConstructHeldString = new StringBuilder();
+                    InputUpdated = true;
+                }
+            }
+            private Boolean InputUpdated;
+            private StringBuilder ConstructHeldString = new StringBuilder();
+            private String pLastHeldString = "";
+            public String HeldString
+            {
+                get
+                {
+                    return ConstructHeldString.ToString();
+                }
+            }
+            public String LastHeldString { get { return pLastHeldString; } }
+            public void UpdateFunctionality(WorldEntity BehaviourOwner)
+            {
+                if(BehaviourOwner is ITextInputReceiver && InputUpdated)
+                {
+                    ((ITextInputReceiver)BehaviourOwner).DoTextInputActionable(this);
+                    InputUpdated = false;
+                }
+            }
         }
         public class ScrollBarControlBehaviour : IVNFBehaviour
         {
@@ -21,9 +73,13 @@ namespace VNFramework
             {
                 LastMouseScroll = InLastMouseScroll;
             }
-            public void UpdateFunctionality(WorldEntity ComponentOwner)
+            public void Clear()
             {
-                IScrollBar SB = (IScrollBar)ComponentOwner;
+
+            }
+            public void UpdateFunctionality(WorldEntity BehaviourOwner)
+            {
+                IScrollBar SB = (IScrollBar)BehaviourOwner;
                 if (!SB.HideBar)
                 {
                     MouseState M = Mouse.GetState();

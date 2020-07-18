@@ -17,53 +17,13 @@ namespace VNFramework
 {
     public static class ButtonScripts
     {
+        public static void UIBoxClick()
+        {
+            if (Shell.AllowEnter) { Shell.DoNextShifter = true; }
+        }
         public static VoidDel DelegateFetch(String index)
         {
             Hashtable DelegateTable = new Hashtable();
-            DelegateTable.Add("uiboxclick", new VoidDel(delegate ()
-            {
-                if (Shell.AllowEnter) { Shell.DoNextShifter = true; }
-            }));
-            DelegateTable.Add("openarchive", new VoidDel(delegate ()
-            {
-                ButtonScripts.OpenArchive();
-            }));
-            DelegateTable.Add("skip", new VoidDel(delegate ()
-            {
-                ButtonScripts.Skip();
-            }));
-            DelegateTable.Add("scriptrollback", new VoidDel(delegate ()
-            {
-                ButtonScripts.ScriptRollback();
-            }));
-            DelegateTable.Add("pause", new VoidDel(delegate ()
-            {
-                ButtonScripts.Pause();
-            }));
-            DelegateTable.Add("backtomainmenu", new VoidDel(delegate ()
-            {
-                ButtonScripts.BackToMainMenu();
-            }));
-            DelegateTable.Add("opennavscreen", new VoidDel(delegate ()
-            {
-                ButtonScripts.OpenNavScreen();
-            }));
-            DelegateTable.Add("refreshuihidestate", new VoidDel(delegate ()
-            {
-                ButtonScripts.RefreshUIHideState();
-            }));
-            DelegateTable.Add("navigatetomystic", new VoidDel(delegate ()
-            {
-                Sofia.NavigateToMystic();
-            }));
-            DelegateTable.Add("navigatetoking", new VoidDel(delegate ()
-            {
-                Sofia.NavigateToKing();
-            }));
-            DelegateTable.Add("navigatetocrooked", new VoidDel(delegate ()
-            {
-                Sofia.NavigateToCrooked();
-            }));
             if (index.Contains("runscript_"))
             {
                 ScriptProcessor.ScriptSniffer S = ScriptProcessor.SnifferSearch();
@@ -162,21 +122,24 @@ namespace VNFramework
                 }
                 if(PageNumber > 1 && !Prev)
                 {
-                    Button PrevB = new Button("PREVBUTTON_LOADSCREEN", new Vector2(340, 625), (TAtlasInfo)Shell.AtlasDirectory["PREVBUTTON"], 0.99f, new VoidDel(delegate ()
+                    Button PrevB = new Button("PREVBUTTON_LOADSCREEN", new Vector2(340, 625), (TAtlasInfo)Shell.AtlasDirectory["PREVBUTTON"], 0.99f);
+                    //Note: These anonymous button methods cannot be serialized.
+                    PrevB.ButtonPressFunction += new VoidDel(delegate ()
                     {
                         PageNumber--;
                         RefreshLoadPage();
-                    }));
+                    });
                     Shell.UpdateQueue.Add(PrevB);
                     Shell.RenderQueue.Add(PrevB);
                 }
                 if (PageNumber < MaxPage && !Next)
                 {
-                    Button NextB = new Button("NEXTBUTTON_LOADSCREEN", new Vector2(940, 625), (TAtlasInfo)Shell.AtlasDirectory["NEXTBUTTON"], 0.99f, new VoidDel(delegate ()
+                    Button NextB = new Button("NEXTBUTTON_LOADSCREEN", new Vector2(940, 625), (TAtlasInfo)Shell.AtlasDirectory["NEXTBUTTON"], 0.99f);
+                    NextB.ButtonPressFunction += new VoidDel(delegate ()
                     {
                         PageNumber++;
                         RefreshLoadPage();
-                    }));
+                    });
                     Shell.UpdateQueue.Add(NextB);
                     Shell.RenderQueue.Add(NextB);
                 }
@@ -218,7 +181,8 @@ namespace VNFramework
                         TAtlasInfo ThisButton = new TAtlasInfo();
                         ThisButton.Atlas = SaveLoadModule.PopulateLoadSlot(ThumbPath);
                         ThisButton.DivDimensions = new Point(3, 1);
-                        LoadButtons[i] = new Button("LOADSAVEATPOSITION_" + i, ButtonLocations[i], ThisButton, 0.98f, new VoidDel(delegate() { ButtonScripts.TriggerSpecLoad(); }));
+                        LoadButtons[i] = new Button("LOADSAVEATPOSITION_" + i, ButtonLocations[i], ThisButton, 0.98f);
+                        ((Button)LoadButtons[i]).SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("TriggerSpecLoad"), null);
                         SaveAccess.Add(LoadButtons[i].EntityID, TheseSaves[i]);
 
                         String SaveDate = (String)SaveAttributes["#TIME"];
@@ -229,7 +193,10 @@ namespace VNFramework
                         TimeText.TypeWrite = false;
                         Dates.Add(TimeText);
 
-                        Button MyDeleteButton = new Button("DELETESAVEATPOSITION_" + i, ButtonLocations[i], (TAtlasInfo)Shell.AtlasDirectory["DELETESAVEBUTTON"], 0.981f, TriggerSpecDelete, TriggerSpecDeleteHover, TriggerSpecDeleteUnHover);
+                        Button MyDeleteButton = new Button("DELETESAVEATPOSITION_" + i, ButtonLocations[i], (TAtlasInfo)Shell.AtlasDirectory["DELETESAVEBUTTON"], 0.981f);
+                        MyDeleteButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("TriggerSpecDelete"), null);
+                        MyDeleteButton.SubscribeToEvent(WorldEntity.EventNames.ButtonHoverFunction, typeof(ButtonScripts).GetMethod("TriggerSpecDeleteHover"), null);
+                        MyDeleteButton.SubscribeToEvent(WorldEntity.EventNames.ButtonHoverReleaseFunction, typeof(ButtonScripts).GetMethod("TriggerSpecDeleteUnHover"), null);
                         DeleteAccess.Add(MyDeleteButton.EntityID, LoadButtons[i].EntityID);
                         String[] DeletePaths = new String[] { ThumbPath, SavePathByIndex(((PageNumber - 1) * 6) + i), Time };
                         DeletePathAccess.Add(MyDeleteButton.EntityID, DeletePaths);
@@ -342,10 +309,12 @@ namespace VNFramework
             TimeTextDelete.TypeWrite = false;
             Shell.UpdateQueue.Add(TimeTextDelete);
             Shell.RenderQueue.Add(TimeTextDelete);
-            Button Yes = new Button("BUTTON_DELETE_YES", new Vector2(530, 530), (TAtlasInfo)Shell.AtlasDirectory["YESBUTTON"], 0.9951f, new VoidDel(delegate () { DeleteActual(ThumbPath, SavePath); }));
+            Button Yes = new Button("BUTTON_DELETE_YES", new Vector2(530, 530), (TAtlasInfo)Shell.AtlasDirectory["YESBUTTON"], 0.9951f);
+            Yes.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("DeleteActual"), new object[] { ThumbPath, SavePath });
             Shell.UpdateQueue.Add(Yes);
             Shell.RenderQueue.Add(Yes);
-            Button No = new Button("BUTTON_DELETE_NO", new Vector2(750, 530), (TAtlasInfo)Shell.AtlasDirectory["NOBUTTON"], 0.9951f, new VoidDel(delegate () { UnDelete(); }));
+            Button No = new Button("BUTTON_DELETE_NO", new Vector2(750, 530), (TAtlasInfo)Shell.AtlasDirectory["NOBUTTON"], 0.9951f);
+            No.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnDelete"), null);
             Shell.UpdateQueue.Add(No);
             Shell.RenderQueue.Add(No);
         }
@@ -373,7 +342,8 @@ namespace VNFramework
             SaveWrittenPane.CenterOrigin = true;
             Shell.UpdateQueue.Add(SaveWrittenPane);
             Shell.RenderQueue.Add(SaveWrittenPane);
-            Button Back = new Button("BUTTON_DELETE_BACK", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.9961f, new VoidDel(delegate () { UnDelete(); }));
+            Button Back = new Button("BUTTON_DELETE_BACK", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.9961f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnDelete"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
@@ -531,12 +501,12 @@ namespace VNFramework
             Out.SetData<Color>(OutModify);
             return Out;
         }
-        public static Button GetQuickButton(String Text, VoidDel Function)
+        public static Button GetQuickButton(String Text)
         {
             TAtlasInfo NewAtlas = new TAtlasInfo();
             NewAtlas.Atlas = CreateDynamicCustomButton(Text, 600);
             NewAtlas.DivDimensions = new Point(2, 1);
-            Button NewB = new Button("BUTTON_CUSTOM_" + Text.ToUpper(), new Vector2(), NewAtlas, 0.91f, Function);
+            Button NewB = new Button("BUTTON_CUSTOM_" + Text.ToUpper(), new Vector2(), NewAtlas, 0.91f);
             return NewB;
         }
         public static void OpenArchive()
@@ -553,7 +523,8 @@ namespace VNFramework
             Archive.JumpTo(1f);
             Shell.UpdateQueue.Add(Archive);
             Shell.RenderQueue.Add(Archive);
-            Button Back = new Button("BACKBUTTON_ARCHIVE", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f, new VoidDel(delegate () { CloseArchive(); }));
+            Button Back = new Button("BACKBUTTON_ARCHIVE", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("CloseArchive"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
@@ -644,14 +615,15 @@ namespace VNFramework
             int i = 0;
             if (!(Sofia.GetContextualLocation() == "MYSTIC"))
             {
-                Button B = ButtonScripts.GetQuickButton("Travel to the SOURCE, home of the Mystic Sofia.", new VoidDel(delegate ()
+                Button B = ButtonScripts.GetQuickButton("Travel to the SOURCE, home of the Mystic Sofia.");
+                B.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     Shell.GlobalWorldState = "EXITING";
                     CloseNavScreen(true);
                     ((ScriptProcessor.ScriptSniffer)ScriptProcessor.SnifferSearch()).ScriptThrowTarget = Sofia.NavigateToMystic();
                     ScriptProcessor.SearchAndThrowForExit();
                 }
-                ));
+                );
                 B.QuickMoveTo(ButtonLocs[i]);
                 Shell.UpdateQueue.Add(B);
                 Shell.RenderQueue.Add(B);
@@ -659,14 +631,15 @@ namespace VNFramework
             }
             if (!(Sofia.GetContextualLocation() == "KING"))
             {
-                Button B = ButtonScripts.GetQuickButton("Travel to the CASTLE of the King Sofia.", new VoidDel(delegate ()
+                Button B = ButtonScripts.GetQuickButton("Travel to the CASTLE of the King Sofia.");
+                B.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     Shell.GlobalWorldState = "EXITING";
                     CloseNavScreen(true);
                     ((ScriptProcessor.ScriptSniffer)ScriptProcessor.SnifferSearch()).ScriptThrowTarget = Sofia.NavigateToKing();
                     ScriptProcessor.SearchAndThrowForExit();
                 }
-                ));
+                );
                 B.QuickMoveTo(ButtonLocs[i]);
                 Shell.UpdateQueue.Add(B);
                 Shell.RenderQueue.Add(B);
@@ -674,20 +647,22 @@ namespace VNFramework
             }
             if (!(Sofia.GetContextualLocation() == "CROOKED"))
             {
-                Button B = ButtonScripts.GetQuickButton("Travel to the hills and caves of the BADLANDS.", new VoidDel(delegate ()
+                Button B = ButtonScripts.GetQuickButton("Travel to the hills and caves of the BADLANDS.");
+                B.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     Shell.GlobalWorldState = "EXITING";
                     CloseNavScreen(true);
                     ((ScriptProcessor.ScriptSniffer)ScriptProcessor.SnifferSearch()).ScriptThrowTarget = Sofia.NavigateToCrooked();
                     ScriptProcessor.SearchAndThrowForExit();
                 }
-                ));
+                );
                 B.QuickMoveTo(ButtonLocs[i]);
                 Shell.UpdateQueue.Add(B);
                 Shell.RenderQueue.Add(B);
                 i++;
             }
-            Button Back = new Button("BACKBUTTON_NAVSCREEN", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.98f, new VoidDel(delegate () { CloseNavScreen(); }));
+            Button Back = new Button("BACKBUTTON_NAVSCREEN", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.98f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("CloseNavScreen"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
@@ -742,19 +717,24 @@ namespace VNFramework
             Pane.ColourValue = new Color(200, 200, 200, 150);
             Shell.UpdateQueue.Add(Pane);
             Shell.RenderQueue.Add(Pane);
-            Button Back = new Button("BUTTON_PAUSE_RETURN", new Vector2(640, 180), (TAtlasInfo)Shell.AtlasDirectory["PAUSERETURNBUTTON"], 0.98f, new VoidDel(delegate () { Unpause(); }));
+            Button Back = new Button("BUTTON_PAUSE_RETURN", new Vector2(640, 180), (TAtlasInfo)Shell.AtlasDirectory["PAUSERETURNBUTTON"], 0.98f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unpause"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
-            Button SaveB = new Button("BUTTON_PAUSE_SAVE", new Vector2(640, 270), (TAtlasInfo)Shell.AtlasDirectory["PAUSESAVEBUTTON"], 0.98f, new VoidDel(delegate () { Save(); }));
+            Button SaveB = new Button("BUTTON_PAUSE_SAVE", new Vector2(640, 270), (TAtlasInfo)Shell.AtlasDirectory["PAUSESAVEBUTTON"], 0.98f);
+            SaveB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Save"), null);
             Shell.UpdateQueue.Add(SaveB);
             Shell.RenderQueue.Add(SaveB);
-            Button Settings = new Button("BUTTON_PAUSE_SETTINGS", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSESETTINGSBUTTON"], 0.98f, new VoidDel(delegate () { ShowSettings(); }));
+            Button Settings = new Button("BUTTON_PAUSE_SETTINGS", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSESETTINGSBUTTON"], 0.98f);
+            Settings.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
             Shell.UpdateQueue.Add(Settings);
             Shell.RenderQueue.Add(Settings);
-            Button Main = new Button("BUTTON_PAUSE_MAINMENU", new Vector2(640, 450), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMAINMENUBUTTON"], 0.98f, new VoidDel(delegate () { BackToMainMenu(); }));
+            Button Main = new Button("BUTTON_PAUSE_MAINMENU", new Vector2(640, 450), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMAINMENUBUTTON"], 0.98f);
+            Main.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
             Shell.UpdateQueue.Add(Main);
             Shell.RenderQueue.Add(Main);
-            Button QuitB = new Button("BUTTON_PAUSE_QUIT", new Vector2(640, 540), (TAtlasInfo)Shell.AtlasDirectory["PAUSEQUITBUTTON"], 0.98f, new VoidDel(delegate () { Quit(); }));
+            Button QuitB = new Button("BUTTON_PAUSE_QUIT", new Vector2(640, 540), (TAtlasInfo)Shell.AtlasDirectory["PAUSEQUITBUTTON"], 0.98f);
+            QuitB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
             Shell.UpdateQueue.Add(QuitB);
             Shell.RenderQueue.Add(QuitB);
         }
@@ -790,10 +770,12 @@ namespace VNFramework
             Pane.CenterOrigin = true;
             Shell.UpdateQueue.Add(Pane);
             Shell.RenderQueue.Add(Pane);
-            Button Yes = new Button("BUTTON_EXIT_YES", new Vector2(560, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITYESBUTTON"], 1f, new VoidDel(delegate () { Shell.ExitOut = true; }));
+            Button Yes = new Button("BUTTON_EXIT_YES", new Vector2(560, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITYESBUTTON"], 1f);
+            Yes.ButtonPressFunction += new VoidDel(delegate () { Shell.ExitOut = true; });
             Shell.UpdateQueue.Add(Yes);
             Shell.RenderQueue.Add(Yes);
-            Button No = new Button("BUTTON_EXIT_NO", new Vector2(700, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITNOBUTTON"], 1f, new VoidDel(delegate () { Unquit(); }));
+            Button No = new Button("BUTTON_EXIT_NO", new Vector2(700, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITNOBUTTON"], 1f);
+            No.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unquit"), null);
             Shell.UpdateQueue.Add(No);
             Shell.RenderQueue.Add(No);
         }
@@ -844,7 +826,7 @@ namespace VNFramework
                 });
             }
         }
-        public static void OpenMatMutMenu()
+        /*public static void OpenMatMutMenu()
         {
             if (SpoonsTrip)
             {
@@ -883,7 +865,7 @@ namespace VNFramework
             CommenceTutorial.CenterOrigin = false;
             Shell.UpdateQueue.Add(CommenceTutorial);
             Shell.RenderQueue.Add(CommenceTutorial);
-        }
+        }*/
         public static void StartTutorial()
         {
             MediaPlayer.Stop();
@@ -919,7 +901,8 @@ namespace VNFramework
             WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
             Shell.UpdateQueue.Add(MainMenuBackdrop);
             Shell.RenderQueue.Add(MainMenuBackdrop);
-            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
+            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartMain"), null);
             //Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
@@ -931,19 +914,23 @@ namespace VNFramework
             TestPane.Scale(new Vector2(0, -0.5f));
             Shell.UpdateQueue.Add(TestPane);
             Shell.RenderQueue.Add(TestPane);*/
-            Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f, delegate () { ButtonScripts.LoadSaveMenu(); });
+            Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("LoadSaveMenu"), null);
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
             Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_CREDITS", new Vector2(658, 500), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f, delegate () { ButtonScripts.ShowCredits(); });
+            Button = new Button("BUTTON_MAIN_CREDITS", new Vector2(658, 500), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowCredits"), null);
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
             Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f, delegate () { ShowSettings(); });
+            Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
             Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f, delegate () { Quit(); });
+            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
             Shell.RenderQueue.Add(Button);
@@ -1021,7 +1008,8 @@ namespace VNFramework
             LoadManager.MaxPage = (int)Math.Ceiling((Saves.Length / 6f));
             if(LoadManager.MaxPage < 1) { LoadManager.MaxPage = 1; }
             LoadManager.PageNumber = LoadManager.MaxPage;
-            Button Back = new Button("BACKBUTTON_LOADSCREEN", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.99f, new VoidDel(delegate () { BackToMainMenu(); }));
+            Button Back = new Button("BACKBUTTON_LOADSCREEN", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.99f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
             TextEntity PNum = new TextEntity("TEXT_PAGENUM", "[C:138-0-255-255]Page 1 of 1", new Vector2(640 - (Shell.Default.MeasureString("Page 1 of 1").X / 2f), 615), 0.99f);
@@ -1042,7 +1030,8 @@ namespace VNFramework
             ScrollBar Credits = new ScrollBar("CREDIT_SCROLLBAR", new Vector2(1080, 95), (TAtlasInfo)Shell.AtlasDirectory["SCROLLBAR"], 0.98f, SB, 600);
             Shell.UpdateQueue.Add(Credits);
             Shell.RenderQueue.Add(Credits);
-            Button Back = new Button("BACKBUTTON_CREDITS", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f, new VoidDel(delegate () { BackToMainMenu(); }));
+            Button Back = new Button("BACKBUTTON_CREDITS", new Vector2(1180, 625), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
@@ -1067,11 +1056,12 @@ namespace VNFramework
             WorldEntity SettingsPane = new WorldEntity("PANE_SETTINGS", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSPANE"], 0.99f);
             Shell.UpdateQueue.Add(SettingsPane);
             Shell.RenderQueue.Add(SettingsPane);
-            Checkbox Fullscreen = new Checkbox("CHECKBOX_SETTINGS_FULLSCREEN", new Vector2(140, 200), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.QueryFullscreen(), new VoidDel(delegate ()
+            Checkbox Fullscreen = new Checkbox("CHECKBOX_SETTINGS_FULLSCREEN", new Vector2(140, 200), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.QueryFullscreen());
+            Fullscreen.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     if (Shell.CaptureFullscreen.Toggle) { if (!Shell.QueryFullscreen()) { Shell.ToggleFullscreen(); } }
                     else { if (Shell.QueryFullscreen()) { Shell.ToggleFullscreen(); } }
-                }));
+                });
             Shell.CaptureFullscreen = Fullscreen;
             Shell.UpdateQueue.Add(Fullscreen);
             Shell.RenderQueue.Add(Fullscreen);
@@ -1095,11 +1085,12 @@ namespace VNFramework
             Shell.CaptureVolume = Volume;
             Shell.UpdateQueue.Add(Volume);
             Shell.RenderQueue.Add(Volume);
-            Checkbox Mute = new Checkbox("CHECKBOX_SETTINGS_MUTE", new Vector2(140, 355), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.Mute, new VoidDel(delegate ()
+            Checkbox Mute = new Checkbox("CHECKBOX_SETTINGS_MUTE", new Vector2(140, 355), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.Mute);
+            Mute.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     if (Shell.CaptureMute.Toggle) { Shell.Mute = true; }
                     else { Shell.Mute = false; }
-                }));
+                });
             Shell.CaptureMute = Mute;
             Shell.UpdateQueue.Add(Mute);
             Shell.RenderQueue.Add(Mute);
@@ -1123,11 +1114,12 @@ namespace VNFramework
             Shell.CaptureRateDisplay = DynamicTextrate;
             Shell.UpdateQueue.Add(DynamicTextrate);
             Shell.RenderQueue.Add(DynamicTextrate);
-            Checkbox SSSave = new Checkbox("CHECKBOX_SETTINGS_SAVES", new Vector2(140, 520), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, SaveLoadModule.ApplicableSaveType == "ScriptStem", new VoidDel(delegate ()
+            Checkbox SSSave = new Checkbox("CHECKBOX_SETTINGS_SAVES", new Vector2(140, 520), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, SaveLoadModule.ApplicableSaveType == "ScriptStem");
+            SSSave.ButtonPressFunction += new VoidDel(delegate ()
             {
                 if (Shell.CaptureSaveType.Toggle) { SaveLoadModule.ApplicableSaveType = "ScriptStem"; }
                 else { SaveLoadModule.ApplicableSaveType = "FullySerializedBinary"; }
-            }));
+            });
             Shell.CaptureSaveType = SSSave;
             Shell.UpdateQueue.Add(SSSave);
             Shell.RenderQueue.Add(SSSave);
@@ -1143,17 +1135,20 @@ namespace VNFramework
             Shell.RenderQueue.Add(SLabel2);
             if (!Paused)
             {
-                Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f, new VoidDel(delegate () { BackToMainMenu(); }));
+                Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+                Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
                 Shell.UpdateQueue.Add(Back);
                 Shell.RenderQueue.Add(Back);
             }
             else
             {
-                Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f, new VoidDel(delegate () { UnSettings(); }));
+                Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+                Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSettings"), null);
                 Shell.UpdateQueue.Add(Back);
                 Shell.RenderQueue.Add(Back);
             }
-            Button Restore = new Button("BUTTON_SETTINGS_RESTORE", new Vector2(280, 620), (TAtlasInfo)Shell.AtlasDirectory["RESTOREBUTTON"], 1f, new VoidDel(delegate () { Shell.DefaultSettings(); }));
+            Button Restore = new Button("BUTTON_SETTINGS_RESTORE", new Vector2(280, 620), (TAtlasInfo)Shell.AtlasDirectory["RESTOREBUTTON"], 1f);
+            Restore.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(Shell).GetMethod("DefaultSettings"), null);
             Shell.UpdateQueue.Add(Restore);
             Shell.RenderQueue.Add(Restore);
         }
@@ -1213,7 +1208,8 @@ namespace VNFramework
             SaveWrittenPane.CenterOrigin = true;
             Shell.UpdateQueue.Add(SaveWrittenPane);
             Shell.RenderQueue.Add(SaveWrittenPane);
-            Button Back = new Button("BUTTON_SAVE_BACK", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.991f, new VoidDel(delegate () { UnSave(); }));
+            Button Back = new Button("BUTTON_SAVE_BACK", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.991f);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSave"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
@@ -1241,10 +1237,12 @@ namespace VNFramework
             TimeText.TypeWrite = false;
             Shell.UpdateQueue.Add(TimeText);
             Shell.RenderQueue.Add(TimeText);
-            Button Yes = new Button("BUTTON_SAVE_YES", new Vector2(530, 530), (TAtlasInfo)Shell.AtlasDirectory["YESBUTTON"], 0.991f, new VoidDel(delegate () { SaveActual(SaveThumb); }));
+            Button Yes = new Button("BUTTON_SAVE_YES", new Vector2(530, 530), (TAtlasInfo)Shell.AtlasDirectory["YESBUTTON"], 0.991f);
+            Yes.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("SaveActual"), new object[] { SaveThumb });
             Shell.UpdateQueue.Add(Yes);
             Shell.RenderQueue.Add(Yes);
-            Button No = new Button("BUTTON_SAVE_NO", new Vector2(750, 530), (TAtlasInfo)Shell.AtlasDirectory["NOBUTTON"], 0.991f, new VoidDel(delegate () { UnSave(); }));
+            Button No = new Button("BUTTON_SAVE_NO", new Vector2(750, 530), (TAtlasInfo)Shell.AtlasDirectory["NOBUTTON"], 0.991f);
+            No.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSave"), null);
             Shell.UpdateQueue.Add(No);
             Shell.RenderQueue.Add(No);
         }
@@ -1288,44 +1286,43 @@ namespace VNFramework
             {
                 WorldEntity Add = new WorldEntity("UIBOX", new Vector2(100, 470), (TAtlasInfo)Shell.AtlasDirectory["UIBOX"], 0.9f);
                 Add.ColourValue = new Color(200, 200, 200, 255);
-                Add.GiveClickFunction(DelegateFetch("uiboxclick"));
-                Add.MLCRecord = new String[] { "uiboxclick" };
+                Add.SubscribeToEvent(WorldEntity.EventNames.EntityClickFunction, typeof(ButtonScripts).GetMethod("UIBoxClick"), null);
                 Shell.UpdateQueue.Add(Add);
                 Shell.RenderQueue.Add(Add);
             }
             if (Shell.GetEntityByName("BUTTON_ARCHIVE") == null)
             {
-                Button Archive = new Button("BUTTON_ARCHIVE", new Vector2(70, 510), (TAtlasInfo)Shell.AtlasDirectory["ARCHIVEBUTTON"], 0.95f, DelegateFetch("openarchive"));
-                Archive.MLCRecord = new String[] { "openarchive" };
+                Button Archive = new Button("BUTTON_ARCHIVE", new Vector2(70, 510), (TAtlasInfo)Shell.AtlasDirectory["ARCHIVEBUTTON"], 0.95f);
+                Archive.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("OpenArchive"), null);
                 Shell.UpdateQueue.Add(Archive);
                 Shell.RenderQueue.Add(Archive);
             }
             if (Shell.GetEntityByName("BUTTON_SKIP") == null)
             {
-                Button Skip = new Button("BUTTON_SKIP", new Vector2(70, 557), (TAtlasInfo)Shell.AtlasDirectory["SKIPBUTTON"], 0.95f, DelegateFetch("skip"));
-                Skip.MLCRecord = new String[] { "skip" };
+                Button Skip = new Button("BUTTON_SKIP", new Vector2(70, 557), (TAtlasInfo)Shell.AtlasDirectory["SKIPBUTTON"], 0.95f);
+                Skip.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Skip"), null);
                 Shell.UpdateQueue.Add(Skip);
                 Shell.RenderQueue.Add(Skip);
             }
             if (Shell.GetEntityByName("BUTTON_PAUSEMENU") == null)
             {
-                Button PauseB = new Button("BUTTON_PAUSEMENU", new Vector2(70, 604), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUBUTTON"], 0.95f, DelegateFetch("pause"));
-                PauseB.MLCRecord = new String[] { "pause" };
+                Button PauseB = new Button("BUTTON_PAUSEMENU", new Vector2(70, 604), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUBUTTON"], 0.95f);
+                PauseB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Pause"), null);
                 Shell.UpdateQueue.Add(PauseB);
                 Shell.RenderQueue.Add(PauseB);
             }
             if (Shell.GetEntityByName("BUTTON_ROLLBACK") == null)
             {
-                Button Return = new Button("BUTTON_ROLLBACK", new Vector2(70, 651), (TAtlasInfo)Shell.AtlasDirectory["RETURNBUTTON"], 0.95f, DelegateFetch("scriptrollback"));
-                Return.MLCRecord = new String[] { "scriptrollback" };
+                Button Return = new Button("BUTTON_ROLLBACK", new Vector2(70, 651), (TAtlasInfo)Shell.AtlasDirectory["RETURNBUTTON"], 0.95f);
+                Return.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ScriptRollback"), null);
                 Shell.UpdateQueue.Add(Return);
                 Shell.RenderQueue.Add(Return);
             }
             if (Shell.GetEntityByName("BUTTON_HIDE_UI") == null)
             {
-                Checkbox HideUI = new Checkbox("BUTTON_HIDE_UI", new Vector2(1205, 650), (TAtlasInfo)Shell.AtlasDirectory["EYECHECKBOX"], 0.95f, false, DelegateFetch("refreshuihidestate"));
+                Checkbox HideUI = new Checkbox("BUTTON_HIDE_UI", new Vector2(1205, 650), (TAtlasInfo)Shell.AtlasDirectory["EYECHECKBOX"], 0.95f, false);
                 HideUI.CenterOrigin = false;
-                HideUI.MLCRecord = new String[] { "refreshuihidestate" };
+                HideUI.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("RefreshUIHideState"), null);
                 Shell.UpdateQueue.Add(HideUI);
                 Shell.RenderQueue.Add(HideUI);
             }

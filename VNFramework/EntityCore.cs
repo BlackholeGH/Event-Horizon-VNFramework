@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.Serialization;
+using System.Reflection;
 
 namespace VNFramework
 {
@@ -33,12 +34,10 @@ namespace VNFramework
         {
             get { return pAtlasCoordinates; }
         }
-        protected Boolean pClickable = false;
         protected float pRotation = 0f;
         public float RotationRads { get { return pRotation; } }
         protected Vector2 pScale = new Vector2(1, 1);
         public Vector2 ScaleSize { get { return pScale; } }
-        public Boolean Clickable { get { return pClickable; } }
         protected Vector2 pOrigin = new Vector2();
         protected Boolean pCO = false;
         protected ColourShift pColour = new ColourShift(255f, 255f, 255f, 255f);
@@ -93,11 +92,133 @@ namespace VNFramework
             }
         }
         public Boolean SuppressClickable { get; set; }
-        public void GiveClickFunction(VoidDel Func)
+        //It should be noted that the event subscription register only holds the entity name of the publishing entity, as entIDs are reassigned after deserialization.
+        //Due to this, if a specific event subscription is required, the publisher should be ensured to have a unique name string.
+        [Serializable]
+        public struct EventSubRegister
         {
-            pClickable = true;
-            MLC = delegate () { if (MouseInBounds() && !SuppressClickable) { Func(); } };
-            Shell.MouseLeftClick += MLC;
+            public EventSubRegister(String PublisherEntName, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+            {
+                this.PublisherEntName = PublisherEntName;
+                this.EventName = EventName;
+                this.EventHandler = EventHandler;
+                this.MethodArgs = MethodArgs;
+            }
+            public String PublisherEntName;
+            public EventNames EventName;
+            public MethodInfo EventHandler;
+            public object[] MethodArgs;
+        }
+        protected List<EventSubRegister> pSubscribedEvents = new List<EventSubRegister>();
+        public List<EventSubRegister> SubscribedEvents
+        {
+            get
+            {
+                return pSubscribedEvents;
+            }
+            set
+            {
+                pSubscribedEvents = value;
+            }
+        }
+        public void SubscribeToEvent(EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        {
+            SubscribeToEvent(this, EventName, EventHandler, MethodArgs);
+        }
+        public void SubscribeToEvent(WorldEntity EventPublisher, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        {
+            pSubscribedEvents.Add(new EventSubRegister(EventPublisher.Name, EventName, EventHandler, MethodArgs));
+            EventSubscribeActual(EventPublisher, EventName, EventHandler, MethodArgs);
+        }
+        [field: NonSerialized]
+        protected Dictionary<WorldEntity, ArrayList> TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
+        private void EventSubscribeActual(WorldEntity EventPublisher, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        {
+            VoidDel ThisHandler = new VoidDel(delegate () {
+                EventHandler.Invoke(this, MethodArgs);
+            });
+            if(!TrueDetachers.ContainsKey(EventPublisher))
+            {
+                TrueDetachers.Add(EventPublisher, new ArrayList());
+            }
+            ((ArrayList)TrueDetachers[EventPublisher]).Add(new object[] { EventName, ThisHandler });
+            EventCoupleDecouple(EventPublisher, EventName, ThisHandler, true);
+        }
+        [Serializable]
+        public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction };
+        public void EventCoupleDecouple(WorldEntity EventPublisher, EventNames EventName, VoidDel Handler, Boolean Subscribe)
+        {
+            switch (EventName)
+            {
+                case EventNames.EntityClickFunction:
+                    if (Subscribe) { EventPublisher.EntityClickFunction += Handler; }
+                    else { EventPublisher.EntityClickFunction -= Handler; }
+                    break;
+                case EventNames.ButtonPressFunction:
+                    if (EventPublisher is Button)
+                    {
+                        Button B = (Button)EventPublisher;
+                        if (Subscribe) { B.ButtonPressFunction += Handler; }
+                        else { B.ButtonPressFunction -= Handler; }
+                    }
+                    break;
+                case EventNames.ButtonHoverFunction:
+                    if (EventPublisher is Button)
+                    {
+                        Button B = (Button)EventPublisher;
+                        if (Subscribe) { B.ButtonHoverFunction += Handler; }
+                        else { B.ButtonHoverFunction -= Handler; }
+                    }
+                    break;
+                case EventNames.ButtonHoverReleaseFunction:
+                    if (EventPublisher is Button)
+                    {
+                        Button B = (Button)EventPublisher;
+                        if (Subscribe) { B.ButtonHoverReleaseFunction += Handler; }
+                        else { B.ButtonHoverReleaseFunction -= Handler; }
+                    }
+                    break;
+                case EventNames.SliderClickFunction:
+                    if (EventPublisher is Slider)
+                    {
+                        Slider S = (Slider)EventPublisher;
+                        if (Subscribe) { S.SliderClickFunction += Handler; }
+                        else { S.SliderClickFunction -= Handler; }
+                    }
+                    break;
+                case EventNames.ScrollBarClickFunction:
+                    if (EventPublisher is ScrollBar)
+                    {
+                        ScrollBar S = (ScrollBar)EventPublisher;
+                        if (Subscribe) { S.ScrollBarClickFunction += Handler; }
+                        else { S.ScrollBarClickFunction -= Handler; }
+                    }
+                    else if (EventPublisher is VerticalScrollPane)
+                    {
+                        VerticalScrollPane S = (VerticalScrollPane)EventPublisher;
+                        if (Subscribe) { S.ScrollBarClickFunction += Handler; }
+                        else { S.ScrollBarClickFunction -= Handler; }
+                    }
+                    break;
+            }
+        }
+        public virtual void AddEventTriggers()
+        {
+            Shell.MouseLeftClick += EntityClickFunctionTrigger;
+        }
+        public virtual void RemoveEventTriggers()
+        {
+            Shell.MouseLeftClick -= EntityClickFunctionTrigger;
+        }
+        public virtual void ClickTrigger()
+        {
+            EntityClickFunctionTrigger();
+        }
+        [field:NonSerialized]
+        public event VoidDel EntityClickFunction;
+        protected virtual void EntityClickFunctionTrigger()
+        {
+            if (MouseInBounds() && !SuppressClickable) { EntityClickFunction?.Invoke(); }
         }
         private Texture2D SerializationBackup = null;
         public virtual void OnSerializeDo()
@@ -108,20 +229,46 @@ namespace VNFramework
                 SerializationBackup = LocalAtlas.Atlas;
             }
         }
+        public void ResubscribeEvents()
+        {
+            if(TrueDetachers != null && TrueDetachers.Count > 0)
+            {
+                UnsubscribeEvents();
+            }
+            List<EventSubRegister> LocalSubE = SubscribedEvents;
+            SubscribedEvents = new List<EventSubRegister>();
+            foreach (EventSubRegister ESR in LocalSubE)
+            {
+                WorldEntity Publisher = Shell.GetEntityByName(ESR.PublisherEntName);
+                if(Publisher != null)
+                {
+                    SubscribeToEvent(Publisher, ESR.EventName, ESR.EventHandler, ESR.MethodArgs);
+                }
+            }
+        }
+        private void UnsubscribeEvents()
+        {
+            if (TrueDetachers != null)
+            {
+                foreach (WorldEntity E in TrueDetachers.Keys)
+                {
+                    foreach (object[] Pair in TrueDetachers[E])
+                    {
+                        EventCoupleDecouple(E, (EventNames)Pair[0], (VoidDel)Pair[1], false);
+                    }
+                }
+            }
+            TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
+        }
         public virtual void OnDeserializeDo()
         {
+            AddEventTriggers();
+            if(MyBehaviours is null) { MyBehaviours = new ArrayList(); }
             foreach (Animation A in AnimationQueue)
             {
                 A.ReRegisterSelf();
                 A.UnHang();
                 if (A.Started && A.TimeElapsed > 100) { A.Jump(this); }
-            }
-            if (!(this is Button))
-            {
-                if (MLCRecord.Length > 0)
-                {
-                    GiveClickFunction(ButtonScripts.DelegateFetch(MLCRecord[0]));
-                }
             }
             if (SerializationBackup != null)
             {
@@ -132,6 +279,7 @@ namespace VNFramework
             {
                 LocalAtlas.Atlas = ((TAtlasInfo)Shell.AtlasDirectory[LocalAtlas.ReferenceHash]).Atlas;
             }
+            TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
         }
         protected Rectangle pHitBox = new Rectangle(0, 0, 0, 0);
         public Rectangle HitBox
@@ -173,14 +321,11 @@ namespace VNFramework
             else if (A is null ^ B is null) { return true; }
             return !A.Equals(B);
         }
-        public virtual void MouseLeftClick()
-        {
-
-        }
         public Vector2 PseudoMouse { get; set; }
         public Boolean UsePseudoMouse { get; set; }
         public Boolean MouseInBounds()
         {
+            if(LocalAtlas.Atlas == null) { return false; }
             var MouseState = Mouse.GetState();
             //return HitBox.Contains(new Vector2(MouseState.X, MouseState.Y));
             Vector2 NormalizedMouseVector;
@@ -232,10 +377,6 @@ namespace VNFramework
             return false;
         }
         public float LayerDepth { get; set; }
-        [field: NonSerialized]
-        protected VoidDel MLC;
-        public VoidDel MLCOut { get { return MLC; } }
-        public String[] MLCRecord { get; set; }
         public Boolean TransientAnimation { get; set; }
         public void ReissueID()
         {
@@ -254,14 +395,13 @@ namespace VNFramework
             CustomCamera = null;
             CameraImmune = false;
             InitStateHash();
+            AddEventTriggers();
             PseudoMouse = new Vector2(float.NaN, float.NaN);
             if (Atlas != null)
             {
                 LocalAtlas = (TAtlasInfo)Atlas;
                 pHitBox = new Rectangle(new Point((int)Location.X, (int)Location.Y), LocalAtlas.FrameSize());
             }
-            MLC = delegate () { MouseLeftClick(); };
-            MLCRecord = new string[0];
             AnimationQueue = new ArrayList();
             Stickers = new ArrayList();
             MyBehaviours = new ArrayList();
@@ -272,12 +412,18 @@ namespace VNFramework
         }
         public void ManualDispose()
         {
-            if (Clickable) { Shell.MouseLeftClick -= MLC; }
+            RemoveEventTriggers();
+            UnsubscribeEvents();
             foreach (Animation A in AnimationQueue)
             {
                 A.AutoWipe();
             }
             AnimationQueue = new ArrayList();
+            foreach (Behaviours.IVNFBehaviour B in MyBehaviours)
+            {
+                B.Clear();
+            }
+            MyBehaviours = new ArrayList();
         }
         public ulong EntityID { get { return pEntityID; } }
         public String Name { get { return pName; } }
@@ -316,7 +462,6 @@ namespace VNFramework
             }
         }
         private Hashtable pStateHash = new Hashtable();
-
         private void InitStateHash()
         {
             String[] State = new String[] { "NORTHSOUTH", "EASTWEST", "ROTATION", "SCALEHORIZ", "SCALEVERT", "RED", "GREEN", "BLUE", "ALPHA" };
@@ -665,7 +810,6 @@ namespace VNFramework
             BackgroundColor = BackgroundCol;
             GraphicsDevice = MyGraphicsDevice;
             PaneBaseSize = PaneSize;
-            pClickable = true;
             DefaultPaneCamera = new Camera("CAMERA_PANE_" + Name);
             UpdateQueue = new ArrayList();
             RenderQueue = new ArrayList();
@@ -675,7 +819,7 @@ namespace VNFramework
             Render();
         }
         public Boolean AllowInternalInteracts { get; set; }
-        public override void MouseLeftClick()
+        protected override void EntityClickFunctionTrigger()
         {
             if(AllowInternalInteracts && MouseInBounds())
             {
@@ -684,10 +828,10 @@ namespace VNFramework
                 foreach (WorldEntity E in UpdateQueue)
                 {
                     E.PseudoMouse = LocalPosition;
-                    if (E.MouseInBounds()) { E.MouseLeftClick(); }
+                    if (E.MouseInBounds()) { E.ClickTrigger(); }
                 }
             }
-            base.MouseLeftClick();
+            base.EntityClickFunctionTrigger();
         }
         ~Pane()
         {
