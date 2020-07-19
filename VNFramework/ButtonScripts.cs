@@ -646,7 +646,7 @@ namespace VNFramework
                 i++;
             }
             Button Back = new Button("BACKBUTTON_NAVSCREEN", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.98f);
-            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("CloseNavScreen"), null);
+            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("CloseNavScreen", new Type[0]), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
         }
