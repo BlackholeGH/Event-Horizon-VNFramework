@@ -70,9 +70,15 @@ namespace VNFramework
             }
             DP = TempDP;
             Type SuperType = typeof(ScriptProcessor);
-            String StaticMemberTree = DP;
             Object InstancedObject = null;
-            if (PresumptiveEntity is null)
+            if (DP.ToUpper().StartsWith("TYPEOF("))
+            {
+                String TypeNameString = DP.Remove(DP.IndexOf(')')).Remove(0, 7);
+                InstancedObject = VNFUtils.TypeOfNameString(TypeNameString, true);
+                DP = DP.Remove(0, DP.IndexOf(')') + 2);
+            }
+            String StaticMemberTree = DP;
+            if (PresumptiveEntity is null && InstancedObject is null)
             {
                 if (DP.Contains("&"))
                 {
@@ -115,7 +121,7 @@ namespace VNFramework
                     StaticMemberTree = StaticMemberTree.TrimStart('&');
                 }
             }
-            else
+            else if(InstancedObject is null)
             {
                 InstancedObject = PresumptiveEntity;
             }
@@ -171,11 +177,22 @@ namespace VNFramework
                                 foreach (ParameterInfo pi in me.GetParameters())
                                 {
                                     Type ParamType = pi.ParameterType;
-                                    Type GivenType = TrueParameters[i].GetType();
-                                    if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
+                                    if (!(TrueParameters[i] is null))
                                     {
-                                        InvocationFlag = false;
-                                        break;
+                                        Type GivenType = TrueParameters[i].GetType();
+                                        if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
+                                        {
+                                            InvocationFlag = false;
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (ParamType.IsValueType && Nullable.GetUnderlyingType(ParamType) == null)
+                                        {
+                                            InvocationFlag = false;
+                                            break;
+                                        }
                                     }
                                     i++;
                                 }
@@ -376,6 +393,10 @@ namespace VNFramework
                         {
                             return DP.ToUpper() == "TRUE";
                         }
+                        else if(DP.ToUpper() == "NULL")
+                        {
+                            return null;
+                        }
                         else
                         {
                             return ReturnMemberOrFuncValue(DP, null, null);
@@ -425,6 +446,8 @@ namespace VNFramework
                             {
                                 RLength = VNFUtils.Strings.SplitAtExclosed(IsolatedCurls, ',', '\"').Length;
                             }
+                            Dictionary<String, String> AliasLookup = VNFUtils.TypeAliasLookup();
+                            if(AliasLookup.ContainsKey(IsolatedIdentifier)) { IsolatedIdentifier = AliasLookup[IsolatedIdentifier]; }
                             Type RType = Type.GetType("System." + IsolatedIdentifier);
                             Object[] TempR = new Object[RLength];
                             if(IsolatedCurls != null)
@@ -519,40 +542,11 @@ namespace VNFramework
         /// </summary>
         /// <param name="TypeName">Either a qualified type name, or a simple type name to search for.</param>
         /// <param name="ConstructorArgs">Arguments for the type constructor.</param>
-        /// <param name="BroadSearch">If true, the type name will be used as a search paramter and all project assemblies will be searched for a matching type name.</param>
+        /// <param name="BroadSearch">If true, the type name will be used as a search parameter and all project assemblies will be searched for a matching type name.</param>
         /// <returns></returns>
         public static Object ConstructDynamicObject(String TypeName, Object[] ConstructorArgs, Boolean BroadSearch)
         {
-            TypeName = TypeName.Replace("\\+", "+");
-            if (BroadSearch)
-            {
-                ArrayList TheseTypes = new ArrayList();
-                Assembly[] RawAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-                ArrayList OrderedAssemblies = new ArrayList();
-                OrderedAssemblies.Add(Assembly.GetExecutingAssembly());
-                OrderedAssemblies.Add(typeof(Shell).Assembly);
-                OrderedAssemblies.Add(typeof(Game).Assembly);
-                foreach (Assembly A in RawAssemblies)
-                {
-                    if(!OrderedAssemblies.Contains(A)) { OrderedAssemblies.Add(A); }
-                }
-                foreach (Assembly ThisAssembly in OrderedAssemblies)
-                {
-                    foreach (Type AssType in ThisAssembly.GetTypes())
-                    {
-                        TheseTypes.Add(AssType);
-                    }
-                }
-                foreach (Type T in TheseTypes)
-                {
-                    if (T.Name.ToUpper() == TypeName.ToUpper())
-                    {
-                        TypeName = T.AssemblyQualifiedName;
-                        break;
-                    }
-                }
-            }
-            Type EntityType = Type.GetType(TypeName, false, false);
+            Type EntityType = VNFUtils.TypeOfNameString(TypeName, BroadSearch);
             if (EntityType == null) { return null; }
             ConstructorInfo[] ThisCInfo = EntityType.GetConstructors();
             foreach (ConstructorInfo C in ThisCInfo)

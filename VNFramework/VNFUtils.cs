@@ -14,6 +14,7 @@ using System.Collections;
 using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Reflection;
 
 namespace VNFramework
 {
@@ -58,6 +59,27 @@ namespace VNFramework
     public delegate void VoidDel();
     public static class VNFUtils
     {
+        public static Dictionary<String, String> TypeAliasLookup()
+        {
+            Dictionary<String, String> Out = new Dictionary<string, string>();
+            Out.Add("bool", "Boolean");
+            Out.Add("byte", "Byte");
+            Out.Add("sbyte", "SByte");
+            Out.Add("char", "Char");
+            Out.Add("decimal", "Decimal");
+            Out.Add("double", "Double");
+            Out.Add("float", "Single");
+            Out.Add("int", "Int32");
+            Out.Add("uint", "UInt32");
+            Out.Add("long", "Int64");
+            Out.Add("ulong", "UInt64");
+            Out.Add("short", "Int16");
+            Out.Add("ushort", "UInt16");
+            Out.Add("object", "Object");
+            Out.Add("string", "String");
+            Out.Add("dynamic", "Object");
+            return Out;
+        }
         public static Point ConvertVector(Vector2 V)
         {
             return new Point((int)V.X, (int)V.Y);
@@ -142,8 +164,7 @@ namespace VNFramework
         }
         public static Boolean IsNumeric(Object T)
         {
-            if(T is Int16 || T is Int32 || T is Int64 || T is float || T is double || T is Decimal) { return true; }
-            else { return false; }
+            return (T is Int16 || T is Int32 || T is Int64 || T is float || T is double || T is Decimal);
         }
         public static object MultiAdd(object A, object B)
         {
@@ -196,6 +217,39 @@ namespace VNFramework
                 else { return (int)Result; }
             }
             else { return "[Undefined division operation]"; }
+        }
+        public static Type TypeOfNameString(String TypeName, Boolean BroadSearch)
+        {
+            TypeName = TypeName.Replace("\\+", "+");
+            if (BroadSearch)
+            {
+                ArrayList TheseTypes = new ArrayList();
+                Assembly[] RawAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+                ArrayList OrderedAssemblies = new ArrayList();
+                OrderedAssemblies.Add(Assembly.GetExecutingAssembly());
+                OrderedAssemblies.Add(typeof(Shell).Assembly);
+                OrderedAssemblies.Add(typeof(Game).Assembly);
+                foreach (Assembly A in RawAssemblies)
+                {
+                    if (!OrderedAssemblies.Contains(A)) { OrderedAssemblies.Add(A); }
+                }
+                foreach (Assembly ThisAssembly in OrderedAssemblies)
+                {
+                    foreach (Type AssType in ThisAssembly.GetTypes())
+                    {
+                        TheseTypes.Add(AssType);
+                    }
+                }
+                foreach (Type T in TheseTypes)
+                {
+                    if (T.Name.ToUpper() == TypeName.ToUpper())
+                    {
+                        TypeName = T.AssemblyQualifiedName;
+                        break;
+                    }
+                }
+            }
+            return Type.GetType(TypeName, false, false);
         }
         public static class SysProperties
         {

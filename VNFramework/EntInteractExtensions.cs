@@ -58,10 +58,11 @@ namespace VNFramework
         }
         protected virtual void ButtonPressFunctionTrigger()
         {
-            if (MouseInBounds() && Enabled && pHoverActive) { ButtonPressFunction?.Invoke(); }
+            if (ButtonPressFunction != null && MouseInBounds() && Enabled && pHoverActive) { ButtonPressFunction?.Invoke(); }
         }
         protected Boolean pHoverActive = false;
         public Boolean HoverActive { get { return pHoverActive; } }
+        //Maybe update these so it doesn't constantly check mouse bounds, same for other event triggers
         public override void Update()
         {
             if (MouseInBounds() && Enabled)

@@ -488,12 +488,9 @@ namespace VNFramework
         {
             get { return pBootManifestReadTitle; }
         }
-        public VoidDel PullAutoShift
+        public static void AutoShift()
         {
-            get
-            {
-                return new VoidDel(delegate () { if (Shell.AllowEnter) { Shell.DoNextShifter = true; } });
-            }
+            if (Shell.AllowEnter) { Shell.DoNextShifter = true; }
         }
         protected object[] AsyncLoad()
         {

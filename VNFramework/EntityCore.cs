@@ -218,7 +218,7 @@ namespace VNFramework
         public event VoidDel EntityClickFunction;
         protected virtual void EntityClickFunctionTrigger()
         {
-            if (MouseInBounds() && !SuppressClickable) { EntityClickFunction?.Invoke(); }
+            if (EntityClickFunction != null && MouseInBounds() && !SuppressClickable) { EntityClickFunction?.Invoke(); }
         }
         private Texture2D SerializationBackup = null;
         public virtual void OnSerializeDo()

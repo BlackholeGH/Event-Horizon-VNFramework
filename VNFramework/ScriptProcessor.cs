@@ -387,7 +387,7 @@ namespace VNFramework
                 ShiftStartTime = Environment.TickCount;
                 ShiftCondition = new String[0];
                 if (ScriptIndex >= pMyScript.Length - 1 && ForceScriptInsertionQueue.Count == 0) { ScriptIndex--; }
-                PushScriptShift(OneScriptShift);
+                PushScriptShift(OneScriptShift, false);
                 LastTime = Environment.TickCount;
             }
             public override void Update()
@@ -472,9 +472,10 @@ namespace VNFramework
                     }
                 }
             }
-            int PushScriptShift(object[] CurrentShift)
+            int PushScriptShift(object[] CurrentShift, Boolean ExpectSerialization)
             {
-                CountApplicableRollbacks = 0;
+                int PrevARs = CountApplicableRollbacks;
+                if (ExpectSerialization) { CountApplicableRollbacks = 0; }
                 foreach (object O in CurrentShift)
                 {
                     int RCode = ActivateScriptElement(O, SkipAll);
@@ -493,6 +494,18 @@ namespace VNFramework
                     }
                 }
                 LocalSC = ShiftCondition;
+                if (ExpectSerialization)
+                {
+                    foreach (String C in ShiftCondition)
+                    {
+                        String[] Conditions = C.ToUpper().Split(':');
+                        if (Conditions[0] == "TIME" && Convert.ToInt32(Conditions[1]) <= 20)
+                        {
+                            CountApplicableRollbacks = CountApplicableRollbacks + PrevARs;
+                            break;
+                        }
+                    }
+                }
                 return CountApplicableRollbacks;
             }
             public int RollbacksOnReturn { get; set; }
@@ -508,7 +521,17 @@ namespace VNFramework
                     }));
                     return;
                 }
-                PushScriptShift((object[])pMyScript[ScriptIndex]);
+                PushScriptShift((object[])pMyScript[ScriptIndex], true);
+                Boolean RollbackAble = true;
+                foreach (String C in ShiftCondition)
+                {
+                    String[] Conditions = C.ToUpper().Split(':');
+                    if (Conditions[0] == "TIME" && Convert.ToInt32(Conditions[1]) <= 20)
+                    {
+                        RollbackAble = false;
+                        break;
+                    }
+                }
                 if (!Shell.DeleteQueue.Contains(this) && ShiftCondition.Length > 0)
                 {
                     Shell.RunQueue.Add(new VoidDel(delegate ()
@@ -519,7 +542,7 @@ namespace VNFramework
                             {
                                 if (E is ScriptSniffer) { ((ScriptSniffer)E).RollbacksOnReturn = CountApplicableRollbacks; }
                             }
-                            PastStates.Push(Shell.SerializeState());
+                            if (RollbackAble) { PastStates.Push(Shell.SerializeState()); }
                         });
                     }));
                 }
@@ -800,6 +823,10 @@ namespace VNFramework
             else if (Input.ToUpper() == "TRUE" || Input.ToUpper() == "FALSE")
             {
                 return Input.ToUpper() == "TRUE";
+            }
+            else if (Input.ToUpper() == "NULL")
+            {
+                return null;
             }
             else { return Input; }
         }

@@ -21,30 +21,14 @@ namespace VNFramework
         {
             if (Shell.AllowEnter) { Shell.DoNextShifter = true; }
         }
-        public static VoidDel DelegateFetch(String index)
+        public static void RunScriptButton(String ScriptName)
         {
-            Hashtable DelegateTable = new Hashtable();
-            if (index.Contains("runscript_"))
-            {
-                ScriptProcessor.ScriptSniffer S = ScriptProcessor.SnifferSearch();
-                if (S != null) { S.CeaseSkipping(); }
-                return new VoidDel(delegate ()
-                {
-                    ScriptProcessor.PastStates.Clear();
-                    ScriptProcessor.ActivateScriptElement("B|" + index.Replace("runscript_", ""));
-                });
-            }
-            else if (index.Contains("setgws_"))
-            {
-                return new VoidDel(delegate ()
-                {
-                    Shell.GlobalWorldState = index.Replace("setgws_", "");
-                });
-            }
-            else
-            {
-                return (VoidDel)DelegateTable[index];
-            }
+            ScriptProcessor.PastStates.Clear();
+            ScriptProcessor.ActivateScriptElement("B|" + ScriptName);
+        }
+        public static void SetGlobalWorldStateButton(String NewGWS)
+        {
+            Shell.GlobalWorldState = NewGWS;
         }
         public static Boolean Paused = false;
         public static Boolean Navigating = false;

@@ -34,4 +34,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.4.*")]
 //[assembly: AssemblyFileVersion("1.3.*")]
-[assembly: AssemblyInformationalVersion("eVent horizoN Framework 1.3 Development Build")]
+[assembly: AssemblyInformationalVersion("eVent horizoN Framework 1.4 Development Build")]
