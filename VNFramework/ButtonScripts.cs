@@ -1191,7 +1191,6 @@ namespace VNFramework
             Shell.RenderQueue.Add(SLabel);
             TextEntity SLabel2 = new TextEntity("LABEL_SETTINGS_SAVES2", "[C:220-100-255-255]Simple saves ensure version compatibility and take up less space, but may not work with unsupported scripts.", new Vector2(660, 450), 0.991f);
             SLabel2.BufferLength = 500;
-            SLabel2.Text = SLabel2.Text;
             SLabel2.TypeWrite = false;
             Shell.UpdateQueue.Add(SLabel2);
             Shell.RenderQueue.Add(SLabel2);

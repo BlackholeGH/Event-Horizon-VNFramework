@@ -1010,7 +1010,7 @@ namespace VNFramework
         {
             get
             {
-                pHitBox = new Rectangle(VNFUtils.ConvertVector(pDrawCoords), new Point(BufferLength, VerticalLength(true)));
+                pHitBox = new Rectangle(VNFUtils.ConvertVector(pDrawCoords), new Point(pBufferLength, VerticalLength(true)));
                 return pHitBox;
             }
         }
@@ -1183,7 +1183,8 @@ namespace VNFramework
             set
             {
                 pForceSplitUnchunkables = value;
-                TextChunkR = PreprocessText(Text, BufferLength, pForceSplitUnchunkables);
+                IgnoreDelayOnThis = new ArrayList();
+                TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables);
             }
         }
         public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength, Boolean ForceSplitUnchunkables) //Function to insert linebreaks into text as required, based on a given length
@@ -1371,7 +1372,20 @@ namespace VNFramework
                 ProgressiveChunks[i] = TC;
             }
         }
-        public int BufferLength { get; set; }
+        protected int pBufferLength;
+        public int BufferLength
+        {
+            get
+            {
+                return pBufferLength;
+            }
+            set
+            {
+                pBufferLength = value;
+                IgnoreDelayOnThis = new ArrayList();
+                TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables);
+            }
+        }
         public String Text
         {
             get { return pText; }
@@ -1382,7 +1396,7 @@ namespace VNFramework
                     pText = value;
                     TextChunkR = new TextChunk[0];
                     IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(value, BufferLength, pForceSplitUnchunkables);
+                    TextChunkR = PreprocessText(value, pBufferLength, pForceSplitUnchunkables);
                     int L = 0;
                     foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
                     pLength = L;
@@ -1395,8 +1409,8 @@ namespace VNFramework
         }
         public TextEntity(String Name, String TextIn, Vector2 Location, float Depth) : base(Name, Location, null, Depth)
         {
-            BufferLength = 1000;
-            TextChunkR = PreprocessText(TextIn, BufferLength, false);
+            pBufferLength = 1000;
+            TextChunkR = PreprocessText(TextIn, pBufferLength, false);
             if(TypeWrite) { ProgressiveChunks = RevealXChars(TextChunkR, 0); }
             int L = 0;
             foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }

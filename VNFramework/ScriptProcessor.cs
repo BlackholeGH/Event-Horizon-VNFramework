@@ -667,7 +667,7 @@ namespace VNFramework
         {
             if (Element is String)
             {
-                if (!(((String)Element) == "do " + Shell.LastManualConsoleInput)) { Shell.WriteLine((String)Element); }
+                if (!(("do " + ((String)Element)).ToUpper() == Shell.LastManualConsoleInput.ToUpper())) { Shell.WriteLine((String)Element); }
                 String E = (String)Element;
                 String[] Parts = E.Split('|');
                 if (Parts[0].ToUpper() == "T")
@@ -1091,7 +1091,7 @@ namespace VNFramework
                         ColourShift T = new ColourShift(Convert.ToInt32(CS[0]), Convert.ToInt32(CS[1]), Convert.ToInt32(CS[2]), Convert.ToInt32(CS[3]));
                         New.WriteColouring(Animation.CreateColourTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
                     }
-                    if (Parts[6].Length > 0 && Parts[6].ToUpper() == "LOOP") { New.Loop = true; }
+                    if (Parts[6].Length > 0 && Parts[6].ToUpper() == "LOOP" || Parts[6].ToUpper() == "TRUE") { New.Loop = true; }
                     for (int i = 0; i < Animatees.Length; i++)
                     {
                         WorldEntity AnimatedObject = Animatees[i];

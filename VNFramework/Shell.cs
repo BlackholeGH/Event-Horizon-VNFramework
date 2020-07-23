@@ -269,6 +269,7 @@ namespace VNFramework
                     break;
                 //Close the program
                 case "QUIT":
+                    WriteLine("Closing the VNF client...");
                     ExitOut = true;
                     break;
                 default:
