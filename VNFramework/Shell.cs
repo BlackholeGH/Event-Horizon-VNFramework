@@ -254,8 +254,22 @@ namespace VNFramework
             String[] Commands = Input.Split(' ');
             switch(Commands[0].ToUpper())
             {
+                //Run ScriptProcessor commands as a forced script shift (by default, shift conditions are unchanged)
+                case "INSERT":
+                    ScriptProcessor.ScriptSniffer FoundSniffer = ScriptProcessor.SnifferSearch();
+                    if(FoundSniffer != null)
+                    {
+                        FoundSniffer.ForceInsertScriptElement((Input.Remove(0, Input.IndexOf(' ') + 1)).Split(' '), false);
+                    }
+                    else { WriteLine("Cannot insert new script shift as a script is not running."); }
+                    break;
+                //Activate a single script element
                 case "DO":
-                    ScriptProcessor.SnifferSearch()?.ForceInsertScriptElement(new object[] { Input.Remove(Input.IndexOf(' ') + 1) }, false);
+                    ScriptProcessor.ActivateScriptElement(Input.Remove(0, Input.IndexOf(' ') + 1));
+                    break;
+                //Close the program
+                case "QUIT":
+                    ExitOut = true;
                     break;
                 default:
                     WriteLine("Unrecognized command.");

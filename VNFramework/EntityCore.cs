@@ -21,6 +21,20 @@ namespace VNFramework
     [Serializable]
     public class WorldEntity
     {
+        protected Boolean pOverlayUtility = false;
+        public Boolean OverlayUtility
+        {
+            get
+            {
+                return pOverlayUtility;
+            }
+            set
+            {
+                pOverlayUtility = value;
+                if(pOverlayUtility && !Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Add(this); }
+                else if (!pOverlayUtility && Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
+            }
+        }
         public static ulong IDIterator = 0;
         protected ulong pEntityID;
         [field: NonSerialized]

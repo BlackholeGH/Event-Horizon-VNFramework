@@ -759,8 +759,9 @@ namespace VNFramework
                 InitText.Remove(0, 1);
             }
             Text = "[F:SYSFONT]" + InitText;
-            if(!ReferenceEquals(MyTextInputBehaviour.LastHeldString, pLastSentText))
+            if(MyTextInputBehaviour.HeldStringChangedFlag)
             {
+                MyTextInputBehaviour.HeldStringChangedFlag = false;
                 pLastSentText = MyTextInputBehaviour.LastHeldString.Replace('[', '(').Replace(']', ')');
                 TextEnteredFunction?.Invoke();
             }

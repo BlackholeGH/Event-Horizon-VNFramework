@@ -53,7 +53,9 @@ namespace VNFramework
                 pLastHeldString = HeldString;
                 ConstructHeldString = new StringBuilder();
                 InputUpdated = true;
+                HeldStringChangedFlag = true;
             }
+            public Boolean HeldStringChangedFlag { get; set; }
             private Boolean InputUpdated;
             private StringBuilder ConstructHeldString = new StringBuilder();
             private String pLastHeldString = "";

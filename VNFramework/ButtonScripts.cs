@@ -90,6 +90,7 @@ namespace VNFramework
                 Boolean Prev = false;
                 foreach (WorldEntity E in Shell.UpdateQueue)
                 {
+                    if (E.OverlayUtility) { continue; }
                     if (!Shell.DeleteQueue.Contains(E) && E.Name != "BACKBUTTON_LOADSCREEN" && E.Name != "TEXT_PAGENUM" && E.Name != "BACKDROP_MAIN")
                     {
                         if(!(E.Name == "PREVBUTTON_LOADSCREEN" && PageNumber > 1) && !(E.Name == "NEXTBUTTON_LOADSCREEN" && PageNumber < MaxPage)) { Shell.DeleteQueue.Add(E); }
@@ -209,10 +210,12 @@ namespace VNFramework
                 }
             }
         }
+        //TODO: These Spec functions are silly now that we have the proper event system and could pass in the ID of the caller. Change this up.
         public static void TriggerSpecDeleteHover()
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (LoadManager.DeleteAccess.ContainsKey(E.EntityID) && ((Button)E).ViableClick)
                 {
                     Button TargetLoadButton = (Button)Shell.GetEntityByID((ulong)LoadManager.DeleteAccess[E.EntityID]);
@@ -226,6 +229,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (LoadManager.DeleteAccess.ContainsKey(E.EntityID) && !((Button)E).ViableClick && ((Button)E).HoverActive)
                 {
                     Button TargetLoadButton = (Button)Shell.GetEntityByID((ulong)LoadManager.DeleteAccess[E.EntityID]);
@@ -238,6 +242,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (LoadManager.DeleteAccess.ContainsKey(E.EntityID) && ((Button)E).ViableClick)
                 {
                     Button TargetLoadButton = (Button)Shell.GetEntityByID((ulong)LoadManager.DeleteAccess[E.EntityID]);
@@ -257,7 +262,8 @@ namespace VNFramework
             SpoonsTrip = true;
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
-                if(E is Button && ((Button)E).ViableClick)
+                if (E.OverlayUtility) { continue; }
+                if (E is Button && ((Button)E).ViableClick)
                 {
                     ((Button)E).Enabled = false;
                     foreach (WorldEntity E2 in Shell.UpdateQueue)
@@ -278,6 +284,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E is Button) { ((Button)E).Enabled = false; }
                 if (E is ScrollBar) { ((ScrollBar)E).Enabled = false; }
                 if (E is Slider) { ((Slider)E).Enabled = false; }
@@ -335,6 +342,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "PANE_DELETE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "PANE_SAVEDELETED" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "THUMB_DELETE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -496,16 +504,16 @@ namespace VNFramework
         public static void OpenAndConstructConsole()
         {
             WorldEntity ConsoleBacking = new WorldEntity("CONSOLE_BACKING_UI", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEPANE"], 0.9989f);
-            Shell.NonSerializables.Add(ConsoleBacking);
+            ConsoleBacking.OverlayUtility = true;
             VerticalScrollPane ConsoleWindow = new VerticalScrollPane("CONSOLE_SCROLLPANE", new Vector2(1262, 35), (TAtlasInfo)Shell.AtlasDirectory["CONSOLESCROLLBAR"], 0.999f, new Point(1243, 265), Color.Black);
             ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData);
             ConsoleWindow.JumpTo(1f);
-            Shell.NonSerializables.Add(ConsoleWindow);
+            ConsoleWindow.OverlayUtility = true;
             TextInputField ConsoleField = new TextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
             ConsoleField.BufferLength = 1150;
-            Shell.NonSerializables.Add(ConsoleField);
+            ConsoleField.OverlayUtility = true;
             Button ConsoleButton = new Button("CONSOLE_ENTER_BUTTON", new Vector2(1212, 274), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEENTERBUTTON"], 0.999f);
-            Shell.NonSerializables.Add(ConsoleButton);
+            ConsoleButton.OverlayUtility = true;
             ConsoleButton.CenterOrigin = false;
             ConsoleField.SubscribeToEvent(ConsoleButton, WorldEntity.EventNames.ButtonPressFunction, typeof(TextInputField).GetMethod("ManualSendEnterSignal"), null);
             ConsoleField.TextEnteredFunction += new VoidDel(delegate ()
@@ -542,6 +550,7 @@ namespace VNFramework
             Shell.AllowEnter = false;
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E is TextEntity) { E.Drawable = false; }
                 if (E is Button) { ((Button)E).Enabled = false; }
             }
@@ -559,6 +568,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if(E.OverlayUtility) { continue; }
                 if (E is VerticalScrollPane && E.Name == "ARCHIVE_SCROLLBAR" && !Shell.DeleteQueue.Contains(E))
                 {
                     Shell.DeleteQueue.Add(E);
@@ -582,6 +592,7 @@ namespace VNFramework
             Shell.AllowEnter = false;
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "UIBOX" || E.Name == "NAMELABELBACKING")
                 {
                     E.Drawable = false;
@@ -596,6 +607,11 @@ namespace VNFramework
                 if (E is ScrollBar)
                 {
                     ((ScrollBar)E).Enabled = false;
+                    E.Drawable = false;
+                }
+                if (E is VerticalScrollPane)
+                {
+                    ((VerticalScrollPane)E).Enabled = false;
                     E.Drawable = false;
                 }
             }
@@ -617,6 +633,11 @@ namespace VNFramework
                 if (E is ScrollBar)
                 {
                     ((ScrollBar)E).Enabled = true;
+                    E.Drawable = true;
+                }
+                if (E is VerticalScrollPane)
+                {
+                    ((VerticalScrollPane)E).Enabled = true;
                     E.Drawable = true;
                 }
                 if (E is TextEntity) { E.Drawable = true; }
@@ -701,6 +722,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "UIBOX" || E.Name == "NAMELABELBACKING")
                 {
                     E.Drawable = true;
@@ -735,9 +757,11 @@ namespace VNFramework
             Shell.AllowEnter = false;
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 //if (E is TextEntity) { E.Drawable = false; }
                 if (E is Button) { ((Button)E).Enabled = false; }
                 if (E is ScrollBar) { ((ScrollBar)E).Enabled = false; }
+                if (E is VerticalScrollPane) { ((VerticalScrollPane)E).Enabled = false; }
             }
             WorldEntity Pane = new WorldEntity("PAUSE_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUPANE"], 0.97f);
             Pane.CenterOrigin = true;
@@ -769,7 +793,8 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
-                if(E.Name == "PAUSE_PANE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                if (E.OverlayUtility) { continue; }
+                if (E.Name == "PAUSE_PANE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 if (E is Button && E.Name == "BUTTON_PAUSE_RETURN" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E is Button && E.Name == "BUTTON_PAUSE_SAVE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E is Button && E.Name == "BUTTON_PAUSE_SETTINGS" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -777,6 +802,7 @@ namespace VNFramework
                 else if (E is Button && E.Name == "BUTTON_PAUSE_QUIT" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E is Button) { ((Button)E).Enabled = true; }
                 if (E is ScrollBar) { ((ScrollBar)E).Enabled = true; }
+                if (E is VerticalScrollPane) { ((VerticalScrollPane)E).Enabled = true; }
                 //if (E is TextEntity) { E.Drawable = true; }
             }
             Shell.AllowEnter = true;
@@ -810,6 +836,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "EXIT_PANE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 if (E is Button && E.Name == "BUTTON_EXIT_YES" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E is Button && E.Name == "BUTTON_EXIT_NO" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -998,10 +1025,12 @@ namespace VNFramework
             Shell.RunQueue = new ArrayList();
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
             foreach (WorldEntity E in Shell.RenderQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
             ScriptProcessor.PastStates.Clear();
@@ -1011,10 +1040,12 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E) && !(E is Sofia.UpwardParticle) && !(E is Sofia.Transient)) { Shell.DeleteQueue.Add(E); }
             }
             foreach (WorldEntity E in Shell.RenderQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E) && !(E is Sofia.UpwardParticle) && !(E is Sofia.Transient)) { Shell.DeleteQueue.Add(E); }
             }
             ScriptProcessor.WipeArchive();
@@ -1029,6 +1060,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E) && E is Button) { Shell.DeleteQueue.Add(E); }
             }
             String[] Saves = LoadManager.FetchSaves();
@@ -1049,6 +1081,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E) && E is Button) { Shell.DeleteQueue.Add(E); }
             }
             String CreditString = "This application is running the Event Horizon visual novel engine, lovingly hand-coded by Blackhole.\n\nAdditional programming also by Blackhole.\nScripting by Blackhole.\nUI design Blackhole.\n\nWritten using the MonoGame framework (www.monogame.net).";
@@ -1068,6 +1101,7 @@ namespace VNFramework
             {
                 foreach (WorldEntity E in Shell.UpdateQueue)
                 {
+                    if (E.OverlayUtility) { continue; }
                     if (!Shell.DeleteQueue.Contains(E) && E is Button) { Shell.DeleteQueue.Add(E); }
                 }
             }
@@ -1075,6 +1109,7 @@ namespace VNFramework
             {
                 foreach (WorldEntity E in Shell.UpdateQueue)
                 {
+                    if (E.OverlayUtility) { continue; }
                     if (E is Button) { ((Button)E).Enabled = false; }
                     if (E is ScrollBar) { ((ScrollBar)E).Enabled = false; }
                     if (E is Slider) { ((Slider)E).Enabled = false; }
@@ -1190,6 +1225,7 @@ namespace VNFramework
             Shell.CaptureRateDisplay = null;
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "PANE_SETTINGS" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "BAR_SETTINGS_VOLUME" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "BAR_SETTINGS_TEXTRATE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -1277,6 +1313,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
+                if (E.OverlayUtility) { continue; }
                 if (E.Name == "PANE_SAVE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "PANE_SAVEWRITTEN" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "THUMB_SAVE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -1358,7 +1395,8 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
-                if(E is ScriptProcessor.ScriptSniffer)
+                if (E.OverlayUtility) { continue; }
+                if (E is ScriptProcessor.ScriptSniffer)
                 {
                     ScriptProcessor.ScriptSniffer S = (ScriptProcessor.ScriptSniffer)E;
                     if(S.Skipping) { S.CeaseSkipping(); }
