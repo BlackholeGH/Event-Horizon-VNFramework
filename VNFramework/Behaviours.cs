@@ -25,26 +25,34 @@ namespace VNFramework
             }
             public void Clear()
             {
-                Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
+                try
+                {
+                    Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
+                }
+                catch (NullReferenceException E) { }
             }
             void HandleTextInputEvent(object EventSender, TextInputEventArgs e)
             {
-                if(e.Key != Keys.Enter && e.Key != Keys.Back)
+                if(e.Key != Keys.Enter && e.Key != Keys.Back && e.Key != Keys.Escape)
                 {
                     if(e.Character != '\0') { ConstructHeldString.Append(e.Character.ToString()[0]); }
                     InputUpdated = true;
                 }
-                else if(e.Key == Keys.Back)
+                else if(e.Key == Keys.Back && ConstructHeldString.Length > 0)
                 {
-                    ConstructHeldString.Remove(ConstructHeldString.Length - 2, 1);
+                    ConstructHeldString.Remove(ConstructHeldString.Length - 1, 1);
                     InputUpdated = true;
                 }
                 else if(e.Key == Keys.Enter)
                 {
-                    pLastHeldString = HeldString;
-                    ConstructHeldString = new StringBuilder();
-                    InputUpdated = true;
+                    TextEntryTrigger();
                 }
+            }
+            public void TextEntryTrigger()
+            {
+                pLastHeldString = HeldString;
+                ConstructHeldString = new StringBuilder();
+                InputUpdated = true;
             }
             private Boolean InputUpdated;
             private StringBuilder ConstructHeldString = new StringBuilder();
@@ -100,7 +108,15 @@ namespace VNFramework
                                 CZoomFactor = Shell.AutoCamera.ZoomFactor;
                             }
                         }
-                        Vector2 FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
+                        Vector2 FullyAdjustedMouseCoords = new Vector2();
+                        if (BehaviourOwner.UsePseudoMouse)
+                        {
+                            FullyAdjustedMouseCoords = BehaviourOwner.PseudoMouse - COffsetV;
+                        }
+                        else
+                        {
+                            FullyAdjustedMouseCoords = ((Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position) / CZoomFactor) - COffsetV));
+                        }
                         int MY = (int)FullyAdjustedMouseCoords.Y;
                         if (M.ScrollWheelValue != LastMouseScroll && SB.DetectScrollRectangle.Contains(FullyAdjustedMouseCoords) && !SB.Engaged)
                         {

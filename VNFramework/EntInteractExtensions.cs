@@ -332,7 +332,15 @@ namespace VNFramework
                 {
                     pAtlasCoordinates.X = 2;
                     Camera MyCam = new Camera("");
-                    Vector2 FullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position));
+                    Vector2 FullyAdjustedMouseCoords = new Vector2();
+                    if (UsePseudoMouse)
+                    {
+                        FullyAdjustedMouseCoords = PseudoMouse;
+                    }
+                    else
+                    {
+                        FullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position));
+                    }
                     if (!CameraImmune)
                     {
                         if (CustomCamera != null)
@@ -671,16 +679,29 @@ namespace VNFramework
             float Pos = Fraction * (MaxHeight - MinHeight);
             pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
         }
+        protected TextEntity DefaultTextPaneText = null;
         public void SetAsTextPane(String Text)
         {
             pAssociatedPane.Clear();
-            TextEntity T = new TextEntity(Name + "_SCROLL_TEXT_ENTITY", "", new Vector2(20, 20), 1f);
-            T.TypeWrite = false;
-            T.BufferLength = pPaneDimensions.X - 40;
-            T.Text = Text;
-            pAssociatedPane.AddUpdate(T);
-            pAssociatedPane.AddRender(T);
-            TotalScrollHeight = T.VerticalLength() + 40;
+            if (DefaultTextPaneText == null)
+            {
+                DefaultTextPaneText = new TextEntity(Name + "_SCROLL_TEXT_ENTITY", "", new Vector2(20, 0), 1f);
+                DefaultTextPaneText.TypeWrite = false;
+                DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
+                DefaultTextPaneText.ForceSplitUnchunkables = true;
+                DefaultTextPaneText.Text = Text;
+                DefaultTextPaneText.DrawAsStatic = true;
+            }
+            else
+            {
+                DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
+                DefaultTextPaneText.Text = Text;
+            }
+            float[] YBorder = new float[] { DefaultTextPaneText.ChunkFontHeight[0]/4, DefaultTextPaneText.ChunkFontHeight[DefaultTextPaneText.ChunkCount - 1]/4 };
+            DefaultTextPaneText.QuickMoveTo(new Vector2(20, YBorder[0]));
+            TotalScrollHeight = DefaultTextPaneText.VerticalLength() + YBorder[0] + YBorder[1];
+            pAssociatedPane.AddUpdate(DefaultTextPaneText);
+            pAssociatedPane.AddRender(DefaultTextPaneText);
             UpdatePaneCameraPos();
         }
         void UpdatePaneCameraPos()
@@ -715,5 +736,40 @@ namespace VNFramework
     public interface ITextInputReceiver
     {
         void DoTextInputActionable(Behaviours.TextInputBehaviour MyTextInputBehaviour);
+    }
+    public class TextInputField : TextEntity, ITextInputReceiver
+    {
+        protected Behaviours.TextInputBehaviour MyTextInput;
+        public TextInputField(String Name, String InitialText, Vector2 Location, float Depth) : base(Name, "[F:SYSFONT]" + InitialText, Location, Depth)
+        {
+            TypeWrite = false;
+            MyTextInput = new Behaviours.TextInputBehaviour();
+            MyBehaviours.Add(MyTextInput);
+        }
+        protected String pLastSentText = "";
+        public String LastSentText
+        {
+            get { return pLastSentText; }
+        }
+        public void DoTextInputActionable(Behaviours.TextInputBehaviour MyTextInputBehaviour)
+        {
+            StringBuilder InitText = new StringBuilder(MyTextInputBehaviour.HeldString.Replace('[', '(').Replace(']', ')'));
+            while(Shell.SysFont.MeasureString(InitText).X > BufferLength)
+            {
+                InitText.Remove(0, 1);
+            }
+            Text = "[F:SYSFONT]" + InitText;
+            if(!ReferenceEquals(MyTextInputBehaviour.LastHeldString, pLastSentText))
+            {
+                pLastSentText = MyTextInputBehaviour.LastHeldString.Replace('[', '(').Replace(']', ')');
+                TextEnteredFunction?.Invoke();
+            }
+        }
+        public void ManualSendEnterSignal()
+        {
+            MyTextInput.TextEntryTrigger();
+        }
+        [field: NonSerialized]
+        public event VoidDel TextEnteredFunction;
     }
 }

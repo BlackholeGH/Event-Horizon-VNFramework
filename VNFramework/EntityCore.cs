@@ -145,7 +145,7 @@ namespace VNFramework
             EventCoupleDecouple(EventPublisher, EventName, ThisHandler, true);
         }
         [Serializable]
-        public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction };
+        public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction, TextEnteredFunction };
         public void EventCoupleDecouple(WorldEntity EventPublisher, EventNames EventName, VoidDel Handler, Boolean Subscribe)
         {
             switch (EventName)
@@ -198,6 +198,14 @@ namespace VNFramework
                         VerticalScrollPane S = (VerticalScrollPane)EventPublisher;
                         if (Subscribe) { S.ScrollBarClickFunction += Handler; }
                         else { S.ScrollBarClickFunction -= Handler; }
+                    }
+                    break;
+                case EventNames.TextEnteredFunction:
+                    if (EventPublisher is TextInputField)
+                    {
+                        TextInputField T = (TextInputField)EventPublisher;
+                        if (Subscribe) { T.TextEnteredFunction += Handler; }
+                        else { T.TextEnteredFunction -= Handler; }
                     }
                     break;
             }
@@ -282,7 +290,7 @@ namespace VNFramework
             TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
         }
         protected Rectangle pHitBox = new Rectangle(0, 0, 0, 0);
-        public Rectangle HitBox
+        public virtual Rectangle HitBox
         {
             get
             {
@@ -291,7 +299,6 @@ namespace VNFramework
                 else { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - new Point(Size.X / 2, Size.Y / 2), Size); }
                 return pHitBox;
             }
-            set { pHitBox = value; }
         }
         public ArrayList AnimationQueue { get; set; }
         public override bool Equals(object obj)
@@ -414,6 +421,7 @@ namespace VNFramework
         {
             RemoveEventTriggers();
             UnsubscribeEvents();
+            if(Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
             foreach (Animation A in AnimationQueue)
             {
                 A.AutoWipe();
@@ -894,9 +902,9 @@ namespace VNFramework
             {
                 if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
                 if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+                if (Shell.NonSerializables.Contains(E)) { Shell.NonSerializables.Remove(E); }
             }
             DeleteQueue = new ArrayList();
-            if (RenderAlways) { Render(); }
             base.Update();
         }
         public void Render()
@@ -909,6 +917,8 @@ namespace VNFramework
                     DepthFormat.Depth24);
             }
             GraphicsDevice.SetRenderTarget(pRenderPane);
+            //Rectangle PreScissor = GraphicsDevice.ScissorRectangle;
+            //GraphicsDevice.ScissorRectangle = new Rectangle(new Point(), PaneBaseSize/new Point(2, 2));
             GraphicsDevice.Clear(BackgroundColor);
             SpriteBatch spriteBatch = new SpriteBatch(GraphicsDevice);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
@@ -921,6 +931,8 @@ namespace VNFramework
                 }
             }
             spriteBatch.End();
+            GraphicsDevice.SetRenderTarget(null);
+            //GraphicsDevice.ScissorRectangle = PreScissor;
             LocalAtlas = new TAtlasInfo();
             LocalAtlas.Atlas = RenderPane;
             LocalAtlas.DivDimensions = new Point(1, 1);
@@ -980,11 +992,77 @@ namespace VNFramework
         }
         protected int pLength = 0;
         public int Length { get { return pLength; } }
-        public static TextChunk[] PreprocessText(String Text)
+        public override Rectangle HitBox
         {
-            return PreprocessText(Text, -1);
+            get
+            {
+                pHitBox = new Rectangle(VNFUtils.ConvertVector(pDrawCoords), new Point(BufferLength, VerticalLength(true)));
+                return pHitBox;
+            }
         }
-        public static TextChunk[] PreprocessText(String Text, int PixelBuffer)
+        protected RenderTarget2D[,] StaticTextures = null;
+        protected Boolean pDrawAsStatic = false;
+        public Boolean DrawAsStatic
+        {
+            get
+            {
+                return pDrawAsStatic;
+            }
+            set
+            {
+                if(pDrawAsStatic != value)
+                {
+                    if(!pDrawAsStatic)
+                    {
+                        StaticTextures = new RenderTarget2D[1, 1];
+                        StaticTextures[0,0] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
+                            Shell.PubGD.PresentationParameters.BackBufferFormat,
+                            DepthFormat.Depth24);
+                        StaticRender();
+                    }
+                    else
+                    {
+                        StaticTextures = null;
+                    }
+                    pDrawAsStatic = value;
+                }
+            }
+        }
+        public void StaticRender()
+        {
+            Point Dims = new Point((int)Math.Ceiling(HitBox.Width / 1000f), (int)Math.Ceiling(HitBox.Height / 1000f));
+            RenderTarget2D[,] OutR = new RenderTarget2D[Dims.X, Dims.Y];
+            for(int y = 0; y < Dims.Y; y++)
+            {
+                for(int x = 0; x < Dims.X; x++)
+                {
+                    if(x < StaticTextures.GetLength(0) && y < StaticTextures.GetLength(1) && StaticTextures[x, y] != null)
+                    {
+                        OutR[x, y] = StaticTextures[x, y];
+                    }
+                    else
+                    {
+                        OutR[x, y] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
+                            Shell.PubGD.PresentationParameters.BackBufferFormat,
+                            DepthFormat.Depth24);
+                    }
+                    GraphicsDevice TextGD = Shell.PubGD;
+                    TextGD.SetRenderTarget(OutR[x, y]);
+                    TextGD.Clear(Color.Transparent);
+                    SpriteBatch spriteBatch = new SpriteBatch(TextGD);
+                    spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+                    DrawDynamic(spriteBatch, new Vector2(x * -1000, y * -1000));
+                    spriteBatch.End();
+                    Shell.PubGD.SetRenderTarget(null);
+                }
+            }
+            StaticTextures = OutR;
+        }
+        public static TextChunk[] PreprocessText(String Text, Boolean ForceSplitUnchunkables)
+        {
+            return PreprocessText(Text, -1, ForceSplitUnchunkables);
+        }
+        public static TextChunk[] PreprocessText(String Text, int PixelBuffer, Boolean ForceSplitUnchunkables)
         {
             Text = Text.Replace("\n", "[N]");
             if (Text.Length > 0 && Text[Text.Length-1] == ']') { Text += " "; }
@@ -1078,10 +1156,23 @@ namespace VNFramework
                 Text = Text.Remove(0, Temp.Text.Length);
             }
             TextChunk[] Out = ChunkStore.ToArray().Select(x => (TextChunk)x).ToArray();
-            if(PixelBuffer != -1) { Out = LinebreakChunks(Out, PixelBuffer); }
+            if(PixelBuffer != -1) { Out = LinebreakChunks(Out, PixelBuffer, ForceSplitUnchunkables); }
             return Out;
         }
-        public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength) //Function to insert linebreaks into text as required, based on a given length
+        protected Boolean pForceSplitUnchunkables = false;
+        public Boolean ForceSplitUnchunkables
+        {
+            get
+            {
+                return pForceSplitUnchunkables;
+            }
+            set
+            {
+                pForceSplitUnchunkables = value;
+                TextChunkR = PreprocessText(Text, BufferLength, pForceSplitUnchunkables);
+            }
+        }
+        public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength, Boolean ForceSplitUnchunkables) //Function to insert linebreaks into text as required, based on a given length
         {
             int CurrentPixelTotal = 0;
             Vector2 RollingLocationMod = new Vector2(0, 0); //Vector representing the degree to which the next line should be shifted from the previous
@@ -1138,13 +1229,13 @@ namespace VNFramework
                 }
                 if(CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength) //If the current length plus the next chunk's pre-space pixels break the line limit...
                 {
+                    Boolean ByPix = false;
+                    //ByPix: whether the next chunk will take the line length over the edge
+                    if (CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength && TC.Font.MeasureString(TC.Text).X + CurrentPixelTotal <= MaxPixelLineLength) { ByPix = true; }
                     if (TC.Text.Contains(' ')) //First we check for a space to see if a linebreak can be performed in the current text chunk
                     {
                         String FindLoc = TC.Text;
                         int FoundLocation = -1;
-                        Boolean ByPix = false;
-                        //ByPix: whether the next chunk will take the line length over the edge
-                        if(CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength && TC.Font.MeasureString(TC.Text).X + CurrentPixelTotal <= MaxPixelLineLength) { ByPix = true; }
                         //ByPix is used to cause a linebreak on the last possible space to avoid overflow next text chunk
                         //Otherwise, each space is checked until one is found that allows the line to be shortened to within the limit
                         while ((TC.Font.MeasureString(FindLoc).X + CurrentPixelTotal > MaxPixelLineLength || ByPix) && FindLoc.Contains(' '))
@@ -1160,11 +1251,6 @@ namespace VNFramework
                         //If no workable space is found, the first one is picked as the best compromise
                         if (FoundLocation == -1)
                         {
-                            /*if (CurrentPixelTotal != 0)
-                            {
-                                FoundLocation = -1;
-                            }
-                            else { FoundLocation = TC.Text.IndexOf(' '); }*/
                             FoundLocation = TC.Text.IndexOf(' ');
                         }
                         //A new text chunk is created to represent the text after the line break
@@ -1173,34 +1259,45 @@ namespace VNFramework
                         New.Text = New.Text.Remove(0, FoundLocation + 1);
                         if(New.Text.Length > 0 && New.Text[0] == ' ') { New.Text = New.Text.Remove(0, 1); }
                         int TCMeasure = 0;
-                        if (FoundLocation >= 0)
-                        {
-                            TC.Text = TC.Text.Remove(FoundLocation);
-                            TCMeasure = (int)TC.Font.MeasureString(TC.Text + " ").X; //The length of the first half of the new, broken line is measured
-                        }
-                        else { TC.Text = ""; }
+                        TC.Text = TC.Text.Remove(FoundLocation);
+                        TCMeasure = (int)TC.Font.MeasureString(TC.Text + " ").X; //The length of the first half of the new, broken line is measured
                         RollingLocationMod.X = -CurrentPixelTotal - TCMeasure; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
                         New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
-                        if (TC.Text.Length != 0) { RebuildChunks.Add(TC); } //The current text chunk is added to the new, final list of chunks
-                        NewChunkRegistry.Add(New);
-                        CurrentPixelTotal = 0;
                         RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
+                        CurrentPixelTotal = 0;
+                        RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
+                        NewChunkRegistry.Add(New);
                     }
                     else //Else, if text cannot be split...
                     {
-                        /* Unsure what I was doing here... function to move overflowing continuous text onto a new line that was unneccessary
-                         * RollingLocationMod.X = -CurrentPixelTotal - (int)TC.Font.MeasureString(TC.Text).X;
-                        RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y;
-                        if (!(i == 0 && TC.Text == Initial[0].Text) && CurrentPixelTotal > 0)
+                        if (!ByPix && ForceSplitUnchunkables)
                         {
-                            //TC.DrawLocation.X -= (int)TC.Font.MeasureString(TC.Text).X;
-                            TC.DrawLocation.Y += (int)TC.Font.MeasureString(TC.Text).Y;
-                            RollingLocationMod.Y += (int)TC.Font.MeasureString(TC.Text).Y;
-                            if (TC.Text.Length > 0 && TC.Text[0] == ' ') { TC.Text = TC.Text.Remove(0, 1); }
-                        }*/
-                        RebuildChunks.Add(TC); //Ignore split and proceed as normal as it is not possible to split, hoping that the next text chunk will be splitable.
-                        CurrentPixelTotal += (int)TC.Font.MeasureString(TC.Text).X;
-                        //CurrentPixelTotal = 0;
+                            StringBuilder FindLoc = new StringBuilder(TC.Text);
+                            //Similar to above, but spaces are not looked for
+                            while (TC.Font.MeasureString(FindLoc).X + CurrentPixelTotal > MaxPixelLineLength)
+                            {
+                                FindLoc.Remove(FindLoc.Length - 1, 1);
+                            }
+                            int FoundLocation = FindLoc.Length;
+                            //A new text chunk is created to represent the text after the line break
+                            TextChunk New = TC;
+                            New.TimeDelay = 0;
+                            New.Text = New.Text.Remove(0, FoundLocation);
+                            int TCMeasure = 0;
+                            TC.Text = TC.Text.Remove(FoundLocation);
+                            TCMeasure = (int)TC.Font.MeasureString(TC.Text).X; //The length of the first half of the new, broken line is measured
+                            RollingLocationMod.X = -CurrentPixelTotal - TCMeasure; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
+                            New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
+                            RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
+                            CurrentPixelTotal = 0;
+                            RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
+                            NewChunkRegistry.Add(New);
+                        }
+                        else
+                        {
+                            RebuildChunks.Add(TC); //Ignore split and proceed as normal as it is not possible to split, hoping that the next text chunk will be splitable.
+                            CurrentPixelTotal += (int)TC.Font.MeasureString(TC.Text).X;
+                        }
                     }
                 }
                 else //If no linebreak is required...
@@ -1266,19 +1363,26 @@ namespace VNFramework
             get { return pText; }
             set
             {
-                pText = value;
-                TextChunkR = new TextChunk[0];
-                IgnoreDelayOnThis = new ArrayList();
-                TextChunkR = PreprocessText(value, BufferLength);
-                int L = 0;
-                foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
-                pLength = L;
+                if (pText != value)
+                {
+                    pText = value;
+                    TextChunkR = new TextChunk[0];
+                    IgnoreDelayOnThis = new ArrayList();
+                    TextChunkR = PreprocessText(value, BufferLength, pForceSplitUnchunkables);
+                    int L = 0;
+                    foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
+                    pLength = L;
+                    if (pDrawAsStatic)
+                    {
+                        StaticRender();
+                    }
+                }
             }
         }
         public TextEntity(String Name, String TextIn, Vector2 Location, float Depth) : base(Name, Location, null, Depth)
         {
             BufferLength = 1000;
-            TextChunkR = PreprocessText(TextIn, BufferLength);
+            TextChunkR = PreprocessText(TextIn, BufferLength, false);
             if(TypeWrite) { ProgressiveChunks = RevealXChars(TextChunkR, 0); }
             int L = 0;
             foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
@@ -1295,6 +1399,7 @@ namespace VNFramework
         {
             WriteProgress = pLength;
             ProgressiveChunks = RevealXChars(TextChunkR, WriteProgress);
+            if (pDrawAsStatic) { StaticRender(); }
         }
         public int VerticalLength()
         {
@@ -1330,6 +1435,25 @@ namespace VNFramework
             }
             return Out;
         }
+        public int ChunkCount
+        {
+            get { return TextChunkR.Length; }
+        }
+        protected float[] pChunkFontHeight = null;
+        public float[] ChunkFontHeight
+        {
+            get
+            {
+                pChunkFontHeight = new float[TextChunkR.Length];
+                int i = 0;
+                foreach(TextChunk T in TextChunkR)
+                {
+                    pChunkFontHeight[i] = T.Font.MeasureString(" ").Y;
+                    i++;
+                }
+                return pChunkFontHeight;
+            }
+        }
         int WriteProgress = -1;
         public Boolean TypeWrite { get; set; }
         private TextChunk[] ProgressiveChunks = new TextChunk[] { };
@@ -1359,6 +1483,7 @@ namespace VNFramework
                 {
                     WriteProgress++;
                     ProgressiveChunks = RevealXChars(TextChunkR, WriteProgress);
+                    if (pDrawAsStatic) { StaticRender(); }
                     if (Sounder)
                     {
                         if (Name == "TEXT_MAIN" && pLength > 0)
@@ -1373,12 +1498,34 @@ namespace VNFramework
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
+            if(DrawAsStatic)
+            {
+                DrawStatic(spriteBatch);
+            }
+            else
+            {
+                DrawDynamic(spriteBatch, (Vector2?)null);
+            }
+        }
+        public override void Draw(SpriteBatch spriteBatch, Camera camera)
+        {
+            if (DrawAsStatic)
+            {
+                DrawStatic(spriteBatch, camera);
+            }
+            else
+            {
+                DrawDynamic(spriteBatch, camera);
+            }
+        }
+        public void DrawDynamic(SpriteBatch spriteBatch, Vector2? ManualNormalizer)
+        {
             if (!TypeWrite)
             {
                 foreach (TextChunk TC in TextChunkR)
                 {
                     if(TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0,0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + (ManualNormalizer ?? DrawCoords - pOrigin), TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
             else
@@ -1386,11 +1533,11 @@ namespace VNFramework
                 foreach (TextChunk TC in ProgressiveChunks)
                 {
                     if (TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + (ManualNormalizer ?? DrawCoords - pOrigin), TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
         }
-        public override void Draw(SpriteBatch spriteBatch, Camera camera)
+        public void DrawDynamic(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
@@ -1400,7 +1547,7 @@ namespace VNFramework
                     foreach (TextChunk TC in TextChunkR)
                     {
                         if (TC.RainbowMode) { TC.Rainbow(); }
-                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords - pOrigin + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
                     }
                 }
                 else
@@ -1408,7 +1555,33 @@ namespace VNFramework
                     foreach (TextChunk TC in ProgressiveChunks)
                     {
                         if (TC.RainbowMode) { TC.Rainbow(); }
-                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords - pOrigin + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                    }
+                }
+            }
+        }
+        public void DrawStatic(SpriteBatch spriteBatch)
+        {
+            if (StaticTextures != null)
+            {
+                for(int x = 0; x < StaticTextures.GetLength(0); x++)
+                {
+                    for (int y = 0; y < StaticTextures.GetLength(1); y++)
+                    {
+                        spriteBatch.Draw(StaticTextures[x, y], new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - VNFUtils.ConvertVector(pOrigin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), pScale), VNFUtils.PointMultiply(StaticTextures[x, y].Bounds.Size, pScale)), StaticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                    }
+                }
+            }
+        }
+        public void DrawStatic(SpriteBatch spriteBatch, Camera camera)
+        {
+            if (StaticTextures != null)
+            {
+                for (int x = 0; x < StaticTextures.GetLength(0); x++)
+                {
+                    for (int y = 0; y < StaticTextures.GetLength(1); y++)
+                    {
+                        spriteBatch.Draw(StaticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - VNFUtils.ConvertVector(pOrigin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), pScale) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(StaticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(pScale)), camera.ZoomFactor)), StaticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
                     }
                 }
             }

@@ -17,10 +17,6 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Reflection;
 
-/*VNF GENERAL TO-DO:
- * Inbuilt console
- */
-
 namespace VNFramework
 {
     [Serializable]
@@ -89,7 +85,17 @@ namespace VNFramework
                 return pSpriteBatch;
             }
         }
+        static List<WorldEntity> pNonSerializables = new List<WorldEntity>();
+        public static List<WorldEntity> NonSerializables
+        {
+            get { return pNonSerializables; }
+            set { pNonSerializables = value; }
+        }
         public static RecallableState SerializeState()
+        {
+            return SerializeState(NonSerializables);
+        }
+        public static RecallableState SerializeState(List<WorldEntity> Skip)
         {
             ArrayList UpdateIDs = new ArrayList();
             ArrayList RenderIDs = new ArrayList();
@@ -112,6 +118,7 @@ namespace VNFramework
             SerFormatter.SurrogateSelector = SS;
             foreach (WorldEntity W in UpdateQueue)
             {
+                if(Skip.Contains(W)) { continue; }
                 UpdateIDs.Add(W.EntityID);
                 W.OnSerializeDo();
                 MemoryStream EntityStream = new MemoryStream();
@@ -122,6 +129,7 @@ namespace VNFramework
             }
             foreach(WorldEntity W in RenderQueue)
             {
+                if (Skip.Contains(W)) { continue; }
                 RenderIDs.Add(W.EntityID);
                 if(!SerializedIDs.Contains(W.EntityID))
                 {
@@ -179,9 +187,16 @@ namespace VNFramework
                 MouseLeftClick -= V;
             }
             RunQueue = new ArrayList();
-            DeleteQueue = new ArrayList();
-            UpdateQueue = new ArrayList();
-            RenderQueue = new ArrayList();
+            foreach(WorldEntity W in NonSerializables)
+            {
+                W.AddEventTriggers();
+            }
+            ArrayList TempList = new ArrayList();
+            foreach(WorldEntity W in DeleteQueue)
+            {
+                if(NonSerializables.Contains(W)) { TempList.Add(W); }
+            }
+            DeleteQueue = TempList;
             foreach (WorldEntity W in ReconstructEnts)
             {
                 if (S.UpdateIDs.Contains(W.EntityID)) { NewUEnts.Add(W); }
@@ -195,6 +210,14 @@ namespace VNFramework
                 ScriptProcessor.ActivateScriptElement(S.SongCom);
             }
             if (S.Flags != null) { Flags = (Hashtable)S.Flags.Clone(); }
+            foreach (WorldEntity W in UpdateQueue)
+            {
+                if (NonSerializables.Contains(W)) { NewUEnts.Add(W); }
+            }
+            foreach (WorldEntity W in RenderQueue)
+            {
+                if (NonSerializables.Contains(W)) { NewREnts.Add(W); }
+            }
             UpdateQueue = new ArrayList(NewUEnts);
             RenderQueue = new ArrayList(NewREnts);
             foreach (WorldEntity W in ReconstructEnts)
@@ -205,10 +228,44 @@ namespace VNFramework
         }
         public static VoidDel GlobalVoid = null;
         private static object CWriteLockObj = new object();
+        public static String PullInternalConsoleData
+        {
+            get
+            {
+                String[] GetReadableLog = InternalLog.Replace('[', '(').Replace(']', ')').TrimEnd('\n').Split('\n');
+                StringBuilder OutputBuilder = new StringBuilder();
+                for(int i = GetReadableLog.Length > 201 ? GetReadableLog.Length - 201 : 0; i < GetReadableLog.Length; i++)
+                {
+                    OutputBuilder.Append("[N,F:SYSFONT]" + GetReadableLog[i]);
+                }
+                OutputBuilder.Remove(1, 2);
+                return OutputBuilder.ToString();
+            }
+        }
+        static String pLastManualConsoleInput = "";
+        public static String LastManualConsoleInput
+        {
+            get { return pLastManualConsoleInput; }
+        }
+        public static void HandleConsoleInput(String Input)
+        {
+            WriteLine(Input);
+            pLastManualConsoleInput = Input;
+            String[] Commands = Input.Split(' ');
+            switch(Commands[0].ToUpper())
+            {
+                case "DO":
+                    ScriptProcessor.SnifferSearch()?.ForceInsertScriptElement(new object[] { Input.Remove(Input.IndexOf(' ') + 1) }, false);
+                    break;
+                default:
+                    WriteLine("Unrecognized command.");
+                    break;
+            }
+        }
         public static void WriteLine(String Text)
         {
             pLastLogLine = Text;
-            if (Text[0] != '[' && Text[Text.Length - 1] != ']')
+            if (Text.Length == 0 || (Text[0] != '[' && Text[Text.Length - 1] != ']'))
             {
                 Text = "[" + System.DateTime.Now.ToLongTimeString() + "] " + Text;
             }
@@ -718,6 +775,7 @@ namespace VNFramework
             }
             base.Update(gameTime);
         }
+        public static Boolean ConsoleOpen { get; set; }
         protected void MainUpdate(GameTime gameTime, KeyboardState KCurrent)
         {
             if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
@@ -728,6 +786,19 @@ namespace VNFramework
                     else { ButtonScripts.Unpause(); }
                 }
                 else { ButtonScripts.Quit(); }
+            }
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde))
+            {
+                if (!ConsoleOpen)
+                {
+                    ButtonScripts.OpenAndConstructConsole();
+                    ConsoleOpen = true;
+                }
+                else
+                {
+                    ButtonScripts.CloseConsole();
+                    ConsoleOpen = false;
+                }
             }
             if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && ScriptProcessor.ActiveGame())
             {
@@ -747,7 +818,7 @@ namespace VNFramework
             {
                 Exit();
             }
-            if (((KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter)) || DoNextShifter) && AllowEnter)
+            if (((KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen) || DoNextShifter) && AllowEnter)
             {
                 DoNextShifter = false;
                 Boolean Found = false;
@@ -773,6 +844,7 @@ namespace VNFramework
             {
                 if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
                 if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
+                if (NonSerializables.Contains(E)) { NonSerializables.Remove(E); }
                 E.ManualDispose();
             }
             DeleteQueue = new ArrayList();
@@ -843,6 +915,12 @@ namespace VNFramework
         public static Boolean HoldRender = false;
         protected override void Draw(GameTime gameTime)
         {
+            foreach(WorldEntity E in RenderQueue)
+            {
+                if(!(E is Pane || E is VerticalScrollPane)) { continue; }
+                else if (E is Pane && ((Pane)E).RenderAlways) { ((Pane)E).Render(); }
+                else if (E is VerticalScrollPane && ((VerticalScrollPane)E).AssociatedPane.RenderAlways) { ((VerticalScrollPane)E).AssociatedPane.Render(); }
+            }
             GraphicsDevice.SetRenderTarget(TrueDisplay);
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);

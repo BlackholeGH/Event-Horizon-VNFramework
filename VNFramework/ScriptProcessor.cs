@@ -70,10 +70,14 @@ namespace VNFramework
             }
             //Shell.WriteLine(Label + ": " + Text);
         }
+        static Stack<int> ApplicableRollbackArchive = new Stack<int>();
         public static void RollbackArchive()
         {
-            Shell.WriteLine("Received archive rollback request. Wiping " + CountApplicableRollbacks + " line(s).");
-            for (int i = CountApplicableRollbacks; i > 0; i--)
+            //What even is this? Check it actually works right
+            int ModifierNumber = ApplicableRollbackArchive.Pop() - 1;
+            int RealRollbacks = CountApplicableRollbacks + Math.Max(ModifierNumber, 0);
+            Shell.WriteLine("Received archive rollback request. Wiping " + RealRollbacks + " line(s).");
+            for (int i = RealRollbacks; i > 0; i--)
             {
                 if (TextArchive.Contains("[TADM]"))
                 {
@@ -81,6 +85,7 @@ namespace VNFramework
                 }
                 else { TextArchive = ""; }
             }
+            //CountApplicableRollbacks = ApplicableRollbackArchive.Pop();
         }
         public static void WipeArchive()
         {
@@ -360,11 +365,11 @@ namespace VNFramework
             private int LoadBreaker = -1;
             private Boolean LoadInit = true;
             private Queue ForceScriptInsertionQueue = new Queue();
-            public void ForceInsertScriptElement(object[] OneScriptShift)
+            public void ForceInsertScriptElement(object[] OneScriptShift, Boolean ClearSCs)
             {
                 if(ForceScriptInsertionQueue is null) { ForceScriptInsertionQueue = new Queue(); }
                 ForceScriptInsertionQueue.Enqueue(OneScriptShift);
-                PopForceInsertion();
+                PopForceInsertion(ClearSCs);
             }
             public void ForceInsertMultipleScriptElements(object[] MultipleScriptShifts)
             {
@@ -373,9 +378,9 @@ namespace VNFramework
                 {
                     ForceScriptInsertionQueue.Enqueue(OneScriptShift);
                 }
-                PopForceInsertion();
+                PopForceInsertion(true);
             }
-            public void PopForceInsertion()
+            public void PopForceInsertion(Boolean ClearSCs)
             {
                 if (ForceScriptInsertionQueue == null || ForceScriptInsertionQueue.Count == 0)
                 {
@@ -385,7 +390,7 @@ namespace VNFramework
                 Shell.GlobalWorldState = "LOADED FORCED SHIFT...";
                 Shell.WriteLine("Force inserting script element shift.");
                 ShiftStartTime = Environment.TickCount;
-                ShiftCondition = new String[0];
+                if (ClearSCs) { ShiftCondition = new String[0]; }
                 if (ScriptIndex >= pMyScript.Length - 1 && ForceScriptInsertionQueue.Count == 0) { ScriptIndex--; }
                 PushScriptShift(OneScriptShift, false);
                 LastTime = Environment.TickCount;
@@ -428,7 +433,7 @@ namespace VNFramework
                         }
                         if (ForceScriptInsertionQueue != null && ForceScriptInsertionQueue.Count > 0)
                         {
-                            PopForceInsertion();
+                            PopForceInsertion(true);
                         }
                         else
                         {
@@ -475,7 +480,11 @@ namespace VNFramework
             int PushScriptShift(object[] CurrentShift, Boolean ExpectSerialization)
             {
                 int PrevARs = CountApplicableRollbacks;
-                if (ExpectSerialization) { CountApplicableRollbacks = 0; }
+                if (ExpectSerialization)
+                {
+                    ApplicableRollbackArchive.Push(CountApplicableRollbacks);
+                    CountApplicableRollbacks = 0;
+                }
                 foreach (object O in CurrentShift)
                 {
                     int RCode = ActivateScriptElement(O, SkipAll);
@@ -501,6 +510,7 @@ namespace VNFramework
                         String[] Conditions = C.ToUpper().Split(':');
                         if (Conditions[0] == "TIME" && Convert.ToInt32(Conditions[1]) <= 20)
                         {
+                            ApplicableRollbackArchive.Pop();
                             CountApplicableRollbacks = CountApplicableRollbacks + PrevARs;
                             break;
                         }
@@ -657,7 +667,7 @@ namespace VNFramework
         {
             if (Element is String)
             {
-                Shell.WriteLine((String)Element);
+                if (!(((String)Element) == "do " + Shell.LastManualConsoleInput)) { Shell.WriteLine((String)Element); }
                 String E = (String)Element;
                 String[] Parts = E.Split('|');
                 if (Parts[0].ToUpper() == "T")

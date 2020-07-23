@@ -493,6 +493,49 @@ namespace VNFramework
             Button NewB = new Button("BUTTON_CUSTOM_" + Text.ToUpper(), new Vector2(), NewAtlas, 0.91f);
             return NewB;
         }
+        public static void OpenAndConstructConsole()
+        {
+            WorldEntity ConsoleBacking = new WorldEntity("CONSOLE_BACKING_UI", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEPANE"], 0.9989f);
+            Shell.NonSerializables.Add(ConsoleBacking);
+            VerticalScrollPane ConsoleWindow = new VerticalScrollPane("CONSOLE_SCROLLPANE", new Vector2(1262, 35), (TAtlasInfo)Shell.AtlasDirectory["CONSOLESCROLLBAR"], 0.999f, new Point(1243, 265), Color.Black);
+            ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData);
+            ConsoleWindow.JumpTo(1f);
+            Shell.NonSerializables.Add(ConsoleWindow);
+            TextInputField ConsoleField = new TextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
+            ConsoleField.BufferLength = 1150;
+            Shell.NonSerializables.Add(ConsoleField);
+            Button ConsoleButton = new Button("CONSOLE_ENTER_BUTTON", new Vector2(1212, 274), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEENTERBUTTON"], 0.999f);
+            Shell.NonSerializables.Add(ConsoleButton);
+            ConsoleButton.CenterOrigin = false;
+            ConsoleField.SubscribeToEvent(ConsoleButton, WorldEntity.EventNames.ButtonPressFunction, typeof(TextInputField).GetMethod("ManualSendEnterSignal"), null);
+            ConsoleField.TextEnteredFunction += new VoidDel(delegate ()
+            {
+                Shell.HandleConsoleInput(ConsoleField.LastSentText);
+                ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData);
+                ConsoleWindow.JumpTo(1f);
+            });
+            Shell.UpdateQueue.Add(ConsoleBacking);
+            Shell.RenderQueue.Add(ConsoleBacking);
+            Shell.UpdateQueue.Add(ConsoleWindow);
+            Shell.RenderQueue.Add(ConsoleWindow);
+            Shell.UpdateQueue.Add(ConsoleButton);
+            Shell.RenderQueue.Add(ConsoleButton);
+            Shell.UpdateQueue.Add(ConsoleField);
+            Shell.RenderQueue.Add(ConsoleField);
+        }
+        public static void CloseConsole()
+        {
+            foreach (WorldEntity E in Shell.UpdateQueue)
+            {
+                if (E is VerticalScrollPane && E.Name == "CONSOLE_SCROLLPANE" && !Shell.DeleteQueue.Contains(E))
+                {
+                    Shell.DeleteQueue.Add(E);
+                }
+                else if (E is Button && E.Name == "CONSOLE_ENTER_BUTTON" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                else if (E is TextInputField && E.Name == "CONSOLE_TEXTINPUT" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                else if (E.Name == "CONSOLE_BACKING_UI" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+            }
+        }
         public static void OpenArchive()
         {
             ScriptProcessor.AllowScriptShift = false;
@@ -516,7 +559,7 @@ namespace VNFramework
         {
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
-                if (E is VerticalScrollPane && !Shell.DeleteQueue.Contains(E))
+                if (E is VerticalScrollPane && E.Name == "ARCHIVE_SCROLLBAR" && !Shell.DeleteQueue.Contains(E))
                 {
                     Shell.DeleteQueue.Add(E);
                 }
@@ -588,7 +631,7 @@ namespace VNFramework
             if (!ScriptProcessor.AllowScriptExit)
             {
                 ScriptProcessor.ScriptSniffer S = ScriptProcessor.SnifferSearch();
-                S.ForceInsertScriptElement(new object[] { "C|GWS:CONTINUE", "T||You can't leave the area right now!" });
+                S.ForceInsertScriptElement(new object[] { "C|GWS:CONTINUE", "T||You can't leave the area right now!" }, true);
                 return;
             }
             Navigating = true;
