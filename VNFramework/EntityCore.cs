@@ -973,6 +973,7 @@ namespace VNFramework
             public Vector2 DrawLocation;
             public Boolean RainbowMode;
             public Boolean Linebreak;
+            public Boolean IgnoreLinebreak;
             public int TimeDelay;
             public void Rainbow()
             {
@@ -1012,6 +1013,23 @@ namespace VNFramework
             {
                 pHitBox = new Rectangle(VNFUtils.ConvertVector(pDrawCoords), new Point(pBufferLength, VerticalLength(true)));
                 return pHitBox;
+            }
+        }
+        protected int pNewlineIndent = 0;
+        public int NewlineIndent
+        {
+            get
+            {
+                return pNewlineIndent;
+            }
+            set
+            {
+                if (value != pNewlineIndent)
+                {
+                    pNewlineIndent = value;
+                    IgnoreDelayOnThis = new ArrayList();
+                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, pNewlineIndent);
+                }
             }
         }
         protected RenderTarget2D[,] StaticTextures = null;
@@ -1072,13 +1090,14 @@ namespace VNFramework
             }
             StaticTextures = OutR;
         }
-        public static TextChunk[] PreprocessText(String Text, Boolean ForceSplitUnchunkables)
+        public static TextChunk[] PreprocessText(String Text, Boolean ForceSplitUnchunkables, int NewlineIndent)
         {
-            return PreprocessText(Text, -1, ForceSplitUnchunkables);
+            return PreprocessText(Text, -1, ForceSplitUnchunkables, NewlineIndent);
         }
-        public static TextChunk[] PreprocessText(String Text, int PixelBuffer, Boolean ForceSplitUnchunkables)
+        public static TextChunk[] PreprocessText(String Text, int PixelBuffer, Boolean ForceSplitUnchunkables, int NewlineIndent)
         {
             Text = Text.Replace("\n", "[N]");
+            Text = Text.Replace("][", ",");
             if (Text.Length > 0 && Text[Text.Length-1] == ']') { Text += " "; }
             ArrayList ChunkStore = new ArrayList();
             Vector2 Location = new Vector2();
@@ -1090,6 +1109,7 @@ namespace VNFramework
                 String FontName = "DEFAULT";
                 Color Colour = Color.White;
                 Boolean Linebreak = false;
+                Boolean IgnoreLinebreak = false;
                 Boolean RainbowMode = false;
                 int TimeDelay = 0;
                 if (Text.IndexOf('[') == 0)
@@ -1143,6 +1163,9 @@ namespace VNFramework
                             case "N":
                                 Linebreak = true;
                                 break;
+                            case "I":
+                                IgnoreLinebreak = true;
+                                break;
                             case "T":
                                 TimeDelay = Convert.ToInt32(SSplit[1]);
                                 break;
@@ -1159,6 +1182,7 @@ namespace VNFramework
                 Temp.DrawLocation = Location;
                 Temp.RainbowMode = RainbowMode;
                 Temp.Linebreak = Linebreak;
+                Temp.IgnoreLinebreak = IgnoreLinebreak;
                 Temp.TimeDelay = TimeDelay;
                 if (Text.Contains('['))
                 {
@@ -1170,7 +1194,7 @@ namespace VNFramework
                 Text = Text.Remove(0, Temp.Text.Length);
             }
             TextChunk[] Out = ChunkStore.ToArray().Select(x => (TextChunk)x).ToArray();
-            if(PixelBuffer != -1) { Out = LinebreakChunks(Out, PixelBuffer, ForceSplitUnchunkables); }
+            if(PixelBuffer != -1) { Out = LinebreakChunks(Out, PixelBuffer, ForceSplitUnchunkables, NewlineIndent); }
             return Out;
         }
         protected Boolean pForceSplitUnchunkables = false;
@@ -1182,12 +1206,15 @@ namespace VNFramework
             }
             set
             {
-                pForceSplitUnchunkables = value;
-                IgnoreDelayOnThis = new ArrayList();
-                TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables);
+                if (value != pForceSplitUnchunkables)
+                {
+                    pForceSplitUnchunkables = value;
+                    IgnoreDelayOnThis = new ArrayList();
+                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
+                }
             }
         }
-        public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength, Boolean ForceSplitUnchunkables) //Function to insert linebreaks into text as required, based on a given length
+        public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength, Boolean ForceSplitUnchunkables, int NewlineIndent) //Function to insert linebreaks into text as required, based on a given length
         {
             int CurrentPixelTotal = 0;
             Vector2 RollingLocationMod = new Vector2(0, 0); //Vector representing the degree to which the next line should be shifted from the previous
@@ -1242,7 +1269,7 @@ namespace VNFramework
                         Forward++;
                     }
                 }
-                if(CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength) //If the current length plus the next chunk's pre-space pixels break the line limit...
+                if(CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength && !TC.IgnoreLinebreak) //If the current length plus the next chunk's pre-space pixels break the line limit...
                 {
                     Boolean ByPix = false;
                     //ByPix: whether the next chunk will take the line length over the edge
@@ -1276,10 +1303,10 @@ namespace VNFramework
                         int TCMeasure = 0;
                         TC.Text = TC.Text.Remove(FoundLocation);
                         TCMeasure = (int)TC.Font.MeasureString(TC.Text + " ").X; //The length of the first half of the new, broken line is measured
-                        RollingLocationMod.X = -CurrentPixelTotal - TCMeasure; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
+                        RollingLocationMod.X = -CurrentPixelTotal - TCMeasure + NewlineIndent; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
                         New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
                         RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
-                        CurrentPixelTotal = 0;
+                        CurrentPixelTotal = NewlineIndent;
                         RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
                         NewChunkRegistry.Add(New);
                     }
@@ -1301,10 +1328,10 @@ namespace VNFramework
                             int TCMeasure = 0;
                             TC.Text = TC.Text.Remove(FoundLocation);
                             TCMeasure = (int)TC.Font.MeasureString(TC.Text).X; //The length of the first half of the new, broken line is measured
-                            RollingLocationMod.X = -CurrentPixelTotal - TCMeasure; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
+                            RollingLocationMod.X = -CurrentPixelTotal - TCMeasure + NewlineIndent; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
                             New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
                             RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
-                            CurrentPixelTotal = 0;
+                            CurrentPixelTotal = NewlineIndent;
                             RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
                             NewChunkRegistry.Add(New);
                         }
@@ -1381,9 +1408,12 @@ namespace VNFramework
             }
             set
             {
-                pBufferLength = value;
-                IgnoreDelayOnThis = new ArrayList();
-                TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables);
+                if (value != pBufferLength)
+                {
+                    pBufferLength = value;
+                    IgnoreDelayOnThis = new ArrayList();
+                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
+                }
             }
         }
         public String Text
@@ -1396,7 +1426,7 @@ namespace VNFramework
                     pText = value;
                     TextChunkR = new TextChunk[0];
                     IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(value, pBufferLength, pForceSplitUnchunkables);
+                    TextChunkR = PreprocessText(value, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
                     int L = 0;
                     foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
                     pLength = L;
@@ -1410,7 +1440,7 @@ namespace VNFramework
         public TextEntity(String Name, String TextIn, Vector2 Location, float Depth) : base(Name, Location, null, Depth)
         {
             pBufferLength = 1000;
-            TextChunkR = PreprocessText(TextIn, pBufferLength, false);
+            TextChunkR = PreprocessText(TextIn, pBufferLength, false, NewlineIndent);
             if(TypeWrite) { ProgressiveChunks = RevealXChars(TextChunkR, 0); }
             int L = 0;
             foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }

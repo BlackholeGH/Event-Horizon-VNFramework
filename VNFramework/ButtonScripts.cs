@@ -506,8 +506,9 @@ namespace VNFramework
             WorldEntity ConsoleBacking = new WorldEntity("CONSOLE_BACKING_UI", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEPANE"], 0.9989f);
             ConsoleBacking.OverlayUtility = true;
             VerticalScrollPane ConsoleWindow = new VerticalScrollPane("CONSOLE_SCROLLPANE", new Vector2(1262, 35), (TAtlasInfo)Shell.AtlasDirectory["CONSOLESCROLLBAR"], 0.999f, new Point(1243, 265), Color.Black);
-            ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData);
+            ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData, 100);
             ConsoleWindow.JumpTo(1f);
+            ConsoleWindow.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
             ConsoleWindow.OverlayUtility = true;
             TextInputField ConsoleField = new TextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
             ConsoleField.BufferLength = 1150;
@@ -519,8 +520,6 @@ namespace VNFramework
             ConsoleField.TextEnteredFunction += new VoidDel(delegate ()
             {
                 Shell.HandleConsoleInput(ConsoleField.LastSentText);
-                ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData);
-                ConsoleWindow.JumpTo(1f);
             });
             Shell.UpdateQueue.Add(ConsoleBacking);
             Shell.RenderQueue.Add(ConsoleBacking);
@@ -555,7 +554,7 @@ namespace VNFramework
                 if (E is Button) { ((Button)E).Enabled = false; }
             }
             VerticalScrollPane Archive = new VerticalScrollPane("ARCHIVE_SCROLLBAR", new Vector2(1080, 95), (TAtlasInfo)Shell.AtlasDirectory["SCROLLBAR"], 0.98f, new Point(1000, 600), Color.Gray);
-            Archive.SetAsTextPane(ScriptProcessor.PullArchiveText());
+            Archive.SetAsTextPane(ScriptProcessor.PullArchiveText(), 0);
             Archive.JumpTo(1f);
             Shell.UpdateQueue.Add(Archive);
             Shell.RenderQueue.Add(Archive);
@@ -864,6 +863,11 @@ namespace VNFramework
         {
             if (ScriptProcessor.ActiveGame())
             {
+                if (ScriptProcessor.PastStates.Peek() is null)
+                {
+                    Shell.WriteLine("Could not rollback script state, as the previous state was null (did not save correctly).");
+                    return;
+                }
                 if (ScriptProcessor.PastStates.Count > 1)
                 {
                     ScriptProcessor.RollbackArchive();
@@ -956,7 +960,7 @@ namespace VNFramework
             Shell.UpdateQueue.Add(MainMenuBackdrop);
             Shell.RenderQueue.Add(MainMenuBackdrop);
             Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartMain"), null);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO" });
             //Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
             Button.CenterOrigin = false;
             Shell.UpdateQueue.Add(Button);
@@ -1017,7 +1021,7 @@ namespace VNFramework
             }
             Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("TEST_SNIFFER", ScriptProcessor.RetrieveScriptByName("TEST"), "TEST"));
         }
-        public static void StartMain()
+        public static void StartScript(String ScriptName)
         {
             MediaPlayer.Stop();
             SpoonsTrip = true;
@@ -1034,7 +1038,7 @@ namespace VNFramework
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
             ScriptProcessor.PastStates.Clear();
-            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("SOFIA_MAIN_INTRO_SNIFFER", ScriptProcessor.RetrieveScriptByName("SOFIA_MAIN_INTRO"), "SOFIA_MAIN_INTRO"));
+            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer(ScriptName + "_SNIFFER", ScriptProcessor.RetrieveScriptByName(ScriptName), ScriptName));
         }
         public static void BackToMainMenu()
         {
@@ -1253,8 +1257,9 @@ namespace VNFramework
         }
         public static void SaveActual(Texture2D Thumb)
         {
+            //Update to report invalid save
             Shell.PlaySoundInstant("UT_SAVE");
-            SaveLoadModule.WriteSave(Thumb);
+            int SaveResult = SaveLoadModule.WriteSave(Thumb);
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
                 if (E.Name == "PANE_SAVE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }

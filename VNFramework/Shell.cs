@@ -91,11 +91,11 @@ namespace VNFramework
             get { return pNonSerializables; }
             set { pNonSerializables = value; }
         }
-        public static RecallableState SerializeState()
+        public static RecallableState? SerializeState()
         {
             return SerializeState(NonSerializables);
         }
-        public static RecallableState SerializeState(List<WorldEntity> Skip)
+        public static RecallableState? SerializeState(List<WorldEntity> Skip)
         {
             ArrayList UpdateIDs = new ArrayList();
             ArrayList RenderIDs = new ArrayList();
@@ -116,23 +116,12 @@ namespace VNFramework
             SS.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), CSS);
             SS.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), SFSS);
             SerFormatter.SurrogateSelector = SS;
-            foreach (WorldEntity W in UpdateQueue)
+            try
             {
-                if(Skip.Contains(W)) { continue; }
-                UpdateIDs.Add(W.EntityID);
-                W.OnSerializeDo();
-                MemoryStream EntityStream = new MemoryStream();
-                SerFormatter.Serialize(EntityStream, W);
-                EntityStream.Close();
-                Streams.Add(EntityStream.ToArray());
-                SerializedIDs.Add(W.EntityID);
-            }
-            foreach(WorldEntity W in RenderQueue)
-            {
-                if (Skip.Contains(W)) { continue; }
-                RenderIDs.Add(W.EntityID);
-                if(!SerializedIDs.Contains(W.EntityID))
+                foreach (WorldEntity W in UpdateQueue)
                 {
+                    if (Skip.Contains(W)) { continue; }
+                    UpdateIDs.Add(W.EntityID);
                     W.OnSerializeDo();
                     MemoryStream EntityStream = new MemoryStream();
                     SerFormatter.Serialize(EntityStream, W);
@@ -140,6 +129,25 @@ namespace VNFramework
                     Streams.Add(EntityStream.ToArray());
                     SerializedIDs.Add(W.EntityID);
                 }
+                foreach (WorldEntity W in RenderQueue)
+                {
+                    if (Skip.Contains(W)) { continue; }
+                    RenderIDs.Add(W.EntityID);
+                    if (!SerializedIDs.Contains(W.EntityID))
+                    {
+                        W.OnSerializeDo();
+                        MemoryStream EntityStream = new MemoryStream();
+                        SerFormatter.Serialize(EntityStream, W);
+                        EntityStream.Close();
+                        Streams.Add(EntityStream.ToArray());
+                        SerializedIDs.Add(W.EntityID);
+                    }
+                }
+            }
+            catch(Exception e)
+            {
+                WriteLine("Failed to serialize state due to " + e.GetType().Name + ": " + e.Message);
+                return null;
             }
             RecallableState Out = new RecallableState();
             Out.RenderIDs = RenderIDs.ToArray().Select(x => (ulong)x).ToArray();
@@ -232,13 +240,32 @@ namespace VNFramework
         {
             get
             {
-                String[] GetReadableLog = InternalLog.Replace('[', '(').Replace(']', ')').TrimEnd('\n').Split('\n');
                 StringBuilder OutputBuilder = new StringBuilder();
-                for(int i = GetReadableLog.Length > 201 ? GetReadableLog.Length - 201 : 0; i < GetReadableLog.Length; i++)
+                for(int i = InternalLog.Count > 101 ? InternalLog.Count - 101 : 0; i < InternalLog.Count; i++)
                 {
-                    OutputBuilder.Append("[N,F:SYSFONT]" + GetReadableLog[i]);
+                    OutputBuilder.Append("[I]");
+                    foreach (object o in InternalLog[i])
+                    {
+                        if(o is Color)
+                        {
+                            Color Tc = (Color)o;
+                            if(Tc == Color.White)
+                            {
+                                OutputBuilder.Append("[F:SYSFONT]");
+                            }
+                            else
+                            {
+                                OutputBuilder.Append(String.Format("[F:SYSFONT,C:{0}-{1}-{2}-{3}]", Tc.R, Tc.G, Tc.B, Tc.A));
+                            }
+                        }
+                        else if(o is String)
+                        {
+                            OutputBuilder.Append((String)o);
+                        }
+                    }
+                    OutputBuilder.Append("[N]");
                 }
-                OutputBuilder.Remove(1, 2);
+                OutputBuilder.Remove(OutputBuilder.Length - 3, 3);
                 return OutputBuilder.ToString();
             }
         }
@@ -249,46 +276,106 @@ namespace VNFramework
         }
         public static void HandleConsoleInput(String Input)
         {
-            WriteLine(Input);
             pLastManualConsoleInput = Input;
+            SortedDictionary<int, Color> Cols = new SortedDictionary<int, Color>();
+            Cols.Add(0, Color.LightGreen);
+            WriteLine(Input, Cols);
             String[] Commands = Input.Split(' ');
-            switch(Commands[0].ToUpper())
+            try
             {
-                //Run ScriptProcessor commands as a forced script shift (by default, shift conditions are unchanged)
-                case "INSERT":
-                    ScriptProcessor.ScriptSniffer FoundSniffer = ScriptProcessor.SnifferSearch();
-                    if(FoundSniffer != null)
-                    {
-                        FoundSniffer.ForceInsertScriptElement((Input.Remove(0, Input.IndexOf(' ') + 1)).Split(' '), false);
-                    }
-                    else { WriteLine("Cannot insert new script shift as a script is not running."); }
-                    break;
-                //Activate a single script element
-                case "DO":
-                    ScriptProcessor.ActivateScriptElement(Input.Remove(0, Input.IndexOf(' ') + 1));
-                    break;
-                //Close the program
-                case "QUIT":
-                    WriteLine("Closing the VNF client...");
-                    ExitOut = true;
-                    break;
-                default:
-                    WriteLine("Unrecognized command.");
-                    break;
+                switch (Commands[0].ToUpper())
+                {
+                    //Run ScriptProcessor commands as a forced script shift (by default, shift conditions are unchanged).
+                    case "INSERT":
+                        ScriptProcessor.ScriptSniffer FoundSniffer = ScriptProcessor.SnifferSearch();
+                        if (FoundSniffer != null)
+                        {
+                            FoundSniffer.ForceInsertScriptElement((Input.Remove(0, Input.IndexOf(' ') + 1)).Split(' '), false);
+                        }
+                        else { WriteLine("Cannot insert new script shift as a script is not running."); }
+                        break;
+                    //Activate a single script element.
+                    case "ACTIVATE":
+                        ScriptProcessor.ActivateScriptElement(Input.Remove(0, Input.IndexOf(' ') + 1));
+                        break;
+                    //Freshly load a new script.
+                    case "LOAD":
+                        WriteLine("Attempting to load script " + Commands[1].ToUpper() + ".");
+                        ButtonScripts.StartScript(Commands[1].ToUpper());
+                        break;
+                    //Executes a function statement per the EntityFactory's inbuilt function parser.
+                    case "DO":
+                        RunQueue.Add(EntityFactory.AssembleVoidDelegate("do=" + Input.Remove(0, Input.IndexOf(' ') + 1)));
+                        break;
+                    //Executes a method specifier (instance return) per the EntityFactory's inbuilt function parser.
+                    case "RUN":
+                        RunQueue.Add(EntityFactory.AssembleVoidDelegate(Input.Remove(0, Input.IndexOf(' ') + 1)));
+                        break;
+                    //Fork to a new script from your current state. Equivalent to "do B|[Script name]".
+                    case "FORK":
+                        ScriptProcessor.ActivateScriptElement("B|" + Commands[1].ToUpper());
+                        break;
+                    //Close the program.
+                    case "QUIT":
+                        WriteLine("Closing the VNF client...");
+                        ExitOut = true;
+                        break;
+                    default:
+                        WriteLine("Unrecognized command.");
+                        break;
+                }
+            }
+            catch(Exception e)
+            {
+                WriteLine(e.GetType().Name + ": " + e.Message);
             }
         }
+        public static event Action<String> ConsoleWrittenTo;
         public static void WriteLine(String Text)
         {
-            pLastLogLine = Text;
-            if (Text.Length == 0 || (Text[0] != '[' && Text[Text.Length - 1] != ']'))
+            WriteLine(Text, null);
+        }
+        public static void WriteLine(String Text, SortedDictionary<int, Color> ColourArgs)
+        {
+            String Time = "(" + System.DateTime.Now.ToLongTimeString() + ")";
+            if (pHasConsole) { Console.WriteLine(Time + " " + Text); }
+            Text = Text.Replace('[', '(').Replace(']', ')');
+            ArrayList Store = new ArrayList();
+            Store.Add(Color.Yellow);
+            Store.Add(Time + " ");
+            if(ColourArgs != null)
             {
-                Text = "[" + System.DateTime.Now.ToLongTimeString() + "] " + Text;
+                Color RollingColour = Color.White;
+                int LastI = 0;
+                foreach(int i in ColourArgs.Keys)
+                {
+                    if (i - LastI > 0)
+                    {
+                        String Seg = Text.Substring(LastI, i - LastI);
+                        Store.Add(RollingColour);
+                        Store.Add(Seg);
+                    }
+                    RollingColour = ColourArgs[i];
+                    LastI = i;
+                }
+                if(LastI < Text.Length)
+                {
+                    Store.Add(RollingColour);
+                    Store.Add(Text.Remove(0, LastI));
+                }
             }
+            else
+            {
+                Store.Add(Color.White);
+                Store.Add(Text);
+            }
+            object[] ThisEntry = Store.ToArray();
+            InternalLog.Add(ThisEntry);
+            ConsoleWrittenTo?.Invoke(Text);
             try
             {
                 Monitor.Enter(CWriteLockObj);
-                InternalLog += Text + "\n";
-                if (pHasConsole) { Console.WriteLine(Text); }
+                pLastLogLine = Text;
             }
             finally { Monitor.Exit(CWriteLockObj); }
         }
@@ -368,7 +455,7 @@ namespace VNFramework
                 CaptureSaveType.ForceState(SaveLoadModule.ApplicableSaveType == "ScriptStem");
             }
         }
-        public static String InternalLog = "";
+        public static List<Object[]> InternalLog = new List<object[]>();
         public RenderTarget2D TrueDisplay;
         public static ArrayList RenderQueue = new ArrayList();
         public static ArrayList UpdateQueue = new ArrayList();
@@ -720,6 +807,8 @@ namespace VNFramework
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         [field: NonSerialized]
         public static event VoidDel MouseLeftClick;
+        public static event VoidDel UpKeyPress;
+        public static event VoidDel DownKeyPress;
         protected MouseState LastMouseState;
         protected KeyboardState LastKeyState;
         public static Boolean ExitOut = false;
@@ -850,6 +939,8 @@ namespace VNFramework
                 if(!Found) { GlobalWorldState = "CONTINUE"; }
             }      
             if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { UpKeyPress?.Invoke(); }
+            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DownKeyPress?.Invoke(); }
             LastKeyState = KCurrent;
             foreach (WorldEntity E in UpdateQueue)
             {

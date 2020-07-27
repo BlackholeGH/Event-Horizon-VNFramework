@@ -22,11 +22,15 @@ namespace VNFramework
             {
                 InputUpdated = false;
                 Shell.DefaultShell.Window.TextInput += HandleTextInputEvent;
+                Shell.UpKeyPress += Up;
+                Shell.DownKeyPress += Down;
             }
             public void Clear()
             {
                 try
                 {
+                    Shell.UpKeyPress -= Up;
+                    Shell.DownKeyPress -= Down;
                     Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
                 }
                 catch (NullReferenceException E) { }
@@ -51,10 +55,39 @@ namespace VNFramework
             public void TextEntryTrigger()
             {
                 pLastHeldString = HeldString;
+                //Scrollers.RemoveRange(ScrollIndex, Scrollers.Count - ScrollIndex);
+                Scrollers.Add(HeldString);
+                ScrollIndex = Scrollers.Count;
                 ConstructHeldString = new StringBuilder();
                 InputUpdated = true;
                 HeldStringChangedFlag = true;
             }
+            public void Up()
+            {
+                if(ScrollIndex > 0)
+                {
+                    ScrollIndex--;
+                    ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
+                    InputUpdated = true;
+                }
+            }
+            public void Down()
+            {
+                if (ScrollIndex < Scrollers.Count - 1)
+                {
+                    ScrollIndex++;
+                    ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
+                    InputUpdated = true;
+                }
+                else if(ScrollIndex == Scrollers.Count - 1)
+                {
+                    ScrollIndex++;
+                    ConstructHeldString = new StringBuilder();
+                    InputUpdated = true;
+                }
+            }
+            private int ScrollIndex = 0;
+            private List<String> Scrollers = new List<string>();
             public Boolean HeldStringChangedFlag { get; set; }
             private Boolean InputUpdated;
             private StringBuilder ConstructHeldString = new StringBuilder();
@@ -147,6 +180,35 @@ namespace VNFramework
                         SB.Engaged = false;
                         LastMouseScroll = M.ScrollWheelValue;
                     }
+                }
+            }
+        }
+        public class ConsoleReaderBehaviour : IVNFBehaviour
+        {
+            String ConsoleText = null;
+            public void HandleConsoleUpdateEvent(String Text)
+            {
+                ConsoleText = Shell.PullInternalConsoleData;
+            }
+            public ConsoleReaderBehaviour()
+            {
+                Shell.ConsoleWrittenTo += HandleConsoleUpdateEvent;
+            }
+            public void Clear()
+            {
+                try
+                {
+                    Shell.ConsoleWrittenTo -= HandleConsoleUpdateEvent;
+                }
+                catch (NullReferenceException E) { }
+            }
+            public void UpdateFunctionality(WorldEntity BehaviourOwner)
+            {
+                if(ConsoleText != null && BehaviourOwner is VerticalScrollPane)
+                {
+                    ((VerticalScrollPane)BehaviourOwner).SetAsTextPane(ConsoleText, 100);
+                    ((VerticalScrollPane)BehaviourOwner).JumpTo(1f);
+                    ConsoleText = null;
                 }
             }
         }

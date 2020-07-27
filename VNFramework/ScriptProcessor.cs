@@ -667,7 +667,12 @@ namespace VNFramework
         {
             if (Element is String)
             {
-                if (!(("do " + ((String)Element)).ToUpper() == Shell.LastManualConsoleInput.ToUpper())) { Shell.WriteLine((String)Element); }
+                if (!(("activate " + ((String)Element)).ToUpper() == Shell.LastManualConsoleInput.ToUpper()))
+                {
+                    SortedDictionary<int, Color> Cols = new SortedDictionary<int, Color>();
+                    Cols.Add(0, Color.LightBlue);
+                    Shell.WriteLine((String)Element, Cols);
+                }
                 String E = (String)Element;
                 String[] Parts = E.Split('|');
                 if (Parts[0].ToUpper() == "T")

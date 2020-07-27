@@ -680,7 +680,7 @@ namespace VNFramework
             pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
         }
         protected TextEntity DefaultTextPaneText = null;
-        public void SetAsTextPane(String Text)
+        public void SetAsTextPane(String Text, int NewlineIndent)
         {
             pAssociatedPane.Clear();
             if (DefaultTextPaneText == null)
@@ -690,12 +690,14 @@ namespace VNFramework
                 DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
                 DefaultTextPaneText.ForceSplitUnchunkables = true;
                 DefaultTextPaneText.Text = Text;
+                DefaultTextPaneText.NewlineIndent = NewlineIndent;
                 DefaultTextPaneText.DrawAsStatic = true;
             }
             else
             {
                 DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
                 DefaultTextPaneText.Text = Text;
+                DefaultTextPaneText.NewlineIndent = NewlineIndent;
             }
             float[] YBorder = new float[] { DefaultTextPaneText.ChunkFontHeight[0]/4, DefaultTextPaneText.ChunkFontHeight[DefaultTextPaneText.ChunkCount - 1]/4 };
             DefaultTextPaneText.QuickMoveTo(new Vector2(20, YBorder[0]));

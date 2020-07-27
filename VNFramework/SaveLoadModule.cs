@@ -68,10 +68,18 @@ namespace VNFramework
         }
         static public void WriteSessionLog()
         {
-            StreamWriter Writer = new StreamWriter(new FileStream(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\Previous Session Log.txt", FileMode.Create, FileAccess.Write));
-            String LogClone = Shell.InternalLog.Replace("\n", "\r\n");
-            Writer.Write(LogClone);
-            Writer.Close();
+            using (StreamWriter Writer = new StreamWriter(new FileStream(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\Previous Session Log.txt", FileMode.Create, FileAccess.Write)))
+            {
+                foreach (object[] o in Shell.InternalLog)
+                {
+                    foreach (object RealObj in o)
+                    {
+                        if (RealObj is String) { Writer.Write(RealObj); }
+                    }
+                    Writer.Write("\r\n");
+                }
+                Writer.Close();
+            }
         }
         static public void WritePersistentState()
         {
@@ -186,11 +194,11 @@ namespace VNFramework
             spriteBatch.End();
             return RealThumb;
         }
-        static public void WriteSave()
+        static public int WriteSave()
         {
-            WriteSave(null);
+            return WriteSave(null);
         }
-        static public void WriteSave(Texture2D Thumb)
+        static public int WriteSave(Texture2D Thumb)
         {
             String SaveDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\saves";
             String ThumbDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\savedata\\thumbs";
@@ -210,13 +218,15 @@ namespace VNFramework
             String SaveName =  (CurSaveNum + 1) + "_" + SName;
             String ThumbName = SaveName + "-" + System.DateTime.Now.Ticks + ".jpg";
             String Path = ThumbDirectory + "\\" + ThumbName;
+            String SaveData = GenerateSave(ThumbName, ApplicableSaveType);
+            if(SaveData == null) { return 1; }
             FileStream Out = new FileStream(Path, FileMode.CreateNew, FileAccess.ReadWrite);
             ThumbData.SaveAsJpeg(Out, 320, 180);
             Out.Close();
-            String SaveData = GenerateSave(ThumbName, ApplicableSaveType);
             BinaryWriter Writer = new BinaryWriter(new FileStream(SaveDirectory + "\\" + SaveName + ".ehs", FileMode.Create));
             Writer.Write(SaveData);
             Writer.Close();
+            return 0;
         }
         public static String ApplicableSaveType { get; set; }
         public static String RecordApplicableFlags()
@@ -264,7 +274,26 @@ namespace VNFramework
             }
             else if(Type == "FullySerializedBinary")
             {
-                RecallableState State = (RecallableState)ScriptProcessor.PastStates.Peek();
+                if(ScriptProcessor.PastStates.Count == 0)
+                {
+                    Shell.WriteLine("Could not generate save file: No valid RecallableState stored.");
+                    return null;
+                }
+                RecallableState? State = (RecallableState?)ScriptProcessor.PastStates.Peek();
+                if(State is null)
+                {
+                    Stack StatesClone = (Stack)ScriptProcessor.PastStates.Clone();
+                    StatesClone.Pop();
+                    while (State is null)
+                    {
+                        if(StatesClone.Count == 0)
+                        {
+                            Shell.WriteLine("Could not generate save file: No valid RecallableState stored.");
+                            return null;
+                        }
+                        State = (RecallableState?)StatesClone.Pop();
+                    }
+                }
                 IFormatter SerFormatter = new BinaryFormatter();
                 ArrayList Streams = new ArrayList();
                 MemoryStream EntityStream = new MemoryStream();
