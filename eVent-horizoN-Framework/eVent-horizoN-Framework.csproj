@@ -12,11 +12,6 @@
     <EnableUnsafeBinaryFormatterSerialization>true</EnableUnsafeBinaryFormatterSerialization>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Content\**" />
-    <EmbeddedResource Remove="Content\**" />
-    <None Remove="Content\**" />
-  </ItemGroup>
-  <ItemGroup>
     <None Remove="Icon.ico" />
     <None Remove="Icon.bmp" />
   </ItemGroup>
@@ -44,5 +39,8 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Content\Data\" />
   </ItemGroup>
 </Project>
