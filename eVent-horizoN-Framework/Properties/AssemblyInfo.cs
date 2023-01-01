@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyCompany("Blackhole Media Systems")]
-[assembly: AssemblyCopyright("Copyright Blackhole 2020")]
+[assembly: AssemblyCopyright("Copyright Blackhole 2023")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
