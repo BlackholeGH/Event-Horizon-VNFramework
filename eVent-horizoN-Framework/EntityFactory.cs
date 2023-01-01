@@ -338,6 +338,7 @@ namespace VNFramework
             {
                 if(DataParameter.Length == 0) { return null; }
                 String DP = DataParameter.Replace(";", "");
+                //Alert - this removes casts but is a little dirty, because it will blanket remove any nested statement. Beware when formatting data declarations. Will need to be changed for better math engine.
                 if (DP[0] == '(' && DP.Contains(")"))
                 {
                     DP = DP.Remove(0, VNFUtils.Strings.IndexOfExclosed(DP, ")", '\"') + 1);

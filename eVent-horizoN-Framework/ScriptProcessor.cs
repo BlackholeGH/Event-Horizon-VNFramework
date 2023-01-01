@@ -64,7 +64,7 @@ namespace VNFramework
             if (Text != "" || Label != "")
             {
                 CountApplicableRollbacks++;
-                if (TextArchive != "") { TextArchive += "[TADM][N][N]"; }
+                if (TextArchive != "") { TextArchive += "[TADM][N] [N]"; }
                 if (Label != "") { TextArchive += ("[C:PURPLE]" + Label + "[N]"); }
                 TextArchive += Text;
             }

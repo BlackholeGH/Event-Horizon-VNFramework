@@ -33,7 +33,7 @@ namespace VNFramework
                     Shell.DownKeyPress -= Down;
                     Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
                 }
-                catch (NullReferenceException E) { }
+                catch (NullReferenceException) { }
             }
             void HandleTextInputEvent(object EventSender, TextInputEventArgs e)
             {
@@ -200,7 +200,7 @@ namespace VNFramework
                 {
                     Shell.ConsoleWrittenTo -= HandleConsoleUpdateEvent;
                 }
-                catch (NullReferenceException E) { }
+                catch (NullReferenceException) { }
             }
             public void UpdateFunctionality(WorldEntity BehaviourOwner)
             {

@@ -149,7 +149,7 @@ namespace VNFramework
         {
             System.Drawing.Image img = System.Drawing.Image.FromFile(ImagePath);
             MemoryStream ms = new MemoryStream();
-            img.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+            img.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
             Texture2D Thumb = Texture2D.FromStream(Shell.PubGD, ms);
             ms.Close();
             Texture2D ButtonBase = ((TAtlasInfo)Shell.AtlasDirectory["SAVESLOT"]).Atlas;

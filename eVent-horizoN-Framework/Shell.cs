@@ -109,12 +109,14 @@ namespace VNFramework
             Surrogates.Texture2DSS T2DSS = new Surrogates.Texture2DSS();
             Surrogates.ColorSS CSS = new Surrogates.ColorSS();
             Surrogates.SpriteFontSS SFSS = new Surrogates.SpriteFontSS();
+            Surrogates.EventSRSS ESRSS = new Surrogates.EventSRSS();
             SS.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), V2SS);
             SS.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), PSS);
             SS.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), RSS);
             SS.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), T2DSS);
             SS.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), CSS);
             SS.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), SFSS);
+            SS.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), ESRSS);
             SerFormatter.SurrogateSelector = SS;
             try
             {
@@ -174,12 +176,15 @@ namespace VNFramework
             Surrogates.Texture2DSS T2DSS = new Surrogates.Texture2DSS();
             Surrogates.ColorSS CSS = new Surrogates.ColorSS();
             Surrogates.SpriteFontSS SFSS = new Surrogates.SpriteFontSS();
+            Surrogates.EventSRSS ESRSS = new Surrogates.EventSRSS();
             SS.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), V2SS);
             SS.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), PSS);
             SS.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), RSS);
             SS.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), T2DSS);
             SS.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), CSS);
             SS.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), SFSS);
+            SS.AddSurrogate(typeof(MethodInfo), new StreamingContext(StreamingContextStates.All), ESRSS);
+            SS.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), ESRSS);
             SerFormatter.SurrogateSelector = SS;
             foreach (byte[] Br in S.SerializedEnts)
             {
@@ -475,12 +480,9 @@ namespace VNFramework
             pHasConsole = true;
             try { int window_height = Console.WindowHeight; }
             catch { pHasConsole = false; }
-            graphics = new GraphicsDeviceManager(this);
-            graphics.PreferredBackBufferHeight = (int)ScreenSize.Y;
-            graphics.PreferredBackBufferWidth = (int)ScreenSize.X;
-            graphics.HardwareModeSwitch = false;
             this.IsMouseVisible = true;
-            graphics.ApplyChanges();
+            graphics = new GraphicsDeviceManager(this);
+            graphics.PreferHalfPixelOffset = true;
             Content.RootDirectory = "Content";
         }
         /// <summary>
@@ -494,6 +496,11 @@ namespace VNFramework
             WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
+            graphics.PreferredBackBufferHeight = (int)ScreenSize.Y;
+            graphics.PreferredBackBufferWidth = (int)ScreenSize.X;
+            graphics.HardwareModeSwitch = false;
+            this.IsMouseVisible = true;
+            graphics.ApplyChanges();
             SaveLoadModule.InitializeAppFolders();
             LooseCamera = true;
             AutoCamera = new Camera("Default Shell Autocamera");

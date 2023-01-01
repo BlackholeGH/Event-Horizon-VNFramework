@@ -10,11 +10,47 @@ using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.Serialization;
+using System.Reflection;
+using static VNFramework.Surrogates;
 
 namespace VNFramework
 {
     public static class Surrogates
     {
+        public sealed class EventSRSS : ISerializationSurrogate
+        {
+            public void GetObjectData(System.Object obj,
+                                      SerializationInfo info, StreamingContext context)
+            {
+                WorldEntity.EventSubRegister E = (WorldEntity.EventSubRegister)obj;
+                if (E.EventHandler != null)
+                {
+                    info.AddValue("MethodName", E.EventHandler.DeclaringType.FullName + "." + E.EventHandler.Name);
+                }
+                else
+                {
+                    info.AddValue("MethodName", null);
+                }
+                info.AddValue("PublisherEntName", E.PublisherEntName);
+                info.AddValue("EventName", E.EventName);
+                info.AddValue("MethodArgs", E.MethodArgs);
+            }
+            public System.Object SetObjectData(System.Object obj,
+                                               SerializationInfo info, StreamingContext context,
+                                               ISurrogateSelector selector)
+            {
+                WorldEntity.EventSubRegister E = (WorldEntity.EventSubRegister)obj;
+                String Name = (String)info.GetValue(("MethodName"), typeof(String));
+                if (Name != null) {
+                    E.EventHandler = (MethodInfo)EntityFactory.ReturnMemberOrFuncValue(Name, null, null);
+                }
+                E.EventName = (WorldEntity.EventNames)info.GetValue("EventName", typeof(WorldEntity.EventNames));
+                E.PublisherEntName = (String)info.GetValue("PublisherEntName", typeof(String));
+                E.MethodArgs = (object[])info.GetValue("MethodArgs", typeof(object[]));
+                obj = E;
+                return obj;
+            }
+        }
         public sealed class RectangleSS : ISerializationSurrogate
         {
             public void GetObjectData(System.Object obj,
