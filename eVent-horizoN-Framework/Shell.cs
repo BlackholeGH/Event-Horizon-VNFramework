@@ -306,7 +306,7 @@ namespace VNFramework
                     //Freshly load a new script.
                     case "LOAD":
                         WriteLine("Attempting to load script " + Commands[1].ToUpper() + ".");
-                        ButtonScripts.StartScript(Commands[1].ToUpper());
+                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(Commands[1].ToUpper())));
                         break;
                     //Executes a function statement per the EntityFactory's inbuilt function parser.
                     case "DO":
