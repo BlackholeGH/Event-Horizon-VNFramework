@@ -15,8 +15,14 @@ using System.Reflection.Metadata;
 
 namespace VNFramework
 {
-    public static class Sensing
+    /// <summary>
+    /// Classes and functions facillitating more complex graphical operations between entities
+    /// </summary>
+    public static class GraphicsTools
     {
+        /// <summary>
+        /// Represents a directed line with a beginning and end point, for calculating intersections
+        /// </summary>
         public class Trace
         {
             public Vector2 Origin
@@ -171,7 +177,7 @@ namespace VNFramework
             }
             public Vector2[] GetHitBoxIntersections(WorldEntity worldEntity)
             {
-                Rectangle hitbox = worldEntity.HitBox;
+                Rectangle hitbox = worldEntity.Hitbox;
                 Trace[] edges = new Trace[4];
                 edges[0] = new Trace(new Vector2(hitbox.Left, hitbox.Top), new Vector2(hitbox.Right, hitbox.Top));
                 edges[1] = new Trace(new Vector2(hitbox.Right, hitbox.Top), new Vector2(hitbox.Right, hitbox.Bottom));
@@ -187,7 +193,7 @@ namespace VNFramework
             }
             public Boolean IntersectsHitBox(WorldEntity worldEntity)
             {
-                Rectangle hitbox = worldEntity.HitBox;
+                Rectangle hitbox = worldEntity.Hitbox;
                 Trace[] edges = new Trace[4];
                 edges[0] = new Trace(new Vector2(hitbox.Left, hitbox.Top), new Vector2(hitbox.Right, hitbox.Top));
                 edges[1] = new Trace(new Vector2(hitbox.Right, hitbox.Top), new Vector2(hitbox.Right, hitbox.Bottom));
@@ -202,7 +208,7 @@ namespace VNFramework
             public Vector2? GetFirstTextureIntersection(WorldEntity worldEntity, int traceDivisions)
             {
                 Vector2[] hitBoxIntersects = GetHitBoxIntersections(worldEntity);
-                Rectangle hitbox = worldEntity.HitBox;
+                Rectangle hitbox = worldEntity.Hitbox;
                 if(hitBoxIntersects.Length == 0) { return null; }
                 else
                 {

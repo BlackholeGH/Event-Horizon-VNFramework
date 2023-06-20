@@ -375,8 +375,8 @@ namespace VNFramework
             String ScriptName = (String)AttrIndex["#SCRIPTNAME"];
             int SIndex = Convert.ToInt32((String)AttrIndex["#SCRIPTSHIFTINDEX"]);
             String[] Conditionals = ((String)AttrIndex["#CONDITIONALS"]).Split(',');
-            Shell.UpdateQueue = new ArrayList();
-            Shell.RenderQueue = new ArrayList();
+            Shell.UpdateQueue = new List<WorldEntity>();
+            Shell.RenderQueue = new List<WorldEntity>();
             foreach (String C in Conditionals)
             {
                 switch(C)

@@ -14,6 +14,9 @@ using System.Reflection;
 
 namespace VNFramework
 {
+    /// <summary>
+    /// Class that contains the code entry point Main(). Instances the game class and starts it running.
+    /// </summary>
     class Launcher
     {
         static void Main(string[] args)

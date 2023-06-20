@@ -14,7 +14,7 @@ using System.Runtime.Serialization;
 namespace VNFramework
 {
     /// <summary>
-    /// A basic button object. Extends the WorldEntity class.
+    /// a basic button object. Extends the WorldEntity class.
     /// </summary>
     [Serializable]
     public class Button : WorldEntity
@@ -28,7 +28,7 @@ namespace VNFramework
                 return (MouseInBounds() && Enabled);
             }
         }
-        public Button(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth) : base(Name, Location, Atlas, Depth)
+        public Button(String name, Vector2 location, TAtlasInfo? atlas, float depth) : base(name, location, atlas, depth)
         {
             Enabled = true;
             AutoUpdateFrameState = true;
@@ -58,29 +58,33 @@ namespace VNFramework
         }
         protected virtual void ButtonPressFunctionTrigger()
         {
-            if (ButtonPressFunction != null && MouseInBounds() && Enabled && pHoverActive) { ButtonPressFunction?.Invoke(); }
+            if (ButtonPressFunction != null && MouseInBounds() && Enabled && _hoverActive) { ButtonPressFunction?.Invoke(); }
         }
-        protected Boolean pHoverActive = false;
-        public Boolean HoverActive { get { return pHoverActive; } }
+        private Boolean _hoverActive = false;
+        public Boolean HoverActive
+        {
+            get { return _hoverActive; }
+            protected set { _hoverActive = value; }
+        }
         //Maybe update these so it doesn't constantly check mouse bounds, same for other event triggers
         public override void Update()
         {
             if (MouseInBounds() && Enabled)
             {
-                if (AutoUpdateFrameState) { pAtlasCoordinates.X = 1; }
-                if (!pHoverActive)
+                if (AutoUpdateFrameState) { AtlasCoordinates = new Point(1, AtlasCoordinates.Y); }
+                if (!_hoverActive)
                 {
                     ButtonHoverFunction?.Invoke();
-                    pHoverActive = true;
+                    _hoverActive = true;
                 }
             }
             else
             {
-                if (AutoUpdateFrameState) { pAtlasCoordinates.X = 0; }
-                if (pHoverActive && Enabled)
+                if (AutoUpdateFrameState) { AtlasCoordinates = new Point(0, AtlasCoordinates.Y); }
+                if (_hoverActive && Enabled)
                 {
                     ButtonHoverReleaseFunction?.Invoke();
-                    pHoverActive = false;
+                    _hoverActive = false;
                 }
             }
             base.Update();
@@ -92,117 +96,118 @@ namespace VNFramework
         }
     }
     /// <summary>
-    /// A checkbox button object. Extends the Button class.
+    /// a checkbox button object. Extends the Button class.
     /// </summary>
     [Serializable]
     public class Checkbox : Button
     {
-        protected Boolean pToggle = false;
+        private Boolean _toggle = false;
         public Boolean Toggle
         {
             get
             {
-                return pToggle;
+                return _toggle;
             }
+            protected set { _toggle = value; }
         }
-        public Checkbox(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Boolean InitialToggle) : base(Name, Location, Atlas, Depth)
+        public Checkbox(String name, Vector2 location, TAtlasInfo? atlas, float depth, Boolean initialToggle) : base(name, location, atlas, depth)
         {
-            pToggle = InitialToggle;
+            _toggle = initialToggle;
         }
-        public void ForceState(Boolean State)
+        public void ForceState(Boolean state)
         {
-            pToggle = State;
+            _toggle = state;
         }
         protected override void ButtonPressFunctionTrigger()
         {
-            if (MouseInBounds() && Enabled) { pToggle = !pToggle; }
+            if (MouseInBounds() && Enabled) { _toggle = !_toggle; }
             base.ButtonPressFunctionTrigger();
         }
         public override void Update()
         {
             base.Update();
-            if (pToggle)
+            if (_toggle)
             {
-                pAtlasCoordinates.Y = 1;
+                AtlasCoordinates = new Point(AtlasCoordinates.X, 1);
             }
             else
             {
-                pAtlasCoordinates.Y = 0;
+                AtlasCoordinates = new Point(AtlasCoordinates.X, 0);
             }
         }
     }
     /// <summary>
-    /// A dropdown list menu entity that extends the checkbox button type.
+    /// a dropdown list menu entity that extends the checkbox button type.
     /// </summary>
     [Serializable]
     public class DropMenu : Checkbox
     {
-        public DropMenu(String Name, Vector2 Location, float Depth, int Width, String DefaultText, String[] DropList, Boolean InitialToggle) : base(Name, Location, null, Depth, InitialToggle)
+        public DropMenu(String name, Vector2 location, float depth, int width, String defaultText, String[] dropList, Boolean initialToggle) : base(name, location, null, depth, initialToggle)
         {
-            BoxWidth = Width;
-            TAtlasInfo CustomAtlas = new TAtlasInfo();
-            CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(DefaultText, BoxWidth);
-            CustomAtlas.DivDimensions = new Point(2, 2);
-            LocalAtlas = CustomAtlas;
-            PopulateDropList(DropList);
+            BoxWidth = width;
+            TAtlasInfo customAtlas = new TAtlasInfo();
+            customAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(defaultText, BoxWidth);
+            customAtlas.DivDimensions = new Point(2, 2);
+            Atlas = customAtlas;
+            PopulateDropList(dropList);
         }
         ~DropMenu()
         {
             DepopulateDropList();
         }
-        Boolean DroppedDown = false;
+        Boolean _droppedDown = false;
         public int BoxWidth { get; set; }
-        private String pOutputText = "";
-        public String OutputText { get { return pOutputText; } }
-        public void SetTopText(String Text)
+        private String _outputText = "";
+        public String OutputText { get { return _outputText; } }
+        public void SetTopText(String text)
         {
-            pOutputText = Text;
+            _outputText = text;
             TAtlasInfo CustomAtlas = new TAtlasInfo();
-            CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(Text, BoxWidth);
+            CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(text, BoxWidth);
             CustomAtlas.DivDimensions = new Point(2, 2);
-            LocalAtlas = CustomAtlas;
+            Atlas = CustomAtlas;
         }
         public void DepopulateDropList()
         {
-            foreach (WorldEntity E in MyDropEntities)
+            foreach (WorldEntity dropDownEntity in MyDropEntities)
             {
-                if (Stickers != null && Stickers.Contains(E)) { Stickers.Remove(E); }
-                if (Shell.UpdateQueue.Contains(E)) { Shell.UpdateQueue.Remove(E); }
-                if (Shell.RenderQueue.Contains(E)) { Shell.RenderQueue.Remove(E); }
+                if (Stickers != null && Stickers.Contains(dropDownEntity)) { Stickers.Remove(dropDownEntity); }
+                if (Shell.UpdateQueue.Contains(dropDownEntity)) { Shell.UpdateQueue.Remove(dropDownEntity); }
+                if (Shell.RenderQueue.Contains(dropDownEntity)) { Shell.RenderQueue.Remove(dropDownEntity); }
             }
             MyDropEntities = new ArrayList();
         }
         public void AssignMenuClickFuncs(VoidDel function)
         {
-            foreach (Button B in MyDropEntities)
+            foreach (Button dropButton in MyDropEntities)
             {
-                VoidDel NewClickFunction = new VoidDel(delegate ()
+                VoidDel newClickFunction = new VoidDel(delegate ()
                 {
-                    SetTopText(B.Name.Remove(0, B.Name.IndexOf("_DROPOPTION_") + 12));
+                    SetTopText(dropButton.Name.Remove(0, dropButton.Name.IndexOf("_DROPOPTION_") + 12));
                     function();
                 });
-                B.ButtonPressFunction += NewClickFunction;
+                dropButton.ButtonPressFunction += newClickFunction;
             }
         }
-        Texture2D DropBackingTexture = null;
-        void PopulateDropList(String[] TextList)
+        Texture2D _dropBackingTexture = null;
+        void PopulateDropList(String[] textList)
         {
             DepopulateDropList();
-            float CumulativeY = pDrawCoords.Y + (LocalAtlas.Atlas.Bounds.Height / 2) + 10;
-            foreach (String Label in TextList)
+            float cumulativeY = DrawCoords.Y + (Atlas.Atlas.Bounds.Height / 2) + 10;
+            foreach (String label in textList)
             {
-                TAtlasInfo ButtonAtlas = new TAtlasInfo();
-                ButtonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(Label, BoxWidth);
-                ButtonAtlas.DivDimensions = new Point(2, 1);
-                Button B = new Button(Name + "_DROPOPTION_" + Label, new Vector2(pDrawCoords.X, CumulativeY), ButtonAtlas, LayerDepth - 0.001f);
-                B.SubscribeToEvent(EventNames.ButtonPressFunction, typeof(Button).GetMethod("SetTopText"), new object[] { Label });
-                B.CenterOrigin = false;
-                B.Enabled = DroppedDown;
-                MyDropEntities.Add(B);
-                Stickers.Add(B);
-                Shell.UpdateQueue.Add(B);
-                CumulativeY += (LocalAtlas.Atlas.Bounds.Height / 2) + 10;
-                DropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(CumulativeY - (pDrawCoords.Y + (LocalAtlas.Atlas.Bounds.Height / 2) + 10))));
+                TAtlasInfo buttonAtlas = new TAtlasInfo();
+                buttonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(label, BoxWidth);
+                buttonAtlas.DivDimensions = new Point(2, 1);
+                Button button = new Button(Name + "_DROPOPTION_" + label, new Vector2(DrawCoords.X, cumulativeY), buttonAtlas, LayerDepth - 0.001f);
+                button.SubscribeToEvent(EventNames.ButtonPressFunction, typeof(Button).GetMethod("SetTopText"), new object[] { label });
+                button.CenterOrigin = false;
+                button.Enabled = _droppedDown;
+                MyDropEntities.Add(button);
+                Stickers.Add(button);
+                Shell.UpdateQueue.Add(button);
+                cumulativeY += (Atlas.Atlas.Bounds.Height / 2) + 10;
+                _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(cumulativeY - (DrawCoords.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));
             }
 
         }
@@ -210,93 +215,93 @@ namespace VNFramework
         public override void Update()
         {
             base.Update();
-            if (pToggle && !DroppedDown)
+            if (Toggle && !_droppedDown)
             {
-                foreach (Button B in MyDropEntities)
+                foreach (Button dropButton in MyDropEntities)
                 {
-                    B.Enabled = true;
-                    Shell.RenderQueue.Add(B);
+                    dropButton.Enabled = true;
+                    Shell.RenderQueue.Add(dropButton);
                 }
-                DroppedDown = true;
+                _droppedDown = true;
             }
-            else if (!pToggle && DroppedDown)
+            else if (!Toggle && _droppedDown)
             {
-                foreach (Button B in MyDropEntities)
+                foreach (Button dropButton in MyDropEntities)
                 {
-                    B.Enabled = false;
-                    if (Shell.RenderQueue.Contains(B)) { Shell.RenderQueue.Remove(B); }
+                    dropButton.Enabled = false;
+                    if (Shell.RenderQueue.Contains(dropButton)) { Shell.RenderQueue.Remove(dropButton); }
                 }
-                DroppedDown = false;
+                _droppedDown = false;
             }
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
-            if (DroppedDown) { spriteBatch.Draw(DropBackingTexture, pDrawCoords + new Vector2(0, (LocalAtlas.Atlas.Bounds.Height / 2)), DropBackingTexture.Bounds, Color.White, 0f, new Vector2(), new Vector2(1, 1), SpriteEffects.None, LayerDepth - 0.002f); }
+            if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, DrawCoords + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), new Vector2(1, 1), SpriteEffects.None, LayerDepth - 0.002f); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                if (DroppedDown) { spriteBatch.Draw(DropBackingTexture, pDrawCoords + camera.OffsetVector + new Vector2(0, (LocalAtlas.Atlas.Bounds.Height / 2)), DropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.ScaleSize, SpriteEffects.None, LayerDepth - 0.002f); }
+                if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, DrawCoords + camera.OffsetVector + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.Size, SpriteEffects.None, LayerDepth - 0.002f); }
                 base.Draw(spriteBatch, camera);
             }
         }
     }
     /// <summary>
-    /// A programable slider UI object. Extends the WorldEntity class.
+    /// a programable slider UI object. Extends the WorldEntity class.
     /// </summary>
     [Serializable]
     public class Slider : WorldEntity
     {
-        protected Boolean Engaged = false;
+        private Boolean _engaged = false;
         public Boolean Enabled { get; set; }
         public Vector2 EndpointA { get; set; }
         public Vector2 EndpointB { get; set; }
-        public Slider(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Vector2 endpointA, Vector2 endpointB, float InitialValue) : base(Name, Location, Atlas, Depth)
+        public Slider(String name, Vector2 location, TAtlasInfo? atlas, float depth, Vector2 endpointA, Vector2 endpointB, float initialValue) : base(name, location, atlas, depth)
         {
-            Engaged = false;
+            _engaged = false;
             Enabled = true;
             EndpointA = endpointA;
             EndpointB = endpointB;
             CenterOrigin = true;
-            ForceState(InitialValue);
+            ForceState(initialValue);
         }
-        public static Vector2 CalculatePerpendicularIntersection(Vector2 A, Vector2 B, Vector2 C)
+        public static Vector2 CalculatePerpendicularIntersection(Vector2 a, Vector2 b, Vector2 c)
         {
-            if (A.X != B.X && A.Y != B.Y)
+            if (a.X != b.X && a.Y != b.Y)
             {
-                float Gradient = (B.Y - A.Y) / (B.X - A.X);
-                float YIntercept = A.Y - (Gradient * A.X);
-                float InverseGradient = -1f / Gradient;
-                float PerpendictularYIntercept = C.Y - (InverseGradient * C.X);
-                Vector2 Intersection = new Vector2((PerpendictularYIntercept - YIntercept) / (Gradient - InverseGradient), 0);
-                Intersection.Y = (InverseGradient * Intersection.X) + PerpendictularYIntercept;
-                return Intersection;
+                float gradient = (b.Y - a.Y) / (b.X - a.X);
+                float yIntercept = a.Y - (gradient * a.X);
+                float inverseGradient = -1f / gradient;
+                float perpendictularYIntercept = c.Y - (inverseGradient * c.X);
+                Vector2 intersection = new Vector2((perpendictularYIntercept - yIntercept) / (gradient - inverseGradient), 0);
+                intersection.Y = (inverseGradient * intersection.X) + perpendictularYIntercept;
+                return intersection;
             }
-            else if (A.X == B.X)
+            else if (a.X == b.X)
             {
-                return new Vector2(A.X, C.Y);
+                return new Vector2(a.X, c.Y);
             }
-            else if (A.Y == B.Y)
+            else if (a.Y == b.Y)
             {
-                return new Vector2(C.X, A.Y);
+                return new Vector2(c.X, a.Y);
             }
             return new Vector2();
         }
         public float Output()
         {
-            return (float)(VNFUtils.GetLinearDistance(EndpointA, pDrawCoords) / VNFUtils.GetLinearDistance(EndpointA, EndpointB));
+            return (float)(VNFUtils.GetLinearDistance(EndpointA, DrawCoords) / VNFUtils.GetLinearDistance(EndpointA, EndpointB));
         }
-        public void ForceState(float State)
+        public void ForceState(float state)
         {
-            pDrawCoords = GetLocationByOutput(State, EndpointA, EndpointB);
+            DrawCoords = GetLocationByOutput(state, EndpointA, EndpointB);
         }
-        public static Vector2 GetLocationByOutput(float Output, Vector2 A, Vector2 B)
+        public static Vector2 GetLocationByOutput(float output, Vector2 a, Vector2 b)
         {
-            Vector2 Extension = (B - A) * Output;
-            return A + Extension;
+            Vector2 extension = (b - a) * output;
+            return a + extension;
         }
         public override void AddEventTriggers()
         {
@@ -319,7 +324,7 @@ namespace VNFramework
         {
             if (MouseInBounds() && Enabled)
             {
-                if (!Engaged) { Engaged = true; }
+                if (!_engaged) { _engaged = true; }
                 SliderClickFunction?.Invoke();
             }
         }
@@ -327,56 +332,56 @@ namespace VNFramework
         {
             if (Enabled)
             {
-                MouseState M = Mouse.GetState();
-                if (Engaged)
+                MouseState mouseState = Mouse.GetState();
+                if (_engaged)
                 {
-                    pAtlasCoordinates.X = 2;
-                    Camera MyCam = new Camera("");
-                    Vector2 FullyAdjustedMouseCoords = new Vector2();
+                    AtlasCoordinates = new Point(2, AtlasCoordinates.Y);
+                    Camera myCam = new Camera("");
+                    Vector2 fullyAdjustedMouseCoords = new Vector2();
                     if (UsePseudoMouse)
                     {
-                        FullyAdjustedMouseCoords = PseudoMouse;
+                        fullyAdjustedMouseCoords = PseudoMouse;
                     }
                     else
                     {
-                        FullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(M.Position));
+                        fullyAdjustedMouseCoords = Shell.CoordNormalize(VNFUtils.ConvertPoint(mouseState.Position));
                     }
                     if (!CameraImmune)
                     {
                         if (CustomCamera != null)
                         {
-                            MyCam = CustomCamera;
+                            myCam = CustomCamera;
                         }
                         else if (Shell.AutoCamera != null)
                         {
-                            MyCam = Shell.AutoCamera;
+                            myCam = Shell.AutoCamera;
                         }
-                        FullyAdjustedMouseCoords = MyCam.TranslateCoordsToEquivalent(FullyAdjustedMouseCoords);
+                        fullyAdjustedMouseCoords = myCam.TranslateCoordsToEquivalent(fullyAdjustedMouseCoords);
                     }
-                    Vector2 MouseDerived = CalculatePerpendicularIntersection(EndpointA, EndpointB, FullyAdjustedMouseCoords);
-                    float GreatestX = EndpointB.X >= EndpointA.X ? EndpointB.X : EndpointA.X;
-                    float LeastX = EndpointB.X >= EndpointA.X ? EndpointA.X : EndpointB.X;
-                    float GreatestY = EndpointB.Y >= EndpointA.Y ? EndpointB.Y : EndpointA.Y;
-                    float LeastY = EndpointB.Y >= EndpointA.Y ? EndpointA.Y : EndpointB.Y;
-                    if (MouseDerived.X > GreatestX) { MouseDerived.X = GreatestX; }
-                    if (MouseDerived.X < LeastX) { MouseDerived.X = LeastX; }
-                    if (MouseDerived.Y > GreatestY) { MouseDerived.Y = GreatestY; }
-                    if (MouseDerived.Y < LeastY) { MouseDerived.Y = LeastY; }
-                    pDrawCoords = MouseDerived;
-                    if (M.LeftButton != ButtonState.Pressed)
+                    Vector2 mouseDerived = CalculatePerpendicularIntersection(EndpointA, EndpointB, fullyAdjustedMouseCoords);
+                    float greatestX = EndpointB.X >= EndpointA.X ? EndpointB.X : EndpointA.X;
+                    float leastX = EndpointB.X >= EndpointA.X ? EndpointA.X : EndpointB.X;
+                    float greatestY = EndpointB.Y >= EndpointA.Y ? EndpointB.Y : EndpointA.Y;
+                    float leastY = EndpointB.Y >= EndpointA.Y ? EndpointA.Y : EndpointB.Y;
+                    if (mouseDerived.X > greatestX) { mouseDerived.X = greatestX; }
+                    if (mouseDerived.X < leastX) { mouseDerived.X = leastX; }
+                    if (mouseDerived.Y > greatestY) { mouseDerived.Y = greatestY; }
+                    if (mouseDerived.Y < leastY) { mouseDerived.Y = leastY; }
+                    DrawCoords = mouseDerived;
+                    if (mouseState.LeftButton != ButtonState.Pressed)
                     {
-                        Engaged = false;
+                        _engaged = false;
                     }
                 }
                 else
                 {
-                    if (MouseInBounds()) { pAtlasCoordinates.X = 1; }
-                    else { pAtlasCoordinates.X = 0; }
+                    if (MouseInBounds()) { AtlasCoordinates = new Point(1, AtlasCoordinates.Y); }
+                    else { AtlasCoordinates = new Point(0, AtlasCoordinates.Y); }
                 }
             }
             else
             {
-                pAtlasCoordinates.X = 0;
+                AtlasCoordinates = new Point(0, AtlasCoordinates.Y);
                 Enabled = false;
             }
             base.Update();
@@ -396,7 +401,7 @@ namespace VNFramework
         void JumpTo(float Fraction);
     }
     /// <summary>
-    /// A scrollbar object that renders an accompanying graphics frame. Extends the WorldEntity class.
+    /// a scrollbar object that renders an accompanying graphics frame. Extends the WorldEntity class.
     /// </summary>
     [Serializable]
     [Obsolete("ScrollBar is deprecated and inefficient; preferably, a VerticalScrollPane should be used.")]
@@ -406,68 +411,85 @@ namespace VNFramework
         public Boolean Enabled { get; set; }
         public Boolean HideBar
         {
-            get { return pHideBar; }
+            get { return _hideBar; }
         }
-        protected int pMinHeight;
-        protected int pMaxHeight;
+        private int _minHeight;
+        private int _maxHeight;
         public int MinHeight
         {
-            get { return pMinHeight; }
+            get { return _minHeight; }
+            protected set { _minHeight = value; }
         }
         public int MaxHeight
         {
-            get { return pMaxHeight; }
+            get { return _maxHeight; }
+            protected set { _maxHeight = value; }
         }
-        protected Rectangle pDetectScrollRectangle;
+        private Rectangle _detectScrollRectangle;
         public Rectangle DetectScrollRectangle
         {
-            get { return pDetectScrollRectangle; }
+            get { return _detectScrollRectangle; }
+            protected set
+            {
+                _detectScrollRectangle = value;
+            }
         }
-        protected Rectangle pDisplayRect = new Rectangle();
-        public Rectangle DisplayRect { get { return pDisplayRect; } }
+        private Rectangle _displayRect = new Rectangle();
+        public Rectangle DisplayRect
+        {
+            get { return _displayRect; }
+            protected set
+            {
+                _displayRect = value;
+            }
+        }
         public Texture2D[] DisplayScrollR;
         public Texture2D DisplayScroll = null;
-        protected int pScrollFrameHeight;
+        private int _scrollFrameHeight;
         public int ScrollFrameHeight
         {
-            get { return pScrollFrameHeight; }
+            get { return _scrollFrameHeight; }
+            protected set
+            {
+                _scrollFrameHeight = value;
+            }
         }
         public float ExtentPosition()
         {
-            return ((pDrawCoords.Y - pMinHeight) / (pMaxHeight - pMinHeight));
+            return ((DrawCoords.Y - _minHeight) / (_maxHeight - _minHeight));
         }
-        public ScrollBar(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Texture2D[] ScrollPlane, int ScrollHeight) : base(Name, Location, Atlas, Depth)
+        public ScrollBar(String name, Vector2 location, TAtlasInfo? atlas, float depth, Texture2D[] scrollPlane, int scrollHeight) : base(name, location, atlas, depth)
         {
             Enabled = true;
-            pMinHeight = (int)pDrawCoords.Y;
-            pMaxHeight = (int)(pDrawCoords.Y + ScrollHeight - HitBox.Height);
-            foreach (Texture2D T in ScrollPlane)
+            _minHeight = (int)DrawCoords.Y;
+            _maxHeight = (int)(DrawCoords.Y + scrollHeight - Hitbox.Height);
+            foreach (Texture2D textturePanel in scrollPlane)
             {
-                pTotalScrollHeight += T.Bounds.Height;
+                _totalScrollHeight += textturePanel.Bounds.Height;
             }
-            DisplayScrollR = ScrollPlane;
-            pScrollFrameHeight = ScrollHeight;
+            DisplayScrollR = scrollPlane;
+            _scrollFrameHeight = scrollHeight;
             DisplayScroll = CalculateDisplayTexture(DisplayScrollR);
-            if (TotalScrollHeight <= ScrollFrameHeight) { pHideBar = true; }
+            if (TotalScrollHeight <= ScrollFrameHeight) { _hideBar = true; }
             CenterOrigin = true;
-            pDisplayRect = new Rectangle(0, 0, DisplayScrollR[0].Width, ScrollFrameHeight);
-            pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, pMinHeight - (HitBox.Height / 2), pDisplayRect.Width + 20 + (HitBox.Width / 2), pDisplayRect.Height);
-            LastMouseScroll = Mouse.GetState().ScrollWheelValue;
-            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(LastMouseScroll));
+            _displayRect = new Rectangle(0, 0, DisplayScrollR[0].Width, ScrollFrameHeight);
+            _detectScrollRectangle = new Rectangle((int)DrawCoords.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width + 20 + (Hitbox.Width / 2), _displayRect.Height);
+            _lastMouseScroll = Mouse.GetState().ScrollWheelValue;
+            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(_lastMouseScroll));
         }
         ~ScrollBar()
         {
-            foreach (Texture2D DisplayScrolli in DisplayScrollR)
+            foreach (Texture2D displayScrollIterator in DisplayScrollR)
             {
-                DisplayScrolli.Dispose();
+                displayScrollIterator.Dispose();
             }
             DisplayScroll.Dispose();
         }
         public void HardDispose()
         {
-            foreach (Texture2D DisplayScrolli in DisplayScrollR)
+            foreach (Texture2D displayScrollIterator in DisplayScrollR)
             {
-                DisplayScrolli.Dispose();
+                displayScrollIterator.Dispose();
             }
             DisplayScroll.Dispose();
             DisplayScrollR = null;
@@ -498,58 +520,62 @@ namespace VNFramework
                 ScrollBarClickFunction?.Invoke();
             }
         }
-        int LastMouseScroll = 0;
-        Boolean pHideBar = false;
-        protected float pTotalScrollHeight = 0;
+        int _lastMouseScroll = 0;
+        Boolean _hideBar = false;
+        private float _totalScrollHeight = 0;
         public float TotalScrollHeight
         {
             get
             {
-                return pTotalScrollHeight;
+                return _totalScrollHeight;
             }
-        }
-        public void JumpTo(float Fraction)
-        {
-            float Pos = Fraction * (pMaxHeight - pMinHeight);
-            pDrawCoords = new Vector2(pDrawCoords.X, pMinHeight + Pos);
-        }
-        public Texture2D CalculateDisplayTexture(Texture2D[] ScrollSequence)
-        {
-            int DRSH = (int)(((float)(pDrawCoords.Y - pMinHeight) / (float)(pMaxHeight - pMinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
-            int StartTIndex = (int)Math.Floor((double)DRSH / 2000d);
-            Texture2D One = DisplayScrollR[StartTIndex];
-            Texture2D Two = null;
-            int DIntoOne = DRSH - (2000 * StartTIndex);
-            int Slack = ScrollFrameHeight - (2000 - DIntoOne);
-            if (Slack <= 0) { Slack = 0; }
-            Rectangle OnePull = new Rectangle(0, DIntoOne, One.Width, ScrollFrameHeight - Slack);
-            Rectangle TwoPull = new Rectangle();
-            Boolean DrawTwo = false;
-            if (OnePull.Height < ScrollFrameHeight)
+            protected set
             {
-                DrawTwo = true;
-                if (StartTIndex < DisplayScrollR.Length - 1)
-                {
-                    Two = DisplayScrollR[StartTIndex + 1];
-                }
-                TwoPull = new Rectangle(0, 0, One.Width, Slack);
+                _totalScrollHeight = value;
             }
-            RenderTarget2D Output = new RenderTarget2D(Shell.PubGD, One.Width, ScrollFrameHeight, false,
+        }
+        public void JumpTo(float fraction)
+        {
+            float pos = fraction * (_maxHeight - _minHeight);
+            DrawCoords = new Vector2(DrawCoords.X, _minHeight + pos);
+        }
+        public Texture2D CalculateDisplayTexture(Texture2D[] scrollSequence)
+        {
+            int drsh = (int)(((float)(DrawCoords.Y - _minHeight) / (float)(_maxHeight - _minHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            int startTIndex = (int)Math.Floor((double)drsh / 2000d);
+            Texture2D one = DisplayScrollR[startTIndex];
+            Texture2D two = null;
+            int dIntoOne = drsh - (2000 * startTIndex);
+            int slack = ScrollFrameHeight - (2000 - dIntoOne);
+            if (slack <= 0) { slack = 0; }
+            Rectangle onePull = new Rectangle(0, dIntoOne, one.Width, ScrollFrameHeight - slack);
+            Rectangle twoPull = new Rectangle();
+            Boolean drawTwo = false;
+            if (onePull.Height < ScrollFrameHeight)
+            {
+                drawTwo = true;
+                if (startTIndex < DisplayScrollR.Length - 1)
+                {
+                    two = DisplayScrollR[startTIndex + 1];
+                }
+                twoPull = new Rectangle(0, 0, one.Width, slack);
+            }
+            RenderTarget2D output = new RenderTarget2D(Shell.PubGD, one.Width, ScrollFrameHeight, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
-            Shell.PubGD.SetRenderTarget(Output);
+            Shell.PubGD.SetRenderTarget(output);
             SpriteBatch spriteBatch = new SpriteBatch(Shell.PubGD);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            spriteBatch.Draw(One, new Rectangle(0, 0, OnePull.Width, OnePull.Height), OnePull, Color.White);
-            if (DrawTwo) { spriteBatch.Draw(Two, new Rectangle(0, OnePull.Height, TwoPull.Width, TwoPull.Height), TwoPull, Color.White); }
+            spriteBatch.Draw(one, new Rectangle(0, 0, onePull.Width, onePull.Height), onePull, Color.White);
+            if (drawTwo) { spriteBatch.Draw(two, new Rectangle(0, onePull.Height, twoPull.Width, twoPull.Height), twoPull, Color.White); }
             spriteBatch.End();
             Shell.PubGD.SetRenderTarget(null);
-            return (Texture2D)Output;
+            return (Texture2D)output;
         }
         public override void Update()
         {
             base.Update();
-            if (!pHideBar)
+            if (!_hideBar)
             {
                 DisplayScroll.Dispose();
                 DisplayScroll = CalculateDisplayTexture(DisplayScrollR);
@@ -557,16 +583,16 @@ namespace VNFramework
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(DisplayScroll, new Rectangle((int)pDrawCoords.X - 20 - pDisplayRect.Width, pMinHeight - (HitBox.Height / 2), pDisplayRect.Width, pDisplayRect.Height), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
-            if (!pHideBar) { base.Draw(spriteBatch); }
+            spriteBatch.Draw(DisplayScroll, new Rectangle((int)DrawCoords.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width, _displayRect.Height), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+            if (!_hideBar) { base.Draw(spriteBatch); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)pDrawCoords.X - 20 - pDisplayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((pMinHeight - (HitBox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(pDisplayRect.Width * camera.ZoomFactor.X), (int)(pDisplayRect.Height * camera.ZoomFactor.Y)), pDisplayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
-                if (!pHideBar) { base.Draw(spriteBatch, camera); }
+                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)DrawCoords.X - 20 - _displayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((_minHeight - (Hitbox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(_displayRect.Width * camera.ZoomFactor.X), (int)(_displayRect.Height * camera.ZoomFactor.Y)), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+                if (!_hideBar) { base.Draw(spriteBatch, camera); }
             }
         }
     }
@@ -577,61 +603,75 @@ namespace VNFramework
         public Boolean Enabled { get; set; }
         public Boolean HideBar
         {
-            get { return pHideBar; }
+            get { return _hideBar; }
+            protected set { _hideBar = value; }
         }
-        protected int pMinHeight;
-        protected int pMaxHeight;
+        private int _minHeight;
+        private int _maxHeight;
         public int MinHeight
         {
-            get { return pMinHeight; }
+            get { return _minHeight; }
+            protected set { _minHeight = value; }
         }
         public int MaxHeight
         {
-            get { return pMaxHeight; }
+            get { return _maxHeight; }
+            protected set
+            {
+                _maxHeight = value;
+            }
         }
-        protected Rectangle pDetectScrollRectangle;
+        private Rectangle _detectScrollRectangle;
         public Rectangle DetectScrollRectangle
         {
-            get { return pDetectScrollRectangle; }
+            get { return _detectScrollRectangle; }
+            protected set
+            {
+                _detectScrollRectangle = value;
+            }
         }
-        protected int pScrollFrameHeight;
+        private int _scrollFrameHeight;
         public int ScrollFrameHeight
         {
-            get { return pScrollFrameHeight; }
+            get { return _scrollFrameHeight; }
+            protected set
+            {
+                _scrollFrameHeight = value;
+            }
         }
         public float ExtentPosition()
         {
-            return ((pDrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
+            return ((DrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
         }
         public Pane AssociatedPane
         {
             get
             {
-                return pAssociatedPane;
+                return _associatedPane;
             }
             set
             {
-                pAssociatedPane = value;
+                _associatedPane = value;
             }
         }
-        protected Pane pAssociatedPane;
-        protected Point pPaneDimensions;
-        public VerticalScrollPane(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth, Point PaneDimensions, Color BackgroundColour) : base(Name, Location, Atlas, Depth)
+        private Pane _associatedPane;
+        private Point _paneDimensions;
+        public VerticalScrollPane(String name, Vector2 location, TAtlasInfo? atlas, float depth, Point paneDimensions, Color backgroundColour) : base(name, location, atlas, depth)
         {
             Enabled = true;
-            pMinHeight = (int)pDrawCoords.Y;
-            pMaxHeight = (int)(pDrawCoords.Y + PaneDimensions.Y - HitBox.Height);
-            pScrollFrameHeight = (int)PaneDimensions.Y;
-            pPaneDimensions = PaneDimensions;
+            _minHeight = (int)DrawCoords.Y;
+            _maxHeight = (int)DrawCoords.Y + paneDimensions.Y - Hitbox.Height;
+            _scrollFrameHeight = (int)paneDimensions.Y;
+            _paneDimensions = paneDimensions;
             CenterOrigin = true;
-            pDetectScrollRectangle = new Rectangle((int)pDrawCoords.X - 20 - (int)PaneDimensions.X, MinHeight - (HitBox.Height / 2), (int)PaneDimensions.X + 20 + (HitBox.Width / 2), (int)PaneDimensions.Y);
-            LastMouseScroll = Mouse.GetState().ScrollWheelValue;
-            pAssociatedPane = new Pane(Name + "_ATTACHED_PANE", new Vector2((int)pDrawCoords.X - 20 - PaneDimensions.X, MinHeight - (HitBox.Height / 2)), Depth, PaneDimensions, BackgroundColour, Shell.PubGD);
-            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(LastMouseScroll));
+            _detectScrollRectangle = new Rectangle((int)DrawCoords.X - 20 - (int)paneDimensions.X, MinHeight - (Hitbox.Height / 2), (int)paneDimensions.X + 20 + (Hitbox.Width / 2), (int)paneDimensions.Y);
+            _lastMouseScroll = Mouse.GetState().ScrollWheelValue;
+            _associatedPane = new Pane(name + "_ATTACHED_PANE", new Vector2((int)DrawCoords.X - 20 - paneDimensions.X, MinHeight - (Hitbox.Height / 2)), depth, paneDimensions, backgroundColour, Shell.PubGD);
+            MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(_lastMouseScroll));
         }
         ~VerticalScrollPane()
         {
-            pAssociatedPane.Clear();
+            _associatedPane.Clear();
         }
         public override void AddEventTriggers()
         {
@@ -658,119 +698,120 @@ namespace VNFramework
                 ScrollBarClickFunction?.Invoke();
             }
         }
-        int LastMouseScroll = 0;
-        Boolean pHideBar = false;
-        protected float pTotalScrollHeight = 0;
+        int _lastMouseScroll = 0;
+        Boolean _hideBar = false;
+        private float _totalScrollHeight = 0;
         public float TotalScrollHeight
         {
             get
             {
-                return pTotalScrollHeight;
+                return _totalScrollHeight;
             }
             set
             {
-                pTotalScrollHeight = value;
-                if (pTotalScrollHeight <= ScrollFrameHeight) { pHideBar = true; }
-                else { pHideBar = false; }
+                _totalScrollHeight = value;
+                if (_totalScrollHeight <= ScrollFrameHeight) { _hideBar = true; }
+                else { _hideBar = false; }
             }
         }
-        public void JumpTo(float Fraction)
+        public void JumpTo(float fraction)
         {
-            float Pos = Fraction * (MaxHeight - MinHeight);
-            pDrawCoords = new Vector2(pDrawCoords.X, MinHeight + Pos);
+            float Pos = fraction * (MaxHeight - MinHeight);
+            DrawCoords = new Vector2(DrawCoords.X, MinHeight + Pos);
         }
-        protected TextEntity DefaultTextPaneText = null;
-        public void SetAsTextPane(String Text, int NewlineIndent)
+        private TextEntity _defaultTextPaneText = null;
+        public void SetAsTextPane(String text, int newlineIndent)
         {
-            pAssociatedPane.Clear();
-            if (DefaultTextPaneText == null)
+            _associatedPane.Clear();
+            if (_defaultTextPaneText == null)
             {
-                DefaultTextPaneText = new TextEntity(Name + "_SCROLL_TEXT_ENTITY", "", new Vector2(20, 0), 1f);
-                DefaultTextPaneText.TypeWrite = false;
-                DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
-                DefaultTextPaneText.ForceSplitUnchunkables = true;
-                DefaultTextPaneText.Text = Text;
-                DefaultTextPaneText.NewlineIndent = NewlineIndent;
-                DefaultTextPaneText.DrawAsStatic = true;
+                _defaultTextPaneText = new TextEntity(Name + "_SCROLL_TEXT_ENTITY", "", new Vector2(20, 0), 1f);
+                _defaultTextPaneText.TypeWrite = false;
+                _defaultTextPaneText.BufferLength = _paneDimensions.X - 40;
+                _defaultTextPaneText.ForceSplitUnchunkables = true;
+                _defaultTextPaneText.Text = text;
+                _defaultTextPaneText.NewlineIndent = newlineIndent;
+                _defaultTextPaneText.DrawAsStatic = true;
             }
             else
             {
-                DefaultTextPaneText.BufferLength = pPaneDimensions.X - 40;
-                DefaultTextPaneText.Text = Text;
-                DefaultTextPaneText.NewlineIndent = NewlineIndent;
+                _defaultTextPaneText.BufferLength = _paneDimensions.X - 40;
+                _defaultTextPaneText.Text = text;
+                _defaultTextPaneText.NewlineIndent = newlineIndent;
             }
-            float[] YBorder = new float[] { DefaultTextPaneText.ChunkFontHeight[0]/4, DefaultTextPaneText.ChunkFontHeight[DefaultTextPaneText.ChunkCount - 1]/4 };
-            DefaultTextPaneText.QuickMoveTo(new Vector2(20, YBorder[0]));
-            TotalScrollHeight = DefaultTextPaneText.VerticalLength() + YBorder[0] + YBorder[1];
-            pAssociatedPane.AddUpdate(DefaultTextPaneText);
-            pAssociatedPane.AddRender(DefaultTextPaneText);
+            float[] yBorder = new float[] { _defaultTextPaneText.ChunkFontHeight[0]/4, _defaultTextPaneText.ChunkFontHeight[_defaultTextPaneText.ChunkCount - 1]/4 };
+            _defaultTextPaneText.QuickMoveTo(new Vector2(20, yBorder[0]));
+            TotalScrollHeight = _defaultTextPaneText.VerticalLength() + yBorder[0] + yBorder[1];
+            _associatedPane.AddUpdate(_defaultTextPaneText);
+            _associatedPane.AddRender(_defaultTextPaneText);
             UpdatePaneCameraPos();
         }
         void UpdatePaneCameraPos()
         {
-            int YDown = (int)(((float)(pDrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
-            pAssociatedPane.DefaultPaneCamera.QuickMoveTo(new Vector2(640, YDown + 360));
-            pAssociatedPane.Update();
+            int YDown = (int)(((float)(DrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            _associatedPane.DefaultPaneCamera.QuickMoveTo(_associatedPane.DefaultPaneCamera.OffsetVector); //This should be updated to use camera FOV once that is implemented.
+            _associatedPane.Update();
         }
         public override void Update()
         {
             base.Update();
-            if (!pHideBar)
+            if (!_hideBar)
             {
                 UpdatePaneCameraPos();
             }
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
-            if (!pHideBar) { base.Draw(spriteBatch); }
-            pAssociatedPane.Draw(spriteBatch);
+            if (!_hideBar) { base.Draw(spriteBatch); }
+            _associatedPane.Draw(spriteBatch);
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                if (!pHideBar) { base.Draw(spriteBatch, camera); }
-                pAssociatedPane.Draw(spriteBatch, camera);
+                if (!_hideBar) { base.Draw(spriteBatch, camera); }
+                _associatedPane.Draw(spriteBatch, camera);
             }
         }
     }
     public interface ITextInputReceiver
     {
-        void DoTextInputActionable(Behaviours.TextInputBehaviour MyTextInputBehaviour);
+        void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour);
     }
     public class TextInputField : TextEntity, ITextInputReceiver
     {
-        protected Behaviours.TextInputBehaviour MyTextInput;
-        public TextInputField(String Name, String InitialText, Vector2 Location, float Depth) : base(Name, "[F:SYSFONT]" + InitialText, Location, Depth)
+        private Behaviours.TextInputBehaviour myTextInput;
+        public TextInputField(String name, String initialText, Vector2 location, float depth) : base(name, "[F:SYSFONT]" + initialText, location, depth)
         {
             TypeWrite = false;
-            MyTextInput = new Behaviours.TextInputBehaviour();
-            MyBehaviours.Add(MyTextInput);
+            myTextInput = new Behaviours.TextInputBehaviour();
+            MyBehaviours.Add(myTextInput);
         }
-        protected String pLastSentText = "";
+        private String _lastSentText = "";
         public String LastSentText
         {
-            get { return pLastSentText; }
+            get { return _lastSentText; }
+            protected set { _lastSentText = value; }
         }
-        public void DoTextInputActionable(Behaviours.TextInputBehaviour MyTextInputBehaviour)
+        public void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour)
         {
-            StringBuilder InitText = new StringBuilder(MyTextInputBehaviour.HeldString.Replace('[', '(').Replace(']', ')'));
-            while(Shell.SysFont.MeasureString(InitText).X > BufferLength)
+            StringBuilder initText = new StringBuilder(myTextInputBehaviour.HeldString.Replace('[', '(').Replace(']', ')'));
+            while(Shell.SysFont.MeasureString(initText).X > BufferLength)
             {
-                InitText.Remove(0, 1);
+                initText.Remove(0, 1);
             }
-            Text = "[F:SYSFONT]" + InitText;
-            if(MyTextInputBehaviour.HeldStringChangedFlag)
+            Text = "[F:SYSFONT]" + initText;
+            if(myTextInputBehaviour.HeldStringChangedFlag)
             {
-                MyTextInputBehaviour.HeldStringChangedFlag = false;
-                pLastSentText = MyTextInputBehaviour.LastHeldString.Replace('[', '(').Replace(']', ')');
+                myTextInputBehaviour.HeldStringChangedFlag = false;
+                _lastSentText = myTextInputBehaviour.LastHeldString.Replace('[', '(').Replace(']', ')');
                 TextEnteredFunction?.Invoke();
             }
         }
         public void ManualSendEnterSignal()
         {
-            MyTextInput.TextEntryTrigger();
+            myTextInput.TextEntryTrigger();
         }
         [field: NonSerialized]
         public event VoidDel TextEnteredFunction;

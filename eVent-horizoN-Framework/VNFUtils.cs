@@ -112,9 +112,9 @@ namespace VNFramework
                 DepthFormat.Depth24);
             MyShell.GraphicsDevice.SetRenderTarget(Output);
             MyShell.GraphicsDevice.Clear(Color.Transparent);
-            MyShell.spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            MyShell.spriteBatch.Draw(Sheet, new Rectangle(new Point(0, 0), new Point((int)(Source.Width * Scaling.X), (int)(Source.Height * Scaling.Y))), Source, Color.White);
-            MyShell.spriteBatch.End();
+            MyShell.ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+            MyShell.ShellSpriteBatch.Draw(Sheet, new Rectangle(new Point(0, 0), new Point((int)(Source.Width * Scaling.X), (int)(Source.Height * Scaling.Y))), Source, Color.White);
+            MyShell.ShellSpriteBatch.End();
             MyShell.GraphicsDevice.SetRenderTarget(null);
             Color[] texdata = new Color[Output.Width * Output.Height];
             Output.GetData(texdata);
@@ -129,10 +129,10 @@ namespace VNFramework
                 DepthFormat.Depth24);
             MyShell.GraphicsDevice.SetRenderTarget(Output);
             MyShell.GraphicsDevice.Clear(Color.Transparent);
-            MyShell.spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            MyShell.spriteBatch.Draw(TextureA, new Rectangle(new Point((int)PositionA.X, (int)PositionA.Y), new Point((int)(SourceA.Width * ScalingA.X), (int)(SourceA.Height * ScalingA.Y))), SourceA, Color.White);
-            MyShell.spriteBatch.Draw(TextureB, new Rectangle(new Point((int)PositionB.X, (int)PositionB.Y), new Point((int)(SourceB.Width * ScalingB.X), (int)(SourceB.Height * ScalingB.Y))), SourceB, Color.White);
-            MyShell.spriteBatch.End();
+            MyShell.ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+            MyShell.ShellSpriteBatch.Draw(TextureA, new Rectangle(new Point((int)PositionA.X, (int)PositionA.Y), new Point((int)(SourceA.Width * ScalingA.X), (int)(SourceA.Height * ScalingA.Y))), SourceA, Color.White);
+            MyShell.ShellSpriteBatch.Draw(TextureB, new Rectangle(new Point((int)PositionB.X, (int)PositionB.Y), new Point((int)(SourceB.Width * ScalingB.X), (int)(SourceB.Height * ScalingB.Y))), SourceB, Color.White);
+            MyShell.ShellSpriteBatch.End();
             MyShell.GraphicsDevice.SetRenderTarget(null);
             Color[] texdata = new Color[Output.Width * Output.Height];
             Output.GetData(texdata);

@@ -6,341 +6,325 @@ using Microsoft.Xna.Framework.Media;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Threading;
 using System.Collections;
-using System.Text.RegularExpressions;
+using Assimp;
+using SharpFont.Cache;
+using static Assimp.Metadata;
+using static System.Net.Mime.MediaTypeNames;
+using System.Diagnostics;
+using System.Xml.Linq;
 
 namespace VNFramework
 {
     public static class ScriptProcessor
     {
-        public static Hashtable ScriptCache { get; set; }
-        public static object[] RetrieveScriptByName(String S)
+        public static Dictionary<string, object[]> ScriptCache { get; set; }
+        public static object[] RetrieveScriptByName(String scriptName)
         {
-            if (ScriptCache.ContainsKey(S.ToUpper())) { return (object[])ScriptCache[S.ToUpper()]; }
-            object[] Script = new object[0];
-            return Script;
+            if (ScriptCache.ContainsKey(scriptName.ToUpper())) { return ScriptCache[scriptName.ToUpper()]; }
+            object[] script = new object[0];
+            return script;
         }
         public static int CountApplicableRollbacks { get; set; }
         public static Boolean AllowScriptShift { get; set; }
         public static Stack PastStates = new Stack();
         public static String SongCom = "";
-        static String TextArchive = "";
+        static String s_textArchive = "";
         public static Boolean AllowScriptExit { get; set; }
         public static Boolean ActiveGame()
         {
-            foreach(WorldEntity E in Shell.UpdateQueue)
+            foreach(WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if(E is ScriptSniffer && E.Name != "INTRO_SNIFFER_UNIQUE") { return true; }
+                if(worldEntity is ScriptSniffer && worldEntity.Name != "INTRO_SNIFFER_UNIQUE") { return true; }
             }
             return false;
         }
         public static ScriptSniffer SnifferSearch()
         {
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E is ScriptSniffer)
+                if (worldEntity is ScriptSniffer)
                 {
-                    return (ScriptSniffer)E;
+                    return (ScriptSniffer)worldEntity;
                 }
             }
             return null;
         }
         public static void SearchAndThrowForExit()
         {
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E is ScriptSniffer)
+                if (worldEntity is ScriptSniffer)
                 {
-                    ((ScriptSniffer)E).ThrowForInstantExit();
+                    ((ScriptSniffer)worldEntity).ThrowForInstantExit();
                     break;
                 }
             }
         }
-        public static void WriteArchive(String Text, String Label)
+        public static void WriteArchive(String text, String label)
         {
-            if (Text != "" || Label != "")
+            if (text != "" || label != "")
             {
                 CountApplicableRollbacks++;
-                if (TextArchive != "") { TextArchive += "[TADM][N] [N]"; }
-                if (Label != "") { TextArchive += ("[C:PURPLE]" + Label + "[N]"); }
-                TextArchive += Text;
+                if (s_textArchive != "") { s_textArchive += "[TADM][N] [N]"; }
+                if (label != "") { s_textArchive += ("[C:PURPLE]" + label + "[N]"); }
+                s_textArchive += text;
             }
             //Shell.WriteLine(Label + ": " + Text);
         }
-        static Stack<int> ApplicableRollbackArchive = new Stack<int>();
+        static Stack<int> s_applicableRollbackArchive = new Stack<int>();
         public static void RollbackArchive()
         {
             //What even is this? Check it actually works right
-            int ModifierNumber = ApplicableRollbackArchive.Pop() - 1;
-            int RealRollbacks = CountApplicableRollbacks + Math.Max(ModifierNumber, 0);
-            Shell.WriteLine("Received archive rollback request. Wiping " + RealRollbacks + " line(s).");
-            for (int i = RealRollbacks; i > 0; i--)
+            int modifierNumber = s_applicableRollbackArchive.Pop() - 1;
+            int realRollbacks = CountApplicableRollbacks + Math.Max(modifierNumber, 0);
+            Shell.WriteLine("Received archive rollback request. Wiping " + realRollbacks + " line(s).");
+            for (int i = realRollbacks; i > 0; i--)
             {
-                if (TextArchive.Contains("[TADM]"))
+                if (s_textArchive.Contains("[TADM]"))
                 {
-                    TextArchive = TextArchive.Remove(TextArchive.LastIndexOf("[TADM]"));
+                    s_textArchive = s_textArchive.Remove(s_textArchive.LastIndexOf("[TADM]"));
                 }
-                else { TextArchive = ""; }
+                else { s_textArchive = ""; }
             }
             //CountApplicableRollbacks = ApplicableRollbackArchive.Pop();
         }
         public static void WipeArchive()
         {
-            TextArchive = "";
+            s_textArchive = "";
             Shell.WriteLine("Dialogue archive wiped.");
         }
         public static String PullArchiveText()
         {
-            return TextArchive;
+            return s_textArchive;
         }
         public static Texture2D[] PullArchive()
         {
-            return ButtonScripts.CreateDynamicScroll(TextArchive, 1000);
+            return ButtonScripts.CreateDynamicScroll(s_textArchive, 1000);
         }
         public static void ClearNonUIEntities()
         {
-            foreach(WorldEntity W in Shell.UpdateQueue)
+            foreach(WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if(!Shell.DeleteQueue.Contains(W) && !(W is ScriptSniffer || W.Name == "UIBOX" || W.Name == "BLACK" || W.Name == "BUTTON_ARCHIVE" || W.Name == "BUTTON_SKIP" || W.Name == "BUTTON_PAUSEMENU" || W.Name == "BUTTON_ROLLBACK" || W.Name == "BUTTON_NAVSCREEN" || W.Name == "BUTTON_HIDE_UI"))
+                if(!Shell.DeleteQueue.Contains(worldEntity) && !(worldEntity is ScriptSniffer || worldEntity.Name == "UIBOX" || worldEntity.Name == "BLACK" || worldEntity.Name == "BUTTON_ARCHIVE" || worldEntity.Name == "BUTTON_SKIP" || worldEntity.Name == "BUTTON_PAUSEMENU" || worldEntity.Name == "BUTTON_ROLLBACK" || worldEntity.Name == "BUTTON_NAVSCREEN" || worldEntity.Name == "BUTTON_HIDE_UI"))
                 {
-                    Shell.DeleteQueue.Add(W);
+                    Shell.DeleteQueue.Add(worldEntity);
                 }
             }
-            foreach (WorldEntity W in Shell.RenderQueue)
+            foreach (WorldEntity worldEntity in Shell.RenderQueue)
             {
-                if (!Shell.DeleteQueue.Contains(W) && !(W is ScriptSniffer || W.Name == "UIBOX" || W.Name == "BLACK" || W.Name == "BUTTON_ARCHIVE" || W.Name == "BUTTON_SKIP" || W.Name == "BUTTON_PAUSEMENU" || W.Name == "BUTTON_ROLLBACK" || W.Name == "BUTTON_NAVSCREEN" || W.Name == "BUTTON_HIDE_UI"))
+                if (!Shell.DeleteQueue.Contains(worldEntity) && !(worldEntity is ScriptSniffer || worldEntity.Name == "UIBOX" || worldEntity.Name == "BLACK" || worldEntity.Name == "BUTTON_ARCHIVE" || worldEntity.Name == "BUTTON_SKIP" || worldEntity.Name == "BUTTON_PAUSEMENU" || worldEntity.Name == "BUTTON_ROLLBACK" || worldEntity.Name == "BUTTON_NAVSCREEN" || worldEntity.Name == "BUTTON_HIDE_UI"))
                 {
-                    Shell.DeleteQueue.Add(W);
+                    Shell.DeleteQueue.Add(worldEntity);
                 }
             }
         }
-        public static Hashtable ExtractEventScriptArchive(String ScriptArchiveContent)
+        public static Dictionary<string, object[]> ExtractEventScriptArchive(String scriptArchiveContent)
         {
-            String SCA = String.Join("\n", ScriptArchiveContent.Split('\n').Select(x => ((String)x).StartsWith("//") ? "" : x));
-            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "{{", "^", '\"');
-            SCA = VNFUtils.Strings.ReplaceExclosed(SCA, "}}", "^", '\"');
-            SCA = VNFUtils.Strings.RemoveExclosed(SCA, '\n', '^');
-            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "{", "£", '^', '\"');
-            SCA = VNFUtils.Strings.ReplaceEnclosedExclosed(SCA, "}", "$", '^', '\"');
-            SCA = SCA.Replace("\r", "");
-            ArrayList IndivScripts = new ArrayList();
-            int NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
-            SCA = SCA.Remove(0, NextStart + 14);
+            scriptArchiveContent = String.Join("\n", scriptArchiveContent.Split('\n').Select(x => ((String)x).StartsWith("//") ? "" : x));
+            scriptArchiveContent = VNFUtils.Strings.ReplaceExclosed(scriptArchiveContent, "{{", "^", '\"');
+            scriptArchiveContent = VNFUtils.Strings.ReplaceExclosed(scriptArchiveContent, "}}", "^", '\"');
+            scriptArchiveContent = VNFUtils.Strings.RemoveExclosed(scriptArchiveContent, '\n', '^');
+            scriptArchiveContent = VNFUtils.Strings.ReplaceEnclosedExclosed(scriptArchiveContent, "{", "£", '^', '\"');
+            scriptArchiveContent = VNFUtils.Strings.ReplaceEnclosedExclosed(scriptArchiveContent, "}", "$", '^', '\"');
+            scriptArchiveContent = scriptArchiveContent.Replace("\r", "");
+            List<String> individualScripts = new List<String>();
+            int nextStart = VNFUtils.Strings.IndexOfExclosed(scriptArchiveContent, "declare_script", '\"');
+            scriptArchiveContent = scriptArchiveContent.Remove(0, nextStart + 14);
             do
             {
-                NextStart = VNFUtils.Strings.IndexOfExclosed(SCA, "declare_script", '\"');
-                if(NextStart > 0)
+                nextStart = VNFUtils.Strings.IndexOfExclosed(scriptArchiveContent, "declare_script", '\"');
+                if(nextStart > 0)
                 {
-                    IndivScripts.Add(SCA.Remove(NextStart));
-                    SCA = SCA.Remove(0, NextStart + 14);
+                    individualScripts.Add(scriptArchiveContent.Remove(nextStart));
+                    scriptArchiveContent = scriptArchiveContent.Remove(0, nextStart + 14);
                 }
-                else { IndivScripts.Add(SCA); }
+                else { individualScripts.Add(scriptArchiveContent); }
             }
-            while (NextStart > 0);
-            Hashtable TrueIndivScripts = new Hashtable();
-            foreach(String S in IndivScripts)
+            while (nextStart > 0);
+            Dictionary<string, string> namedScripts = new Dictionary<string, string>();
+            foreach(String script in individualScripts)
             {
-                String Nameless = S.Remove(0, S.IndexOf('\"') + 1);
-                String Name = Nameless.Remove(Nameless.IndexOf('\"'));
-                Nameless = Nameless.Remove(0, Nameless.IndexOf('\"'));
-                Nameless = Nameless.Remove(0, Nameless.IndexOf(':'));
-                Nameless = Nameless.TrimEnd(' ');
-                Nameless = Nameless.TrimEnd('\n');
-                if (Nameless.EndsWith("}")) { Nameless = Nameless + ","; }
-                TrueIndivScripts.Add(Name, Nameless);
+                String nameless = script.Remove(0, script.IndexOf('\"') + 1);
+                String name = nameless.Remove(nameless.IndexOf('\"'));
+                nameless = nameless.Remove(0, nameless.IndexOf('\"'));
+                nameless = nameless.Remove(0, nameless.IndexOf(':'));
+                nameless = nameless.TrimEnd(' ');
+                nameless = nameless.TrimEnd('\n');
+                if (nameless.EndsWith("}")) { nameless = nameless + ","; }
+                namedScripts.Add(name, nameless);
             }
-            Hashtable EventScripts = new Hashtable();
-            foreach(String S in TrueIndivScripts.Keys)
+            Dictionary<string,object[]> eventScripts = new Dictionary<string, object[]>();
+            foreach(String scriptKey in namedScripts.Keys)
             {
-                EventScripts.Add(S.ToUpper(), AssembleEventScript((String)TrueIndivScripts[S]));
+                eventScripts.Add(scriptKey.ToUpper(), AssembleEventScript((String)namedScripts[scriptKey]));
             }
-            return EventScripts;
+            return eventScripts;
         }
-        public static Object[] AssembleEventScript(String StringFormatScript)
+        public static Object[] AssembleEventScript(String stringFormatScript)
         {
-            StringFormatScript = VNFUtils.Strings.RemoveExclosed(StringFormatScript, ' ', '\"');
-            ArrayList SSAssembled = new ArrayList();
-            while (VNFUtils.Strings.ContainsExclosed(StringFormatScript, '{', '\"'))
+            stringFormatScript = VNFUtils.Strings.RemoveExclosed(stringFormatScript, ' ', '\"');
+            ArrayList eventScriptAssembled = new ArrayList();
+            while (VNFUtils.Strings.ContainsExclosed(stringFormatScript, '{', '\"'))
             {
-                StringFormatScript = StringFormatScript.Remove(0, StringFormatScript.IndexOf('{') + 1);
-                int EndIndex = VNFUtils.Strings.IndexOfExclosed(StringFormatScript, "},", '\"');
-                String FoundScriptShift = StringFormatScript.Remove(EndIndex);
-                StringFormatScript = StringFormatScript.Remove(0, EndIndex + 2);
-                String[] SCommands = VNFUtils.Strings.SplitAtExclosed(FoundScriptShift, ',', new char[] { '\"', '^' });
-                Object[] ThisTrueShift = new Object[SCommands.Length];
-                int CIndex = 0;
-                foreach(String S in SCommands)
+                stringFormatScript = stringFormatScript.Remove(0, stringFormatScript.IndexOf('{') + 1);
+                int endIndex = VNFUtils.Strings.IndexOfExclosed(stringFormatScript, "},", '\"');
+                String foundScriptShift = stringFormatScript.Remove(endIndex);
+                stringFormatScript = stringFormatScript.Remove(0, endIndex + 2);
+                String[] scriptCommands = VNFUtils.Strings.SplitAtExclosed(foundScriptShift, ',', new char[] { '\"', '^' });
+                Object[] thisTrueShift = new Object[scriptCommands.Length];
+                int commandIndex = 0;
+                foreach(String command in scriptCommands)
                 {
-                    if (S[0] == '\"' && S[S.Length - 1] == '\"') { ThisTrueShift[CIndex] = S.Remove(0, 1).Remove(S.Length - 2); }
-                    else if (S.StartsWith("FACTORY"))
+                    if (command[0] == '\"' && command[command.Length - 1] == '\"') { thisTrueShift[commandIndex] = command.Remove(0, 1).Remove(command.Length - 2); }
+                    else if (command.StartsWith("FACTORY"))
                     {
-                        String FBlueprint = S.Remove(0, S.IndexOf('^') + 1);
-                        FBlueprint = VNFUtils.Strings.RemoveExclosed(FBlueprint, '^', '\"');
-                        FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "£", "{", '\"');
-                        FBlueprint = VNFUtils.Strings.ReplaceExclosed(FBlueprint, "$", "}", '\"');
-                        FBlueprint = FBlueprint.Trim('\n');
-                        ThisTrueShift[CIndex] = new VoidDel(delegate ()
+                        String factoryBlueprint = command.Remove(0, command.IndexOf('^') + 1);
+                        factoryBlueprint = VNFUtils.Strings.RemoveExclosed(factoryBlueprint, '^', '\"');
+                        factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "£", "{", '\"');
+                        factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "$", "}", '\"');
+                        factoryBlueprint = factoryBlueprint.Trim('\n');
+                        thisTrueShift[commandIndex] = new VoidDel(delegate ()
                         {
                             Shell.RunQueue.Add(new VoidDel(delegate ()
                             {
-                                EntityFactory.Assemble(FBlueprint);
+                                EntityFactory.Assemble(factoryBlueprint);
                             }));
                         });
                     }
-                    else if (S.StartsWith("RUN"))
+                    else if (command.StartsWith("RUN"))
                     {
-                        String VBlueprint = S.Remove(0, S.IndexOf('^') + 1);
-                        VBlueprint = VNFUtils.Strings.RemoveExclosed(VBlueprint, '^', '\"');
-                        VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "£", "{", '\"');
-                        VBlueprint = VNFUtils.Strings.ReplaceExclosed(VBlueprint, "$", "}", '\"');
-                        VBlueprint = VBlueprint.Trim('\n');
-                        VoidDel VD = EntityFactory.AssembleVoidDelegate(VBlueprint);
-                        ThisTrueShift[CIndex] = new VoidDel(delegate ()
+                        String voidDelegateBlueprint = command.Remove(0, command.IndexOf('^') + 1);
+                        voidDelegateBlueprint = VNFUtils.Strings.RemoveExclosed(voidDelegateBlueprint, '^', '\"');
+                        voidDelegateBlueprint = VNFUtils.Strings.ReplaceExclosed(voidDelegateBlueprint, "£", "{", '\"');
+                        voidDelegateBlueprint = VNFUtils.Strings.ReplaceExclosed(voidDelegateBlueprint, "$", "}", '\"');
+                        voidDelegateBlueprint = voidDelegateBlueprint.Trim('\n');
+                        VoidDel voidDelegate = EntityFactory.AssembleVoidDelegate(voidDelegateBlueprint);
+                        thisTrueShift[commandIndex] = new VoidDel(delegate ()
                         {
                             Shell.RunQueue.Add(new VoidDel(delegate ()
                             {
-                                VD();
+                                voidDelegate();
                             }));
                         });
                     }
-                    else if (S.StartsWith("MERGE_IN"))
+                    else if (command.StartsWith("MERGE_IN"))
                     {
-                        String MergeName = S.Replace("MERGE_IN=\"", "");
-                        MergeName = MergeName.Remove(MergeName.Length - 1);
-                        object[] MergeScript = ScriptProcessor.RetrieveScriptByName(MergeName);
-                        for(int i = 0; i < MergeScript.Length; i++)
+                        String mergeName = command.Replace("MERGE_IN=\"", "");
+                        mergeName = mergeName.Remove(mergeName.Length - 1);
+                        object[] mergeScript = ScriptProcessor.RetrieveScriptByName(mergeName);
+                        for(int i = 0; i < mergeScript.Length; i++)
                         {
-                            SSAssembled.Add(MergeScript[i]);
+                            eventScriptAssembled.Add(mergeScript[i]);
                         }
-                        CIndex--;
+                        commandIndex--;
                     }
-                    CIndex++;
+                    commandIndex++;
                 }
-                SSAssembled.Add(ThisTrueShift);
+                eventScriptAssembled.Add(thisTrueShift);
             }
-            return SSAssembled.ToArray();
-        }
-        public static Boolean VineGot = false;
-        public static String GetVineName()
-        {
-            ArrayList Vinny = new ArrayList();
-            Vinny.Add("Binsnort");
-            Vinny.Add("Shipyard");
-            Vinny.Add("Blimpnaut");
-            Vinny.Add("Binyot");
-            Vinny.Add("Thotyot");
-            Vinny.Add("Nesblart");
-            Vinny.Add("Angstcart");
-            Vinny.Add("Orbslot");
-            Vinny.Add("Woodrot");
-            Vinny.Add("Vineyacht");
-            Vinny.Add("Kidstot");
-            Vinny.Add("Brainyot");
-            Vinny.Add("Brynnjolf");
-            VineGot = true;
-            return (String)Vinny[Shell.Rnd.Next(0, Vinny.Count)];
+            return eventScriptAssembled.ToArray();
         }
         public class ScriptParseException : Exception
         {
-            public ScriptParseException(String Arg) : base(Arg)
+            public ScriptParseException(String arg) : base(arg)
             { }
         }
         [Serializable]
         public class ScriptSniffer : WorldEntity
         {
-            Boolean SkipAll = false;
+            Boolean _skipAll = false;
             public static String[] ShiftCondition = new String[0];
-            private String[] LocalSC = new String[0];
-            int ShiftStartTime = Environment.TickCount;
-            int ScriptIndex = 0;
-            public int Index { get { return ScriptIndex; } }
+            private String[] _localShiftCondition = new String[0];
+            int _shiftStartTime = Environment.TickCount;
+            int _scriptIndex = 0;
+            public int Index { get { return _scriptIndex; } }
             public void ThrowForInstantExit()
             {
-                String ExitScript = Sofia.GetExitThrowLocation(Name, ShiftCondition);
+                String exitScript = Sofia.GetExitThrowLocation(Name, ShiftCondition);
                 AllowScriptShift = false;
                 ActivateScriptElement("D|#CBUTTONS");
                 CeaseSkipping();
-                ScriptIndex = 0;
-                pMyScript = RetrieveScriptByName(ExitScript);
-                ScriptName = ExitScript;
-                pName = ExitScript + "_SNIFFER";
-                LoadMode = false;
+                _scriptIndex = 0;
+                _myScript = RetrieveScriptByName(exitScript);
+                _scriptName = exitScript;
+                Name = exitScript + "_SNIFFER";
+                _loadMode = false;
                 InitScriptShift();
                 AllowScriptShift = true;
             }
             public Boolean PlacedInPauseState { get; set; }
-            private int HungTime = -1;
+            private int _hungTime = -1;
             public void TimeHang()
             {
-                HungTime = ShiftTimeElapsed();
+                _hungTime = ShiftTimeElapsed();
             }
             public void UnHang()
             {
-                if (HungTime != -1)
+                if (_hungTime != -1)
                 {
-                    ShiftStartTime = Environment.TickCount - HungTime;
-                    HungTime = -1;
+                    _shiftStartTime = Environment.TickCount - _hungTime;
+                    _hungTime = -1;
                 }
             }
             int ShiftTimeElapsed()
             {
-                return Environment.TickCount - ShiftStartTime;
+                return Environment.TickCount - _shiftStartTime;
             }
             [field: NonSerialized]
-            object[] pMyScript = new object[0][];
-            public object[] MyScript { get { return pMyScript; } }
+            object[] _myScript = new object[0][];
+            public object[] MyScript { get { return _myScript; } }
             public String ScriptThrowTarget { get; set; }
-            private Boolean LoadMode = false;
-            public ScriptSniffer(String Name, object[] Script, String ScriptIndex) : base(Name, new Vector2(), null, 0)
+            private Boolean _loadMode = false;
+            public ScriptSniffer(String name, object[] script, String scriptIndex) : base(name, new Vector2(), null, 0)
             {
                 ScriptThrowTarget = "#MAINMENU";
-                ScriptName = ScriptIndex;
+                _scriptName = scriptIndex;
                 Shell.GlobalWorldState = "SCRIPTSNIFFER_FIRST_INITIALIZED";
                 AllowScriptShift = true;
-                pMyScript = Script;
+                _myScript = script;
                 InitScriptShift();
             }
-            public ScriptSniffer(String Name, object[] Script, String ScriptIndex, Boolean Loading) : base(Name, new Vector2(), null, 0)
+            public ScriptSniffer(String name, object[] script, String scriptIndex, Boolean loading) : base(name, new Vector2(), null, 0)
             {
                 ScriptThrowTarget = "#MAINMENU";
-                ScriptName = ScriptIndex;
-                LoadMode = Loading;
+                _scriptName = scriptIndex;
+                _loadMode = loading;
                 Shell.GlobalWorldState = "SCRIPTSNIFFER_FIRST_INITIALIZED";
                 AllowScriptShift = true;
-                pMyScript = Script;
+                _myScript = script;
                 InitScriptShift();
             }
-            private String ScriptName = "";
+            private String _scriptName = "";
             public void ReassignScript()
             {
-                pMyScript = RetrieveScriptByName(ScriptName);
+                _myScript = RetrieveScriptByName(_scriptName);
             }
             public static void GlobalCeaseSkipping()
             {
-                foreach (WorldEntity E in Shell.UpdateQueue)
+                foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                 {
-                    if (E is ScriptProcessor.ScriptSniffer) { ((ScriptProcessor.ScriptSniffer)E).CeaseSkipping(); }
+                    if (worldEntity is ScriptProcessor.ScriptSniffer) { ((ScriptProcessor.ScriptSniffer)worldEntity).CeaseSkipping(); }
                 }
             }
-            public Boolean Skipping { get { return SkipAll; } }
+            public Boolean Skipping { get { return _skipAll; } }
             public void CeaseSkipping()
             {
-                SkipAll = false;
+                _skipAll = false;
             }
             public override void OnDeserializeDo()
             {
                 base.OnDeserializeDo();
-                SkipAll = false;
+                _skipAll = false;
                 ReassignScript();
-                ShiftCondition = LocalSC;
-                ShiftStartTime = Environment.TickCount;
-                LastTime = Environment.TickCount;
+                ShiftCondition = _localShiftCondition;
+                _shiftStartTime = Environment.TickCount;
+                lastTime = Environment.TickCount;
                 CountApplicableRollbacks = RollbacksOnReturn;
                 AllowScriptShift = true;
-                /*foreach (object O in (object[])pMyScript[ScriptIndex])
+                /*
+                 * This code was meant to re-write the current Script Shift text to the dialogue archive on load, I think.
+                foreach (object O in (object[])_myScript[ScriptIndex])
                 {
                     if (O is String)
                     {
@@ -352,48 +336,48 @@ namespace VNFramework
                     }
                 }*/
             }
-            Boolean LastCheck = false;
-            int LastTime = Environment.TickCount;
+            Boolean lastCheck = false;
+            int lastTime = Environment.TickCount;
             public void Skip()
             {
-                SkipAll = true;
+                _skipAll = true;
             }
             public void SetLoadBreaker(int Index)
             {
-                LoadBreaker = Index;
+                _loadBreaker = Index;
             }
-            private int LoadBreaker = -1;
-            private Boolean LoadInit = true;
-            private Queue ForceScriptInsertionQueue = new Queue();
+            private int _loadBreaker = -1;
+            private Boolean _loadInit = true;
+            private Queue _forceScriptInsertionQueue = new Queue();
             public void ForceInsertScriptElement(object[] OneScriptShift, Boolean ClearSCs)
             {
-                if(ForceScriptInsertionQueue is null) { ForceScriptInsertionQueue = new Queue(); }
-                ForceScriptInsertionQueue.Enqueue(OneScriptShift);
+                if(_forceScriptInsertionQueue is null) { _forceScriptInsertionQueue = new Queue(); }
+                _forceScriptInsertionQueue.Enqueue(OneScriptShift);
                 PopForceInsertion(ClearSCs);
             }
-            public void ForceInsertMultipleScriptElements(object[] MultipleScriptShifts)
+            public void ForceInsertMultipleScriptElements(object[] multipleScriptShifts)
             {
-                if (ForceScriptInsertionQueue is null) { ForceScriptInsertionQueue = new Queue(); }
-                foreach (object[] OneScriptShift in MultipleScriptShifts)
+                if (_forceScriptInsertionQueue is null) { _forceScriptInsertionQueue = new Queue(); }
+                foreach (object[] oneScriptShift in multipleScriptShifts)
                 {
-                    ForceScriptInsertionQueue.Enqueue(OneScriptShift);
+                    _forceScriptInsertionQueue.Enqueue(oneScriptShift);
                 }
                 PopForceInsertion(true);
             }
-            public void PopForceInsertion(Boolean ClearSCs)
+            public void PopForceInsertion(Boolean clearShiftCondition)
             {
-                if (ForceScriptInsertionQueue == null || ForceScriptInsertionQueue.Count == 0)
+                if (_forceScriptInsertionQueue == null || _forceScriptInsertionQueue.Count == 0)
                 {
                     throw new ScriptParseException("Error during forced script element insertion: The forced insertion queue was empty or null.");
                 }
-                object[] OneScriptShift = (object[])ForceScriptInsertionQueue.Dequeue();
+                object[] oneScriptShift = (object[])_forceScriptInsertionQueue.Dequeue();
                 Shell.GlobalWorldState = "LOADED FORCED SHIFT...";
                 Shell.WriteLine("Force inserting script element shift.");
-                ShiftStartTime = Environment.TickCount;
-                if (ClearSCs) { ShiftCondition = new String[0]; }
-                if (ScriptIndex >= pMyScript.Length - 1 && ForceScriptInsertionQueue.Count == 0) { ScriptIndex--; }
-                PushScriptShift(OneScriptShift, false);
-                LastTime = Environment.TickCount;
+                _shiftStartTime = Environment.TickCount;
+                if (clearShiftCondition) { ShiftCondition = new String[0]; }
+                if (_scriptIndex >= _myScript.Length - 1 && _forceScriptInsertionQueue.Count == 0) { _scriptIndex--; }
+                PushScriptShift(oneScriptShift, false);
+                lastTime = Environment.TickCount;
             }
             public override void Update()
             {
@@ -411,49 +395,49 @@ namespace VNFramework
                     UnHang();
                     PlacedInPauseState = false;
                 }
-                if(LocalSC != ShiftCondition) { LocalSC = ShiftCondition; }
-                if (!LoadMode)
+                if(_localShiftCondition != ShiftCondition) { _localShiftCondition = ShiftCondition; }
+                if (!_loadMode)
                 {
                     if (Shell.DeleteQueue.Contains(this)) { return; }
-                    KeyboardState K = Keyboard.GetState();
-                    if (K.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab) && !LastCheck) { SkipAll = !SkipAll; }
-                    LastCheck = K.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
-                    if (CheckForShiftCondition() && (Environment.TickCount - LastTime > 60 || Name == "INTRO_SNIFFER_UNIQUE") && AllowScriptShift)
+                    KeyboardState keyboard = Keyboard.GetState();
+                    if (keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab) && !lastCheck) { _skipAll = !_skipAll; }
+                    lastCheck = keyboard.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Tab);
+                    if (CheckForShiftCondition() && (Environment.TickCount - lastTime > 60 || Name == "INTRO_SNIFFER_UNIQUE") && AllowScriptShift)
                     {
                         if ((Shell.GlobalWorldState == "CONTINUE" || Shell.GlobalWorldState == "NEXT") && Name != "INTRO_SNIFFER_UNIQUE") { Shell.GlobalWorldState = "LOADED NEXT SHIFT..."; }
-                        if(SkipAll)
+                        if(_skipAll)
                         {
-                            foreach (WorldEntity E in Shell.UpdateQueue)
+                            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                             {
-                                foreach (Animation A in E.AnimationQueue)
+                                foreach (Animation entityAnimation in worldEntity.AnimationQueue)
                                 {
-                                    A.Jump(E);
+                                    entityAnimation.Jump(worldEntity);
                                 }
                             }
                         }
-                        if (ForceScriptInsertionQueue != null && ForceScriptInsertionQueue.Count > 0)
+                        if (_forceScriptInsertionQueue != null && _forceScriptInsertionQueue.Count > 0)
                         {
                             PopForceInsertion(true);
                         }
                         else
                         {
-                            ShiftStartTime = Environment.TickCount;
+                            _shiftStartTime = Environment.TickCount;
                             ShiftCondition = new String[0];
-                            ScriptIndex++;
+                            _scriptIndex++;
                             InitScriptShift();
-                            LastTime = Environment.TickCount;
+                            lastTime = Environment.TickCount;
                         }
                     }
                 }
-                else if (LoadBreaker > -1)
+                else if (_loadBreaker > -1)
                 {
-                    if(LoadInit)
+                    if(_loadInit)
                     {
                         Shell.DefaultShell.IsFixedTimeStep = false;
-                        LoadInit = false;
+                        _loadInit = false;
                         return;
                     }
-                    if (ScriptIndex < LoadBreaker)
+                    if (_scriptIndex < _loadBreaker)
                     {
                         foreach (WorldEntity E in Shell.UpdateQueue)
                         {
@@ -462,56 +446,56 @@ namespace VNFramework
                                 A.Jump(E);
                             }
                         }
-                        ShiftStartTime = Environment.TickCount;
+                        _shiftStartTime = Environment.TickCount;
                         ShiftCondition = new String[0];
-                        ScriptIndex++;
+                        _scriptIndex++;
                         InitScriptShift();
-                        LastTime = Environment.TickCount;
+                        lastTime = Environment.TickCount;
                     }
                     else
                     {
                         Shell.GlobalWorldState = "LOADED SHIFT VIA LOADMODE...";
                         Shell.HoldRender = false;
                         Shell.DefaultShell.IsFixedTimeStep = true;
-                        LoadMode = false;
+                        _loadMode = false;
                     }
                 }
             }
-            int PushScriptShift(object[] CurrentShift, Boolean ExpectSerialization)
+            int PushScriptShift(object[] currentShift, Boolean expectSerialization)
             {
-                int PrevARs = CountApplicableRollbacks;
-                if (ExpectSerialization)
+                int prevApplicableRollbacks = CountApplicableRollbacks;
+                if (expectSerialization)
                 {
-                    ApplicableRollbackArchive.Push(CountApplicableRollbacks);
+                    s_applicableRollbackArchive.Push(CountApplicableRollbacks);
                     CountApplicableRollbacks = 0;
                 }
-                foreach (object O in CurrentShift)
+                foreach (object obj in currentShift)
                 {
-                    int RCode = ActivateScriptElement(O, SkipAll);
-                    if(RCode == 2) { break; }
-                    if (SkipAll && O is String && ((String)O).Split('|')[0].ToUpper() == "T")
+                    int returnCode = ActivateScriptElement(obj, _skipAll);
+                    if(returnCode == 2) { break; }
+                    if (_skipAll && obj is string && ((string)obj).Split('|')[0].ToUpper() == "T")
                     {
-                        foreach (WorldEntity E in Shell.UpdateQueue)
+                        foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                         {
-                            if (E is TextEntity && E.Name == "TEXT_MAIN")
+                            if (worldEntity is TextEntity && worldEntity.Name == "TEXT_MAIN")
                             {
-                                ((TextEntity)E).SkipWrite();
+                                ((TextEntity)worldEntity).SkipWrite();
                                 TextEntity.PlayTick();
                                 break;
                             }
                         }
                     }
                 }
-                LocalSC = ShiftCondition;
-                if (ExpectSerialization)
+                _localShiftCondition = ShiftCondition;
+                if (expectSerialization)
                 {
-                    foreach (String C in ShiftCondition)
+                    foreach (String conditionString in ShiftCondition)
                     {
-                        String[] Conditions = C.ToUpper().Split(':');
-                        if (Conditions[0] == "TIME" && Convert.ToInt32(Conditions[1]) <= 20)
+                        String[] conditions = conditionString.ToUpper().Split(':');
+                        if (conditions[0] == "TIME" && Convert.ToInt32(conditions[1]) <= 20)
                         {
-                            ApplicableRollbackArchive.Pop();
-                            CountApplicableRollbacks = CountApplicableRollbacks + PrevARs;
+                            s_applicableRollbackArchive.Pop();
+                            CountApplicableRollbacks = CountApplicableRollbacks + prevApplicableRollbacks;
                             break;
                         }
                     }
@@ -523,7 +507,7 @@ namespace VNFramework
             {
                 RollbacksOnReturn = 0;
                 Shell.WriteLine("Initiating script shift.");
-                if(ScriptIndex >= pMyScript.Length)
+                if(_scriptIndex >= _myScript.Length)
                 {
                     Shell.RunQueue.Add(new VoidDel(delegate ()
                     {
@@ -531,14 +515,14 @@ namespace VNFramework
                     }));
                     return;
                 }
-                PushScriptShift((object[])pMyScript[ScriptIndex], true);
-                Boolean RollbackAble = true;
-                foreach (String C in ShiftCondition)
+                PushScriptShift((object[])_myScript[_scriptIndex], true);
+                Boolean rollbackAble = true;
+                foreach (String conditionString in ShiftCondition)
                 {
-                    String[] Conditions = C.ToUpper().Split(':');
-                    if (Conditions[0] == "TIME" && Convert.ToInt32(Conditions[1]) <= 20)
+                    String[] conditions = conditionString.ToUpper().Split(':');
+                    if (conditions[0] == "TIME" && Convert.ToInt32(conditions[1]) <= 20)
                     {
-                        RollbackAble = false;
+                        rollbackAble = false;
                         break;
                     }
                 }
@@ -552,57 +536,57 @@ namespace VNFramework
                             {
                                 if (E is ScriptSniffer) { ((ScriptSniffer)E).RollbacksOnReturn = CountApplicableRollbacks; }
                             }
-                            if (RollbackAble) { PastStates.Push(Shell.SerializeState()); }
+                            if (rollbackAble) { PastStates.Push(Shell.SerializeState()); }
                         });
                     }));
                 }
                 if (PastStates.Count > 200)
                 {
-                    Stack TempStack = new Stack();
-                    for (int i = 0; i < 200; i++) { TempStack.Push(PastStates.Pop()); }
+                    Stack tempStack = new Stack();
+                    for (int i = 0; i < 200; i++) { tempStack.Push(PastStates.Pop()); }
                     PastStates.Clear();
-                    for (int i = 0; i < 200; i++) { PastStates.Push(TempStack.Pop()); }
-                    TempStack.Clear();
+                    for (int i = 0; i < 200; i++) { PastStates.Push(tempStack.Pop()); }
+                    tempStack.Clear();
                 }
             }
             Boolean CheckForShiftCondition()
             {
-                Boolean Out = true;
-                foreach(String C in ShiftCondition)
+                Boolean outBool = true;
+                foreach(String conditionString in ShiftCondition)
                 {
-                    String[] Conditions = C.ToUpper().Split(':');
-                    switch(Conditions[0])
+                    String[] conditions = conditionString.ToUpper().Split(':');
+                    switch(conditions[0])
                     {
                         case "TIME":
-                            if(SkipAll) { return true; }
-                            if(!(ShiftTimeElapsed() >= Convert.ToInt32(Conditions[1])))
+                            if(_skipAll) { return true; }
+                            if(!(ShiftTimeElapsed() >= Convert.ToInt32(conditions[1])))
                             {
-                                Out = false;
+                                outBool = false;
                             }
-                            if(Conditions.Length > 2 && Conditions[2] == "ORSKIP" && Shell.GlobalWorldState == "CONTINUE")
+                            if(conditions.Length > 2 && conditions[2] == "ORSKIP" && Shell.GlobalWorldState == "CONTINUE")
                             {
-                                Out = true;
+                                outBool = true;
                             }
                             break;
                         case "GWS":
-                            if(SkipAll && Conditions[1] == "CONTINUE") { return true; }
-                            else if(SkipAll && Conditions[1] != "CONTINUE") { SkipAll = false; }
-                            if(Shell.GlobalWorldState != Conditions[1])
+                            if(_skipAll && conditions[1] == "CONTINUE") { return true; }
+                            else if(_skipAll && conditions[1] != "CONTINUE") { _skipAll = false; }
+                            if(Shell.GlobalWorldState != conditions[1])
                             {
-                                Out = false;
+                                outBool = false;
                             }
                             break;
                     }
-                    if(Out == false) { break; }
+                    if(outBool == false) { break; }
                 }
-                return Out;
+                return outBool;
             }
         }
         /*
          * T|| specifies text to write, and the character caption if applicable.
          * C| specifies conditions to move to the next script shift.
          * B| breaks with the current script, and starts a new script if applicable. |#MAINMENU to return to the main menu.
-         * D| deletes the entity with the specified entity name, or all custom buttons via |#CBUTTONS. ||IFPRESENT causes the function not to throw an error for a missing object.
+         * D| deletes the entity with the specified entity name, all entities via |#ALL, or all custom buttons via |#CBUTTONS. ||IFPRESENT causes the function not to throw an error for a missing object.
          * A|| plays an animation on a named entity by animation name. #DISMISS clears the entity's animation queue.
          * A|||||| plays an animation on a named entity by defined tween parameters.
          * F||| sets the atlas frame of a specified entity to the given coordinates, if possible.
@@ -615,583 +599,623 @@ namespace VNFramework
          * M||| switches the music track to a named song, or stops the song via |#NULL|. Second parameter sets looping. Third if set to "INSTANT" skips the auto fadeout.
         */
         public static String LabelEntity = "";
-        static public void SetFocus(String Label)
+        static public void SetFocus(String label)
         {
-            if(Label.ToUpper() == LabelEntity) { return; }
-            Boolean FoundNew = false;
-            foreach (WorldEntity WE2 in Shell.UpdateQueue)
+            if(label.ToUpper() == LabelEntity) { return; }
+            Boolean foundNew = false;
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (WE2.Name == Label.ToUpper() && LabelEntity != Label.ToUpper())
+                if (worldEntity.Name == label.ToUpper() && LabelEntity != label.ToUpper())
                 {
-                    FoundNew = true;
-                    foreach (WorldEntity WE3 in Shell.UpdateQueue)
+                    foundNew = true;
+                    foreach (WorldEntity worldEntity2 in Shell.UpdateQueue)
                     {
-                        if (WE3.Name == LabelEntity)
+                        if (worldEntity2.Name == LabelEntity)
                         {
-                            Boolean[] ScaleChecks = WE3.CheckScaleInversions();
-                            Animation A = Animation.Retrieve("FOCUSSHRINK");
-                            if(ScaleChecks[0] || ScaleChecks[1]) { A.AutoInvertScaling(ScaleChecks[0], ScaleChecks[1]); }
-                            WE3.AnimationQueue.Add(A);
+                            Boolean[] scaleChecks = worldEntity2.CheckScaleInversions();
+                            Animation focusShrink = Animation.Retrieve("FOCUSSHRINK");
+                            if(scaleChecks[0] || scaleChecks[1]) { focusShrink.AutoInvertScaling(scaleChecks[0], scaleChecks[1]); }
+                            worldEntity2.AnimationQueue.Add(focusShrink);
                             break;
                         }
                     }
-                    LabelEntity = Label.ToUpper();
-                    Boolean[] ScaleChecks2 = WE2.CheckScaleInversions();
-                    Animation A2 = Animation.Retrieve("FOCUSGROW");
-                    if (ScaleChecks2[0] || ScaleChecks2[1]) { A2.AutoInvertScaling(ScaleChecks2[0], ScaleChecks2[1]); }
-                    WE2.AnimationQueue.Add(A2);
+                    LabelEntity = label.ToUpper();
+                    Boolean[] scaleChecks2 = worldEntity.CheckScaleInversions();
+                    Animation focusGrow = Animation.Retrieve("FOCUSGROW");
+                    if (scaleChecks2[0] || scaleChecks2[1]) { focusGrow.AutoInvertScaling(scaleChecks2[0], scaleChecks2[1]); }
+                    worldEntity.AnimationQueue.Add(focusGrow);
                     break;
                 }
             }
-            if (!FoundNew && LabelEntity != Label.ToUpper())
+            if (!foundNew && LabelEntity != label.ToUpper())
             {
-                foreach (WorldEntity WE3 in Shell.UpdateQueue)
+                foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                 {
-                    if (WE3.Name == LabelEntity)
+                    if (worldEntity.Name == LabelEntity)
                     {
-                        Boolean[] ScaleChecks = WE3.CheckScaleInversions();
-                        Animation A = Animation.Retrieve("FOCUSSHRINK");
-                        if (ScaleChecks[0] || ScaleChecks[1]) { A.AutoInvertScaling(ScaleChecks[0], ScaleChecks[1]); }
-                        WE3.AnimationQueue.Add(A);
+                        Boolean[] scaleChecks = worldEntity.CheckScaleInversions();
+                        Animation focusShrink = Animation.Retrieve("FOCUSSHRINK");
+                        if (scaleChecks[0] || scaleChecks[1]) { focusShrink.AutoInvertScaling(scaleChecks[0], scaleChecks[1]); }
+                        worldEntity.AnimationQueue.Add(focusShrink);
                         break;
                     }
                 }
                 LabelEntity = "";
             }
         }
-        static public int ActivateScriptElement(object Element)
+        static public int ActivateScriptElement(object element)
         {
-            return ActivateScriptElement(Element, false);
+            return ActivateScriptElement(element, false);
         }
-        static public int ActivateScriptElement(object Element, Boolean SnifferSkipping)
+        static public int ActivateScriptElement(object element, Boolean snifferSkipping)
         {
-            if (Element is String)
+            if (element is String)
             {
-                if (!(("activate " + ((String)Element)).ToUpper() == Shell.LastManualConsoleInput.ToUpper()))
+                if (!(("activate " + ((String)element)).ToUpper() == Shell.LastManualConsoleInput.ToUpper()))
                 {
-                    SortedDictionary<int, Color> Cols = new SortedDictionary<int, Color>();
-                    Cols.Add(0, Color.LightBlue);
-                    Shell.WriteLine((String)Element, Cols);
+                    SortedDictionary<int, Color> colours = new SortedDictionary<int, Color>();
+                    colours.Add(0, Color.LightBlue);
+                    Shell.WriteLine((String)element, colours);
                 }
-                String E = (String)Element;
-                String[] Parts = E.Split('|');
-                if (Parts[0].ToUpper() == "T")
+                String elementStr = (String)element;
+                String[] parts = elementStr.Split('|');
+                if (parts[0].ToUpper() == "T")
                 {
-                    T(Parts, SnifferSkipping);
+                    T(parts, snifferSkipping);
                 }
-                else if (Parts[0].ToUpper() == "C")
+                else if (parts[0].ToUpper() == "C")
                 {
-                    C(Parts);
+                    C(parts);
                 }
-                else if (Parts[0].ToUpper() == "B")
+                else if (parts[0].ToUpper() == "B")
                 {
-                    B(Parts);
+                    B(parts);
                     return 2;
                 }
-                else if (Parts[0].ToUpper() == "D")
+                else if (parts[0].ToUpper() == "D")
                 {
-                    D(Parts);
+                    D(parts);
                 }
-                else if (Parts[0].ToUpper() == "A")
+                else if (parts[0].ToUpper() == "A")
                 {
-                    A(Parts);
+                    A(parts);
                 }
-                else if (Parts[0].ToUpper() == "F")
+                else if (parts[0].ToUpper() == "F")
                 {
-                    F(Parts);
+                    F(parts);
                 }
-                else if (Parts[0].ToUpper() == "S")
+                else if (parts[0].ToUpper() == "S")
                 {
-                    S(Parts);
+                    S(parts);
                 }
-                else if (Parts[0].ToUpper() == "M")
+                else if (parts[0].ToUpper() == "M")
                 {
-                    M(Parts, E);
+                    M(parts, elementStr);
                 }
-                else if (Parts[0].ToUpper() == "H")
+                else if (parts[0].ToUpper() == "H")
                 {
                     ScriptSniffer.GlobalCeaseSkipping();
                 }
-                else if (Parts[0].ToUpper() == "G")
+                else if (parts[0].ToUpper() == "G")
                 {
-                    Shell.GlobalWorldState = Parts[1];
+                    Shell.GlobalWorldState = parts[1];
                 }
-                else if (Parts[0].ToUpper() == "U")
+                else if (parts[0].ToUpper() == "U")
                 {
-                    U(Parts);
+                    U(parts);
                 }
-                else if (Parts[0].ToUpper() == "R")
+                else if (parts[0].ToUpper() == "R")
                 {
-                    return R(Parts);
+                    return R(parts);
                 }
             }
-            else if (Element is VoidDel)
+            else if (element is VoidDel)
             {
                 Shell.WriteLine("Executing anonymous method from script.");
-                VoidDel E = (VoidDel)Element;
-                E();
+                VoidDel elementDelegate = (VoidDel)element;
+                elementDelegate();
             }
             return 1;
         }
-        private static void T(String[] Parts, Boolean SnifferSkipping)
+        /// <summary>
+        /// T|| specifies text to write, and the character caption if applicable.
+        /// </summary>
+        /// <param name="parts"></param>
+        /// <param name="snifferSkipping"></param>
+        private static void T(String[] parts, Boolean snifferSkipping)
         {
             //Label change text bounce...
-            TextEntity TL = null;
-            WorldEntity NBacking = null;
-            foreach (WorldEntity WE in Shell.UpdateQueue)
+            TextEntity textLabel = null;
+            WorldEntity nameBacking = null;
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (WE.Name == "TEXT_LABEL" && WE is TextEntity)
+                if (worldEntity.Name == "TEXT_LABEL" && worldEntity is TextEntity)
                 {
-                    TL = (TextEntity)WE;
-                    if (((TextEntity)WE).Text.Remove(0, ((TextEntity)WE).Text.LastIndexOf(']') + 1) != Parts[1] && !(VineGot && Parts[1].ToUpper() == "VINNY"))
+                    textLabel = (TextEntity)worldEntity;
+                    if (((TextEntity)worldEntity).Text.Remove(0, ((TextEntity)worldEntity).Text.LastIndexOf(']') + 1) != parts[1])
                     {
-                        if (!SnifferSkipping) { WE.AnimationQueue.Add(Animation.Retrieve("BOUNCE_3")); }
-                        SetFocus(Parts[1]);
+                        if (!snifferSkipping) { worldEntity.AnimationQueue.Add(Animation.Retrieve("BOUNCE_3")); }
+                        SetFocus(parts[1]);
                     }
                 }
-                if (WE.Name == "NAMELABELBACKING")
+                if (worldEntity.Name == "NAMELABELBACKING")
                 {
-                    NBacking = WE;
+                    nameBacking = worldEntity;
                 }
-                if (TL != null && NBacking != null) { break; }
+                if (textLabel != null && nameBacking != null) { break; }
             }
-            VineGot = false;
-            WriteArchive(Parts[2], Parts[1]);
-            TextEntity Main = new TextEntity("", "", new Vector2(), 0);
-            Boolean Found = false;
-            foreach (WorldEntity WE in Shell.UpdateQueue)
+            WriteArchive(parts[2], parts[1]);
+            TextEntity main = new TextEntity("", "", new Vector2(), 0);
+            Boolean found = false;
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (WE.Name == "TEXT_MAIN" && WE is TextEntity)
+                if (worldEntity.Name == "TEXT_MAIN" && worldEntity is TextEntity)
                 {
-                    Main = (TextEntity)WE;
-                    Found = true;
+                    main = (TextEntity)worldEntity;
+                    found = true;
                     break;
                 }
             }
-            if (!Found)
+            if (!found)
             {
-                Main = new TextEntity("TEXT_MAIN", Parts[2], new Vector2(150, 500), 0.96f);
-                if(ButtonScripts.UIHideEnabled) { Main.Drawable = false; }
+                main = new TextEntity("TEXT_MAIN", parts[2], new Vector2(150, 500), 0.96f);
+                if(ButtonScripts.UIHideEnabled) { main.Drawable = false; }
                 Shell.RunQueue.Add(new VoidDel(delegate ()
                 {
-                    Shell.UpdateQueue.Add(Main);
-                    Shell.RenderQueue.Add(Main);
+                    Shell.UpdateQueue.Add(main);
+                    Shell.RenderQueue.Add(main);
                 }));
             }
-            Main.Text = Parts[2];
-            Main.ReWrite();
-            if (Parts[1] != "")
+            main.Text = parts[2];
+            main.ReWrite();
+            if (parts[1] != "")
             {
-                if (Parts[1].ToUpper() == "VINNY" && Shell.Rnd.Next(0, 50) == 0)
+                TextEntity label = textLabel;
+                if (textLabel is null)
                 {
-                    Parts[1] = GetVineName();
-                }
-                TextEntity Label = TL;
-                if (TL is null)
-                {
-                    Label = new TextEntity("TEXT_LABEL", Parts[1], new Vector2(140, 420), 0.96f);
-                    if (!SnifferSkipping) { Label.AnimationQueue.Add(Animation.Retrieve("BOUNCE_3")); }
-                    SetFocus(Parts[1]);
-                    if (ButtonScripts.UIHideEnabled) { Label.Drawable = false; }
+                    label = new TextEntity("TEXT_LABEL", parts[1], new Vector2(140, 420), 0.96f);
+                    if (!snifferSkipping) { label.AnimationQueue.Add(Animation.Retrieve("BOUNCE_3")); }
+                    SetFocus(parts[1]);
+                    if (ButtonScripts.UIHideEnabled) { label.Drawable = false; }
                     Shell.RunQueue.Add(new VoidDel(delegate ()
                     {
-                        Shell.UpdateQueue.Add(Label);
-                        Shell.RenderQueue.Add(Label);
+                        Shell.UpdateQueue.Add(label);
+                        Shell.RenderQueue.Add(label);
                     }));
                 }
-                if (NBacking is null)
+                if (nameBacking is null)
                 {
-                    NBacking = new WorldEntity("NAMELABELBACKING", new Vector2(90, 388), (TAtlasInfo)Shell.AtlasDirectory["NAMEBACKING"], 0.9f);
-                    NBacking.ColourValue = new Color(255, 255, 255, 200);
-                    if (ButtonScripts.UIHideEnabled) { NBacking.Drawable = false; }
+                    nameBacking = new WorldEntity("NAMELABELBACKING", new Vector2(90, 388), (TAtlasInfo)Shell.AtlasDirectory["NAMEBACKING"], 0.9f);
+                    nameBacking.ColourValue = new Color(255, 255, 255, 200);
+                    if (ButtonScripts.UIHideEnabled) { nameBacking.Drawable = false; }
                     Shell.RunQueue.Add(new VoidDel(delegate ()
                     {
-                        Shell.UpdateQueue.Add(NBacking);
-                        Shell.RenderQueue.Add(NBacking);
+                        Shell.UpdateQueue.Add(nameBacking);
+                        Shell.RenderQueue.Add(nameBacking);
                     }));
                 }
-                Label.TypeWrite = false;
-                Label.Text = "[C:PURPLE]" + Parts[1];
+                label.TypeWrite = false;
+                label.Text = "[C:PURPLE]" + parts[1];
             }
             else
             {
-                if (TL != null)
+                if (textLabel != null)
                 {
-                    Shell.DeleteQueue.Add(TL);
-                    TL.Text = "";
+                    Shell.DeleteQueue.Add(textLabel);
+                    textLabel.Text = "";
                 }
-                if (NBacking != null)
+                if (nameBacking != null)
                 {
-                    Shell.DeleteQueue.Add(NBacking);
+                    Shell.DeleteQueue.Add(nameBacking);
                 }
             }
         }
-        public static object ParseLiteralValue(String Input)
+        public static object ParseLiteralValue(String input)
         {
             float f;
-            if (float.TryParse(Input.TrimEnd(new char[] { 'f', 'd' }), out f))
+            if (float.TryParse(input.TrimEnd(new char[] { 'f', 'd' }), out f))
             {
-                if (Input.Contains("f") || (Input.Contains(".") && !Input.Contains("d"))) { return float.Parse(Input.Replace("f", "")); }
-                else if (Input.Contains("d")) { return double.Parse(Input.Replace("d", "")); }
-                else { return int.Parse(Input); }
+                if (input.Contains("f") || (input.Contains(".") && !input.Contains("d"))) { return float.Parse(input.Replace("f", "")); }
+                else if (input.Contains("d")) { return double.Parse(input.Replace("d", "")); }
+                else { return int.Parse(input); }
             }
-            else if (Input.ToUpper() == "TRUE" || Input.ToUpper() == "FALSE")
+            else if (input.ToUpper() == "TRUE" || input.ToUpper() == "FALSE")
             {
-                return Input.ToUpper() == "TRUE";
+                return input.ToUpper() == "TRUE";
             }
-            else if (Input.ToUpper() == "NULL")
+            else if (input.ToUpper() == "NULL")
             {
                 return null;
             }
-            else { return Input; }
+            else { return input; }
         }
-        private static void U(String[] Parts)
+        /// <summary>
+        /// U|| updates a given game flag to the specified value.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void U(String[] parts)
         {
-            String FlagName = Parts[1].ToUpper();
-            String TextFlagVal = Parts[2];
-            object TrueVal = ParseLiteralValue(TextFlagVal);
-            Shell.UpdateFlag(FlagName, TrueVal);
+            String flagName = parts[1].ToUpper();
+            String textFlagVal = parts[2];
+            object trueVal = ParseLiteralValue(textFlagVal);
+            Shell.UpdateFlag(flagName, trueVal);
         }
-        private static int R(String[] Parts)
+        /// <summary>
+        /// R||| reads a game flag and then performs the following command if it matches a specified value, or if an optional comparison operator is true.
+        /// </summary>
+        /// <param name="parts"></param>
+        /// <returns></returns>
+        private static int R(String[] parts)
         {
-            String FlagName = Parts[1].ToUpper();
-            String TextFlagComparisonVal = Parts[2];
-            String Mode = "=";
-            if (TextFlagComparisonVal.Contains(":"))
+            String flagName = parts[1].ToUpper();
+            String textFlagComparisonVal = parts[2];
+            String mode = "=";
+            if (textFlagComparisonVal.Contains(":"))
             {
-                String[] ModeSplit = TextFlagComparisonVal.Split(':');
-                TextFlagComparisonVal = ModeSplit[1];
-                Mode = ModeSplit[0];
+                String[] modeSplit = textFlagComparisonVal.Split(':');
+                textFlagComparisonVal = modeSplit[1];
+                mode = modeSplit[0];
             }
-            object TrueComparisonVal = ParseLiteralValue(TextFlagComparisonVal);
-            Boolean ActivateCond = false;
-            switch (Mode)
+            object trueComparisonVal = ParseLiteralValue(textFlagComparisonVal);
+            Boolean activateCond = false;
+            switch (mode)
             {
                 case "=":
-                    ActivateCond = Shell.ReadFlag(FlagName).Equals(TrueComparisonVal);
+                    activateCond = Shell.ReadFlag(flagName).Equals(trueComparisonVal);
                     break;
                 case "!=":
-                    ActivateCond = !Shell.ReadFlag(FlagName).Equals(TrueComparisonVal);
+                    activateCond = !Shell.ReadFlag(flagName).Equals(trueComparisonVal);
                     break;
                 case ">":
-                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) > Convert.ToDecimal(TrueComparisonVal);
+                    activateCond = Convert.ToDecimal(Shell.ReadFlag(flagName)) > Convert.ToDecimal(trueComparisonVal);
                     break;
                 case ">=":
-                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) >= Convert.ToDecimal(TrueComparisonVal);
+                    activateCond = Convert.ToDecimal(Shell.ReadFlag(flagName)) >= Convert.ToDecimal(trueComparisonVal);
                     break;
                 case "<":
-                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) < Convert.ToDecimal(TrueComparisonVal);
+                    activateCond = Convert.ToDecimal(Shell.ReadFlag(flagName)) < Convert.ToDecimal(trueComparisonVal);
                     break;
                 case "<=":
-                    ActivateCond = Convert.ToDecimal(Shell.ReadFlag(FlagName)) <= Convert.ToDecimal(TrueComparisonVal);
+                    activateCond = Convert.ToDecimal(Shell.ReadFlag(flagName)) <= Convert.ToDecimal(trueComparisonVal);
                     break;
             }
-            if (ActivateCond && Parts.Length > 3)
+            if (activateCond && parts.Length > 3)
             {
-                String ConditionalCom = "";
-                for (int i = 3; i < Parts.Length; i++)
+                String conditionalCom = "";
+                for (int i = 3; i < parts.Length; i++)
                 {
-                    ConditionalCom += Parts[i] + "|";
+                    conditionalCom += parts[i] + "|";
                 }
-                ConditionalCom = ConditionalCom.TrimEnd('|');
-                return ActivateScriptElement(ConditionalCom);
+                conditionalCom = conditionalCom.TrimEnd('|');
+                return ActivateScriptElement(conditionalCom);
             }
             return 1;
         }
-        private static void C(String[] Parts)
+        /// <summary>
+        /// C| specifies conditions to move to the next script shift.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void C(String[] parts)
         {
-            ArrayList SConditions = new ArrayList();
-            Boolean First = true;
-            foreach (String S in Parts)
+            ArrayList sConditions = new ArrayList();
+            Boolean first = true;
+            foreach (String str in parts)
             {
-                if (!First) { SConditions.Add(S); }
-                First = false;
+                if (!first) { sConditions.Add(str); }
+                first = false;
             }
-            ScriptSniffer.ShiftCondition = SConditions.ToArray().Select(x => (String)x).ToArray();
+            ScriptSniffer.ShiftCondition = sConditions.ToArray().Select(x => (String)x).ToArray();
         }
-        private static void B(String[] Parts)
+        /// <summary>
+        /// B| breaks with the current script, and starts a new script if applicable. |#MAINMENU to return to the main menu.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void B(String[] parts)
         {
-            Boolean Skipping = false;
+            Boolean skipping = false;
             for (int i = 0; i < Shell.UpdateQueue.Count; i++)
             {
                 if (Shell.UpdateQueue[i] is ScriptSniffer)
                 {
-                    if(((ScriptSniffer)Shell.UpdateQueue[i]).Skipping) { Skipping = true; }
+                    if(((ScriptSniffer)Shell.UpdateQueue[i]).Skipping) { skipping = true; }
                     Shell.DeleteQueue.Add(Shell.UpdateQueue[i]);
                     break;
                 }
             }
-            if (Parts.Length > 1)
+            if (parts.Length > 1)
             {
-                if (Parts[1] != "")
+                if (parts[1] != "")
                 {
-                    if (Parts[1].ToUpper() == "#MAINMENU")
+                    if (parts[1].ToUpper() == "#MAINMENU")
                     {
                         Shell.RunQueue.Add(new VoidDel(delegate ()
                         {
                             ButtonScripts.BackToMainMenu();
                         }));
                     }
-                    else if (Parts[1].ToUpper() == "#SCRIPTTHROWTARGET")
+                    else if (parts[1].ToUpper() == "#SCRIPTTHROWTARGET")
                     {
-                        Boolean Found = false;
-                        foreach (WorldEntity W in Shell.UpdateQueue)
+                        Boolean found = false;
+                        foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                         {
-                            if (W is ScriptSniffer)
+                            if (worldEntity is ScriptSniffer)
                             {
-                                Found = true;
-                                ActivateScriptElement("B|" + ((ScriptSniffer)W).ScriptThrowTarget);
+                                found = true;
+                                ActivateScriptElement("B|" + ((ScriptSniffer)worldEntity).ScriptThrowTarget);
                                 break;
                             }
                         }
-                        if (!Found)
+                        if (!found)
                         {
                             throw (new ScriptParseException("Script parsing error during script throw target activation; unable to find an active ScriptSniffer."));
                         }
                     }
                     else
                     {
-                        ScriptSniffer New = new ScriptSniffer(Parts[1].ToUpper() + "_SNIFFER", RetrieveScriptByName(Parts[1]), Parts[1]);
-                        if(Skipping) { New.Skip(); }
+                        ScriptSniffer newScriptSniffer = new ScriptSniffer(parts[1].ToUpper() + "_SNIFFER", RetrieveScriptByName(parts[1]), parts[1]);
+                        if(skipping) { newScriptSniffer.Skip(); }
                         Shell.RunQueue.Add(new VoidDel(delegate ()
                         {
-                            Shell.UpdateQueue.Add(New);
+                            Shell.UpdateQueue.Add(newScriptSniffer);
                         }));
                     }
                 }
             }
         }
-        private static void D(String[] Parts)
+        /// <summary>
+        /// D| deletes the entity with the specified entity name, all entities via |#ALL, or all custom buttons via |#CBUTTONS. ||IFPRESENT causes the function not to throw an error for a missing object.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void D(String[] parts)
         {
-            Boolean CBMode = false;
-            Boolean Found = false;
-            Boolean All = false;
-            if (Parts[1].ToUpper() == "#CBUTTONS")
+            Boolean customButtonMode = false;
+            Boolean found = false;
+            Boolean all = false;
+            if (parts[1].ToUpper() == "#CBUTTONS")
             {
-                CBMode = true;
-                Found = true;
+                customButtonMode = true;
+                found = true;
             }
-            if (Parts[1].ToUpper() == "#ALL")
+            if (parts[1].ToUpper() == "#ALL")
             {
-                All = true;
-                Found = true;
+                all = true;
+                found = true;
             }
-            ArrayList CompanionRemoves = new ArrayList();
+            List<WorldEntity> companionRemoves = new List<WorldEntity>();
             for (int i = 0; i < Shell.UpdateQueue.Count; i++)
             {
-                if ((All && !(((WorldEntity)Shell.UpdateQueue[i]) is ScriptSniffer)) || (!CBMode && ((WorldEntity)Shell.UpdateQueue[i]).Name.ToUpper() == Parts[1]) || (CBMode && ((WorldEntity)Shell.UpdateQueue[i]).Name.ToUpper().Contains("BUTTON_CUSTOM_")))
+                if ((all && !((Shell.UpdateQueue[i]) is ScriptSniffer)) || (!customButtonMode && (Shell.UpdateQueue[i]).Name.ToUpper() == parts[1]) || (customButtonMode && (Shell.UpdateQueue[i]).Name.ToUpper().Contains("BUTTON_CUSTOM_")))
                 {
                     Shell.DeleteQueue.Add(Shell.UpdateQueue[i]);
-                    if ((WorldEntity)Shell.UpdateQueue[i] is DropMenu) { CompanionRemoves.Add(Shell.UpdateQueue[i]); }
-                    if (!CBMode && !All)
+                    if (Shell.UpdateQueue[i] is DropMenu) { companionRemoves.Add(Shell.UpdateQueue[i]); }
+                    if (!customButtonMode && !all)
                     {
-                        Found = true;
+                        found = true;
                         break;
                     }
                 }
             }
-            if(CompanionRemoves.Count > 0)
+            if(companionRemoves.Count > 0)
             {
-                foreach(WorldEntity E in CompanionRemoves)
+                foreach(WorldEntity worldEntity in companionRemoves)
                 {
-                    if (E is DropMenu)
+                    if (worldEntity is DropMenu)
                     {
-                        Shell.RunQueue.Add(new VoidDel(delegate () { ((DropMenu)E).DepopulateDropList(); }));
+                        Shell.RunQueue.Add(new VoidDel(delegate () { ((DropMenu)worldEntity).DepopulateDropList(); }));
                     }
                 }
             }
-            if (!Found && (Parts.Length < 3 || Parts[2].ToUpper() != "IFPRESENT"))
+            if (!found && (parts.Length < 3 || parts[2].ToUpper() != "IFPRESENT"))
             {
-                throw (new ScriptParseException("Entity delete command could not locate the specified entity: " + Parts[1]));
+                throw (new ScriptParseException("Entity delete command could not locate the specified entity: " + parts[1]));
             }
         }
-        private static void A(String[]Parts)
+        /// <summary>
+        /// A|| plays an animation on a named entity by animation name. #DISMISS clears the entity's animation queue.
+        /// A|||||| plays an animation on a named entity by defined tween parameters.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void A(String[]parts)
         {
-            ArrayList AddAnimatees = new ArrayList();
-            if(Parts[1].ToUpper() == "#ALL")
+            List<WorldEntity> addAnimatees = new List<WorldEntity>();
+            if(parts[1].ToUpper() == "#ALL")
             {
-                foreach (WorldEntity E in Shell.UpdateQueue) { if (!(E is ScriptSniffer) && !(E is Camera)) { AddAnimatees.Add(E); } }
+                foreach (WorldEntity worldEntity in Shell.UpdateQueue) { if (!(worldEntity is ScriptSniffer) && !(worldEntity is Camera)) { addAnimatees.Add(worldEntity); } }
             }
-            else if(Parts[1].ToUpper() == "#ALL-NON-UI")
+            else if(parts[1].ToUpper() == "#ALL-NON-UI")
             {
-                foreach (WorldEntity E in Shell.UpdateQueue)
+                foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                 {
-                    if (!(E is ScriptSniffer) && !(E is Camera) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                    if (!(worldEntity is ScriptSniffer) && !(worldEntity is Camera) && !ButtonScripts.DefaultUINames.Contains(worldEntity.Name) && !(worldEntity is TextEntity) && !(worldEntity.Name == "WHITE-SHEET")) { addAnimatees.Add(worldEntity); }
                 }
             }
-            else if (Parts[1].ToUpper() == "#ALL-NON-UI-SOFIA")
+            else if (parts[1].ToUpper() == "#ALL-NON-UI-SOFIA")
             {
-                foreach (WorldEntity E in Shell.UpdateQueue)
+                foreach (WorldEntity worldEntity in Shell.UpdateQueue)
                 {
-                    if (!(E is ScriptSniffer) && !(E is Camera) && !ButtonScripts.DefaultUINames.Contains(E.Name) && !(E is TextEntity) && !(E is Sofia.BigSofia) && !(E.Name == "WHITE-SHEET")) { AddAnimatees.Add(E); }
+                    if (!(worldEntity is ScriptSniffer) && !(worldEntity is Camera) && !ButtonScripts.DefaultUINames.Contains(worldEntity.Name) && !(worldEntity is TextEntity) && !(worldEntity is Sofia.BigSofia) && !(worldEntity.Name == "WHITE-SHEET")) { addAnimatees.Add(worldEntity); }
                 }
             }
-            else if (Parts[1].ToUpper() == "#GLOBAL_END_LOOPS")
+            else if (parts[1].ToUpper() == "#GLOBAL_END_LOOPS")
             {
                 Animation.GlobalEndLoops();
             }
-            else if (Parts[1].ToUpper() == "#GLOBAL_MANUAL_TRIGGER")
+            else if (parts[1].ToUpper() == "#GLOBAL_MANUAL_TRIGGER")
             {
-                Animation.GlobalManualTrigger(Parts[2]);
+                Animation.GlobalManualTrigger(parts[2]);
             }
-            else { AddAnimatees.Add(Shell.GetEntityByName(Parts[1])); }
-            WorldEntity[] Animatees = AddAnimatees.ToArray().Select(x => (WorldEntity)x).ToArray();
-            if (Animatees.Length > 0 && Animatees[0] != null)
+            else { addAnimatees.Add(Shell.GetEntityByName(parts[1])); }
+            WorldEntity[] animatees = addAnimatees.ToArray().Select(x => (WorldEntity)x).ToArray();
+            if (animatees.Length > 0 && animatees[0] != null)
             {
-                if (Parts.Length == 3 || Parts.Length == 4)
+                if (parts.Length == 3 || parts.Length == 4)
                 {
-                    if (Parts[2] == "#DISMISS")
+                    if (parts[2] == "#DISMISS")
                     {
-                        for (int i = 0; i < Animatees.Length; i++)
+                        for (int i = 0; i < animatees.Length; i++)
                         {
-                            WorldEntity AnimatedObject = Animatees[i];
-                            AnimatedObject.AnimationQueue.Clear();
+                            WorldEntity animatedEntity = animatees[i];
+                            animatedEntity.AnimationQueue.Clear();
                         }
                     }
                     else
                     {
-                        Animation R = Animation.Retrieve(Parts[2]);
-                        if (Parts.Length == 4 && R != null)
+                        Animation animationRetrieved = Animation.Retrieve(parts[2]);
+                        if (parts.Length == 4 && animationRetrieved != null)
                         {
-                            if (Parts[3].ToUpper() == "LOOP" || Parts[3].ToUpper() == "TRUE") { R.Loop = true; }
-                            else { R.Loop = false; }
+                            if (parts[3].ToUpper() == "LOOP" || parts[3].ToUpper() == "TRUE") { animationRetrieved.Loop = true; }
+                            else { animationRetrieved.Loop = false; }
                         }
-                        for (int i = 0; i < Animatees.Length; i++)
+                        for (int i = 0; i < animatees.Length; i++)
                         {
-                            WorldEntity AnimatedObject = Animatees[i];
-                            if (R.AnimName.ToUpper() != "NULL") { AnimatedObject.AnimationQueue.Add(R.Clone()); }
+                            WorldEntity animatedEntity = animatees[i];
+                            if (animationRetrieved.AnimName.ToUpper() != "NULL") { animatedEntity.AnimationQueue.Add(animationRetrieved.Clone()); }
                         }
-                        R.AutoWipe();
+                        animationRetrieved.AutoWipe();
                     }
                 }
-                else if (Parts.Length == 7)
+                else if (parts.Length == 7)
                 {
                     //Parameters are seperated by commas, parameters within parameters are seperated by "="
                     //A looped vector tween: A|[entityname]|50=50,1000,20||||loop
-                    Animation New = new Animation(Animatees[0].Name + "_animation_scriptdefined");
-                    if (Parts[2].Length > 0)
+                    Animation newAnimation = new Animation(animatees[0].Name + "_animation_scriptdefined");
+                    if (parts[2].Length > 0)
                     {
-                        String[] MV = Parts[2].Split(',');
-                        String[] MS = MV[0].Split('=');
-                        Vector2 T = new Vector2((float)Convert.ToDouble(MS[0]), (float)Convert.ToDouble(MS[1]));
-                        New.WriteMovement(Animation.CreateVectorTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
+                        String[] movementTrack = parts[2].Split(',');
+                        String[] vectorMotionTerms = movementTrack[0].Split('=');
+                        Vector2 motionTween = new Vector2((float)Convert.ToDouble(vectorMotionTerms[0]), (float)Convert.ToDouble(vectorMotionTerms[1]));
+                        newAnimation.WriteMovement(Animation.CreateVectorTween(motionTween, Convert.ToInt32(movementTrack[1]), Convert.ToInt32(movementTrack[2])));
                     }
-                    if (Parts[3].Length > 0)
+                    if (parts[3].Length > 0)
                     {
-                        String[] MV = Parts[3].Split(',');
-                        float T = (float)Convert.ToDouble(MV[0]);
-                        New.WriteRotation(Animation.CreateFloatTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
+                        String[] movementTrack = parts[3].Split(',');
+                        float rotationTween = (float)Convert.ToDouble(movementTrack[0]);
+                        newAnimation.WriteRotation(Animation.CreateFloatTween(rotationTween, Convert.ToInt32(movementTrack[1]), Convert.ToInt32(movementTrack[2])));
                     }
-                    if (Parts[4].Length > 0)
+                    if (parts[4].Length > 0)
                     {
-                        String[] MV = Parts[4].Split(',');
-                        String[] SS = MV[0].Split('=');
-                        Vector2 T = new Vector2((float)Convert.ToDouble(SS[0]), (float)Convert.ToDouble(SS[1]));
-                        New.WriteScaling(Animation.CreateVectorTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
+                        String[] movementTrack = parts[4].Split(',');
+                        String[] scalingTerms = movementTrack[0].Split('=');
+                        Vector2 scaleTween = new Vector2((float)Convert.ToDouble(scalingTerms[0]), (float)Convert.ToDouble(scalingTerms[1]));
+                        newAnimation.WriteScaling(Animation.CreateVectorTween(scaleTween, Convert.ToInt32(movementTrack[1]), Convert.ToInt32(movementTrack[2])));
                     }
-                    if (Parts[5].Length > 0)
+                    if (parts[5].Length > 0)
                     {
-                        String[] MV = Parts[5].Split(',');
-                        String[] CS = MV[0].Split('=');
-                        ColourShift T = new ColourShift(Convert.ToInt32(CS[0]), Convert.ToInt32(CS[1]), Convert.ToInt32(CS[2]), Convert.ToInt32(CS[3]));
-                        New.WriteColouring(Animation.CreateColourTween(T, Convert.ToInt32(MV[1]), Convert.ToInt32(MV[2])));
+                        String[] movementTrack = parts[5].Split(',');
+                        String[] colourTerms = movementTrack[0].Split('=');
+                        ColourShift colourTween = new ColourShift(Convert.ToInt32(colourTerms[0]), Convert.ToInt32(colourTerms[1]), Convert.ToInt32(colourTerms[2]), Convert.ToInt32(colourTerms[3]));
+                        newAnimation.WriteColouring(Animation.CreateColourTween(colourTween, Convert.ToInt32(movementTrack[1]), Convert.ToInt32(movementTrack[2])));
                     }
-                    if (Parts[6].Length > 0 && Parts[6].ToUpper() == "LOOP" || Parts[6].ToUpper() == "TRUE") { New.Loop = true; }
-                    for (int i = 0; i < Animatees.Length; i++)
+                    if (parts[6].Length > 0 && parts[6].ToUpper() == "LOOP" || parts[6].ToUpper() == "TRUE") { newAnimation.Loop = true; }
+                    for (int i = 0; i < animatees.Length; i++)
                     {
-                        WorldEntity AnimatedObject = Animatees[i];
-                        AnimatedObject.AnimationQueue.Add(New.Clone());
+                        WorldEntity animatedEntity = animatees[i];
+                        animatedEntity.AnimationQueue.Add(newAnimation.Clone());
                     }
-                    New.AutoWipe();
+                    newAnimation.AutoWipe();
                 }
-                else { throw (new ScriptParseException("The animation command does not take the specified number of parameters: " + (Parts.Length - 1))); }
+                else { throw (new ScriptParseException("The animation command does not take the specified number of parameters: " + (parts.Length - 1))); }
             }
-            else if (Animatees.Length > 0) { throw (new ScriptParseException("Entity animation command could not locate the specified entity: " + Parts[1])); }
+            else if (animatees.Length > 0) { throw (new ScriptParseException("Entity animation command could not locate the specified entity: " + parts[1])); }
         }
-        private static void F(String[] Parts)
+        /// <summary>
+        /// F||| sets the atlas frame of a specified entity to the given coordinates, if possible.
+        /// F|| sets the atlas frame of a specified entity to the given named frame state, if possible.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void F(String[] parts)
         {
-            WorldEntity O = Shell.GetEntityByName(Parts[1]);
-            if (O != null)
+            WorldEntity frameEntity = Shell.GetEntityByName(parts[1]);
+            if (frameEntity != null)
             {
-                if (Parts.Length == 3)
+                if (parts.Length == 3)
                 {
-                    Hashtable Lookup = O.Atlas.FrameLookup;
-                    if (Lookup.ContainsKey(Parts[2].ToUpper()))
+                    Hashtable lookup = frameEntity.Atlas.FrameLookup;
+                    if (lookup.ContainsKey(parts[2].ToUpper()))
                     {
-                        Point Frame = (Point)Lookup[Parts[2].ToUpper()];
-                        O.SetAtlasFrame(Frame);
+                        Point frame = (Point)lookup[parts[2].ToUpper()];
+                        frameEntity.SetAtlasFrame(frame);
                     }
                 }
-                else if (Parts.Length == 4)
+                else if (parts.Length == 4)
                 {
-                    Point Frame = new Point(Convert.ToInt32(Parts[2]), Convert.ToInt32(Parts[3]));
-                    O.SetAtlasFrame(Frame);
+                    Point frame = new Point(Convert.ToInt32(parts[2]), Convert.ToInt32(parts[3]));
+                    frameEntity.SetAtlasFrame(frame);
                 }
-                else { throw (new ScriptParseException("The atlas frame shift command does not take the specified number of parameters: " + (Parts.Length - 1))); }
+                else { throw (new ScriptParseException("The atlas frame shift command does not take the specified number of parameters: " + (parts.Length - 1))); }
             }
-            else { throw (new ScriptParseException("Atlas frame shift command could not locate the specified entity: " + Parts[1])); }
+            else { throw (new ScriptParseException("Atlas frame shift command could not locate the specified entity: " + parts[1])); }
         }
-        private static void S(String[] Parts)
+        /// <summary>
+        /// S|| plays a named sound effect, or stops all sound effects via |#CLOSEALL. Second parameter sets looping.
+        /// </summary>
+        /// <param name="parts"></param>
+        private static void S(String[] parts)
         {
-            if (Parts[1].ToUpper() != "#CLOSEALL")
+            if (parts[1].ToUpper() != "#CLOSEALL")
             {
                 if (!Shell.Mute)
                 {
-                    SoundEffectInstance LocalSound = ((SoundEffect)Shell.SFXDirectory[Parts[1]]).CreateInstance();
-                    LocalSound.Volume = Shell.GlobalVolume;
-                    if (Parts.Length > 2 && Parts[2].ToUpper() != "")
+                    SoundEffectInstance localSound = (Shell.SFXDirectory[parts[1]]).CreateInstance();
+                    localSound.Volume = Shell.GlobalVolume;
+                    if (parts.Length > 2 && parts[2].ToUpper() != "")
                     {
-                        if (Parts[2].ToUpper() == "TRUE")
+                        if (parts[2].ToUpper() == "TRUE")
                         {
-                            LocalSound.IsLooped = true;
+                            localSound.IsLooped = true;
                         }
-                        else if (Parts[2].ToUpper() == "FALSE")
+                        else if (parts[2].ToUpper() == "FALSE")
                         {
-                            LocalSound.IsLooped = false;
+                            localSound.IsLooped = false;
                         }
                     }
-                    LocalSound.Play();
-                    Shell.ActiveSounds.Add(LocalSound);
+                    localSound.Play();
+                    Shell.ActiveSounds.Add(localSound);
                 }
             }
             else
             {
-                foreach (SoundEffectInstance SEI in Shell.ActiveSounds)
+                foreach (SoundEffectInstance soundEffectInst in Shell.ActiveSounds)
                 {
-                    SEI.Stop();
+                    soundEffectInst.Stop();
                 }
             }
         }
-        private static void M(String[] Parts, String MCommand)
+        /// <summary>
+        /// M||| switches the music track to a named song, or stops the song via |#NULL|. Second parameter sets looping. Third if set to "INSTANT" skips the auto fadeout.
+        /// </summary>
+        /// <param name="parts"></param>
+        /// <param name="MCommand"></param>
+        private static void M(String[] parts, String MCommand)
         {
             ButtonScripts.SpoonsTrip = true;
             SongCom = MCommand;
-            Boolean Instant = false;
-            if (Parts.Length > 3 && Parts[3].ToUpper() != "")
+            Boolean instant = false;
+            if (parts.Length > 3 && parts[3].ToUpper() != "")
             {
-                if (Parts[3].ToUpper() == "INSTANT")
+                if (parts[3].ToUpper() == "INSTANT")
                 {
-                    Instant = true;
+                    instant = true;
                 }
             }
-            if (Parts[1].ToUpper() != "#NULL")
+            if (parts[1].ToUpper() != "#NULL")
             {
-                Song LocalSong = ((Song)Shell.SongDirectory[Parts[1]]);
-                if (Instant) { Shell.QueueInstantTrack(LocalSong, 1f); }
-                else { Shell.QueueInstantTrack(LocalSong); }
+                Song localSong = ((Song)Shell.SongDirectory[parts[1]]);
+                if (instant) { Shell.QueueInstantTrack(localSong, 1f); }
+                else { Shell.QueueInstantTrack(localSong); }
             }
             else
             {
-                if (Instant) { Shell.OneFadeout(1f); }
+                if (instant) { Shell.OneFadeout(1f); }
                 else { Shell.OneFadeout(); }
             }
-            if (Parts.Length > 2 && Parts[2].ToUpper() != "")
+            if (parts.Length > 2 && parts[2].ToUpper() != "")
             {
-                if (Parts[2].ToUpper() == "TRUE")
+                if (parts[2].ToUpper() == "TRUE")
                 {
                     MediaPlayer.IsRepeating = true;
                 }
-                else if (Parts[2].ToUpper() == "FALSE")
+                else if (parts[2].ToUpper() == "FALSE")
                 {
                     MediaPlayer.IsRepeating = false;
                 }

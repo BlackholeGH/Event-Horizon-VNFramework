@@ -19,6 +19,9 @@ using System.Reflection;
 
 namespace VNFramework
 {
+    /// <summary>
+    /// Struct that represents a recallable save state
+    /// </summary>
     [Serializable]
     public struct RecallableState
     {
@@ -29,296 +32,299 @@ namespace VNFramework
         public string SongCom;
         public Hashtable Flags;
     }
+    /// <summary>
+    /// The Shell class is instanced on game load and is responsible for managing the application backend, including loading data, displaying graphics and audio, the update loop for entities, and performing save/load operations.
+    /// </summary>
     public class Shell : Game
     {
         public static String FrameworkVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + " (" + System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion + ")";
         public static Random Rnd = new Random();
-        static Hashtable Flags = new Hashtable();
+        static Hashtable s_flags = new Hashtable();
         public static String GlobalWorldState = "DEFAULT";
-        private static Boolean pHasConsole = true;
+        private static Boolean s_hasConsole = true;
         public static Camera AutoCamera = null;
         public static Boolean LooseCamera { get; set; }
         public static Boolean HasConsole
         {
             get
             {
-                return pHasConsole;
+                return s_hasConsole;
             }
         }
         public static GraphicsDevice PubGD;
-        public static WorldEntity GetEntityByName(String Name)
+        public static WorldEntity GetEntityByName(String name)
         {
-            object O = null;
+            object o = null;
             for (int i = 0; i < UpdateQueue.Count; i++)
             {
-                if (((WorldEntity)UpdateQueue[i]).Name.ToUpper() == Name.ToUpper())
+                if (((WorldEntity)UpdateQueue[i]).Name.ToUpper() == name.ToUpper())
                 {
-                    O = UpdateQueue[i];
-                    return (WorldEntity)O;
+                    o = UpdateQueue[i];
+                    return (WorldEntity)o;
                 }
             }
             return null;
         }
-        public static WorldEntity GetEntityByID(ulong ID)
+        public static WorldEntity GetEntityByID(ulong id)
         {
-            object O = null;
+            object o = null;
             for (int i = 0; i < UpdateQueue.Count; i++)
             {
-                if (((WorldEntity)UpdateQueue[i]).EntityID == ID)
+                if (((WorldEntity)UpdateQueue[i]).EntityID == id)
                 {
-                    O = UpdateQueue[i];
-                    return (WorldEntity)O;
+                    o = UpdateQueue[i];
+                    return (WorldEntity)o;
                 }
             }
             return null;
         }
-        public static Vector2 CoordNormalize(Vector2 In)
+        public static Vector2 CoordNormalize(Vector2 @in)
         {
-            return In * (720 / ScreenSize.Y);
+            return @in * new Vector2(Resolution.X / WindowSize.X, Resolution.Y / WindowSize.Y);
         }
-        static GraphicsDeviceManager graphics;
-        private SpriteBatch pSpriteBatch;
-        public SpriteBatch spriteBatch
+        static GraphicsDeviceManager s_graphics;
+        private SpriteBatch _spriteBatch;
+        public SpriteBatch ShellSpriteBatch
         {
             get
             {
-                return pSpriteBatch;
+                return _spriteBatch;
             }
         }
-        static List<WorldEntity> pNonSerializables = new List<WorldEntity>();
+        static List<WorldEntity> s_nonSerializables = new List<WorldEntity>();
         public static List<WorldEntity> NonSerializables
         {
-            get { return pNonSerializables; }
-            set { pNonSerializables = value; }
+            get { return s_nonSerializables; }
+            set { s_nonSerializables = value; }
         }
         public static RecallableState? SerializeState()
         {
             return SerializeState(NonSerializables);
         }
-        public static RecallableState? SerializeState(List<WorldEntity> Skip)
+        public static RecallableState? SerializeState(List<WorldEntity> skip)
         {
-            ArrayList UpdateIDs = new ArrayList();
-            ArrayList RenderIDs = new ArrayList();
-            ArrayList SerializedIDs = new ArrayList();
-            IFormatter SerFormatter = new BinaryFormatter();
-            ArrayList Streams = new ArrayList();
-            SurrogateSelector SS = new SurrogateSelector();
-            Surrogates.Vector2SS V2SS = new Surrogates.Vector2SS();
-            Surrogates.PointSS PSS = new Surrogates.PointSS();
-            Surrogates.RectangleSS RSS = new Surrogates.RectangleSS();
-            Surrogates.Texture2DSS T2DSS = new Surrogates.Texture2DSS();
-            Surrogates.ColorSS CSS = new Surrogates.ColorSS();
-            Surrogates.SpriteFontSS SFSS = new Surrogates.SpriteFontSS();
-            Surrogates.EventSRSS ESRSS = new Surrogates.EventSRSS();
-            SS.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), V2SS);
-            SS.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), PSS);
-            SS.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), RSS);
-            SS.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), T2DSS);
-            SS.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), CSS);
-            SS.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), SFSS);
-            SS.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), ESRSS);
-            SerFormatter.SurrogateSelector = SS;
+            List<ulong> updateIDs = new List<ulong>();
+            List<ulong> renderIDs = new List<ulong>();
+            List<ulong> serializedIDs = new List<ulong>();
+            IFormatter serFormatter = new BinaryFormatter();
+            List<byte[]> streams = new List<byte[]>();
+            SurrogateSelector surrogateSelector = new SurrogateSelector();
+            Surrogates.Vector2SS v2ss = new Surrogates.Vector2SS();
+            Surrogates.PointSS pss = new Surrogates.PointSS();
+            Surrogates.RectangleSS rss = new Surrogates.RectangleSS();
+            Surrogates.Texture2DSS t2dss = new Surrogates.Texture2DSS();
+            Surrogates.ColorSS css = new Surrogates.ColorSS();
+            Surrogates.SpriteFontSS sfss = new Surrogates.SpriteFontSS();
+            Surrogates.EventSRSS esrss = new Surrogates.EventSRSS();
+            surrogateSelector.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), v2ss);
+            surrogateSelector.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), pss);
+            surrogateSelector.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), rss);
+            surrogateSelector.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), t2dss);
+            surrogateSelector.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), css);
+            surrogateSelector.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), sfss);
+            surrogateSelector.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), esrss);
+            serFormatter.SurrogateSelector = surrogateSelector;
             try
             {
-                foreach (WorldEntity W in UpdateQueue)
+                foreach (WorldEntity worldEntity in UpdateQueue)
                 {
-                    if (Skip.Contains(W)) { continue; }
-                    UpdateIDs.Add(W.EntityID);
-                    W.OnSerializeDo();
-                    MemoryStream EntityStream = new MemoryStream();
-                    SerFormatter.Serialize(EntityStream, W);
-                    EntityStream.Close();
-                    Streams.Add(EntityStream.ToArray());
-                    SerializedIDs.Add(W.EntityID);
+                    if (skip.Contains(worldEntity)) { continue; }
+                    updateIDs.Add(worldEntity.EntityID);
+                    worldEntity.OnSerializeDo();
+                    MemoryStream entityStream = new MemoryStream();
+                    serFormatter.Serialize(entityStream, worldEntity);
+                    entityStream.Close();
+                    streams.Add(entityStream.ToArray());
+                    serializedIDs.Add(worldEntity.EntityID);
                 }
-                foreach (WorldEntity W in RenderQueue)
+                foreach (WorldEntity worldEntity in RenderQueue)
                 {
-                    if (Skip.Contains(W)) { continue; }
-                    RenderIDs.Add(W.EntityID);
-                    if (!SerializedIDs.Contains(W.EntityID))
+                    if (skip.Contains(worldEntity)) { continue; }
+                    renderIDs.Add(worldEntity.EntityID);
+                    if (!serializedIDs.Contains(worldEntity.EntityID))
                     {
-                        W.OnSerializeDo();
-                        MemoryStream EntityStream = new MemoryStream();
-                        SerFormatter.Serialize(EntityStream, W);
-                        EntityStream.Close();
-                        Streams.Add(EntityStream.ToArray());
-                        SerializedIDs.Add(W.EntityID);
+                        worldEntity.OnSerializeDo();
+                        MemoryStream entityStream = new MemoryStream();
+                        serFormatter.Serialize(entityStream, worldEntity);
+                        entityStream.Close();
+                        streams.Add(entityStream.ToArray());
+                        serializedIDs.Add(worldEntity.EntityID);
                     }
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 WriteLine("Failed to serialize state due to " + e.GetType().Name + ": " + e.Message);
                 return null;
             }
-            RecallableState Out = new RecallableState();
-            Out.RenderIDs = RenderIDs.ToArray().Select(x => (ulong)x).ToArray();
-            Out.UpdateIDs = UpdateIDs.ToArray().Select(x => (ulong)x).ToArray();
-            Out.SerializedEnts = Streams.ToArray().Select(x => (byte[])x).ToArray();
-            Out.LabelEntity = ScriptProcessor.LabelEntity;
-            Out.SongCom = ScriptProcessor.SongCom;
-            Out.Flags = (Hashtable)Flags.Clone();
-            return Out;
+            RecallableState outState = new RecallableState();
+            outState.RenderIDs = renderIDs.ToArray().Select(x => (ulong)x).ToArray();
+            outState.UpdateIDs = updateIDs.ToArray().Select(x => (ulong)x).ToArray();
+            outState.SerializedEnts = streams.ToArray().Select(x => (byte[])x).ToArray();
+            outState.LabelEntity = ScriptProcessor.LabelEntity;
+            outState.SongCom = ScriptProcessor.SongCom;
+            outState.Flags = (Hashtable)s_flags.Clone();
+            return outState;
         }
-        public static void DeserializeState(RecallableState S, Boolean ReinstantiatePast)
+        public static void DeserializeState(RecallableState recallableState, Boolean reinstantiatePastStateList)
         {
-            if (ReinstantiatePast)
+            if (reinstantiatePastStateList)
             {
                 ScriptProcessor.PastStates.Clear();
-                ScriptProcessor.PastStates.Push(S);
+                ScriptProcessor.PastStates.Push(recallableState);
             }
-            ArrayList ReconstructEnts = new ArrayList();
-            IFormatter SerFormatter = new BinaryFormatter();
-            SurrogateSelector SS = new SurrogateSelector();
-            Surrogates.Vector2SS V2SS = new Surrogates.Vector2SS();
-            Surrogates.PointSS PSS = new Surrogates.PointSS();
-            Surrogates.RectangleSS RSS = new Surrogates.RectangleSS();
-            Surrogates.Texture2DSS T2DSS = new Surrogates.Texture2DSS();
-            Surrogates.ColorSS CSS = new Surrogates.ColorSS();
-            Surrogates.SpriteFontSS SFSS = new Surrogates.SpriteFontSS();
-            Surrogates.EventSRSS ESRSS = new Surrogates.EventSRSS();
-            SS.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), V2SS);
-            SS.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), PSS);
-            SS.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), RSS);
-            SS.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), T2DSS);
-            SS.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), CSS);
-            SS.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), SFSS);
-            SS.AddSurrogate(typeof(MethodInfo), new StreamingContext(StreamingContextStates.All), ESRSS);
-            SS.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), ESRSS);
-            SerFormatter.SurrogateSelector = SS;
-            foreach (byte[] Br in S.SerializedEnts)
+            List<WorldEntity> reconstructEnts = new List<WorldEntity>();
+            IFormatter serFormatter = new BinaryFormatter();
+            SurrogateSelector surrogateSelector = new SurrogateSelector();
+            Surrogates.Vector2SS v2ss = new Surrogates.Vector2SS();
+            Surrogates.PointSS pss = new Surrogates.PointSS();
+            Surrogates.RectangleSS rss = new Surrogates.RectangleSS();
+            Surrogates.Texture2DSS t2dss = new Surrogates.Texture2DSS();
+            Surrogates.ColorSS css = new Surrogates.ColorSS();
+            Surrogates.SpriteFontSS sfss = new Surrogates.SpriteFontSS();
+            Surrogates.EventSRSS esrss = new Surrogates.EventSRSS();
+            surrogateSelector.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), v2ss);
+            surrogateSelector.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), pss);
+            surrogateSelector.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), rss);
+            surrogateSelector.AddSurrogate(typeof(Texture2D), new StreamingContext(StreamingContextStates.All), t2dss);
+            surrogateSelector.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), css);
+            surrogateSelector.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), sfss);
+            surrogateSelector.AddSurrogate(typeof(MethodInfo), new StreamingContext(StreamingContextStates.All), esrss);
+            surrogateSelector.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), esrss);
+            serFormatter.SurrogateSelector = surrogateSelector;
+            foreach (byte[] byteR in recallableState.SerializedEnts)
             {
-                MemoryStream DecodeStream = new MemoryStream(Br);
-                WorldEntity WE = (WorldEntity)SerFormatter.Deserialize(DecodeStream);
-                DecodeStream.Close();
-                ReconstructEnts.Add(WE);
+                MemoryStream decodeStream = new MemoryStream(byteR);
+                WorldEntity worldEntity = (WorldEntity)serFormatter.Deserialize(decodeStream);
+                decodeStream.Close();
+                reconstructEnts.Add(worldEntity);
             }
-            ArrayList NewUEnts = new ArrayList();
-            ArrayList NewREnts = new ArrayList();
-            foreach (VoidDel V in MouseLeftClick.GetInvocationList())
+            List<WorldEntity> newUEnts = new List<WorldEntity>();
+            List<WorldEntity> newREnts = new List<WorldEntity>();
+            foreach (VoidDel voidDelegate in MouseLeftClick.GetInvocationList())
             {
-                MouseLeftClick -= V;
+                MouseLeftClick -= voidDelegate;
             }
-            RunQueue = new ArrayList();
-            foreach(WorldEntity W in NonSerializables)
+            RunQueue = new List<VoidDel>();
+            foreach (WorldEntity worldEntity in NonSerializables)
             {
-                W.AddEventTriggers();
+                worldEntity.AddEventTriggers();
             }
-            ArrayList TempList = new ArrayList();
-            foreach(WorldEntity W in DeleteQueue)
+            List<WorldEntity> tempList = new List<WorldEntity>();
+            foreach (WorldEntity worldEntity in DeleteQueue)
             {
-                if(NonSerializables.Contains(W)) { TempList.Add(W); }
+                if (NonSerializables.Contains(worldEntity)) { tempList.Add(worldEntity); }
             }
-            DeleteQueue = TempList;
-            foreach (WorldEntity W in ReconstructEnts)
+            DeleteQueue = tempList;
+            foreach (WorldEntity worldEntity in reconstructEnts)
             {
-                if (S.UpdateIDs.Contains(W.EntityID)) { NewUEnts.Add(W); }
-                if (S.RenderIDs.Contains(W.EntityID)) { NewREnts.Add(W); }
-                W.ReissueID();
-                W.OnDeserializeDo();
+                if (recallableState.UpdateIDs.Contains(worldEntity.EntityID)) { newUEnts.Add(worldEntity); }
+                if (recallableState.RenderIDs.Contains(worldEntity.EntityID)) { newREnts.Add(worldEntity); }
+                worldEntity.ReissueID();
+                worldEntity.OnDeserializeDo();
             }
-            ScriptProcessor.LabelEntity = S.LabelEntity;
-            if(ScriptProcessor.SongCom != S.SongCom && S.SongCom != null && S.SongCom.Split('|').Length > 1)
+            ScriptProcessor.LabelEntity = recallableState.LabelEntity;
+            if (ScriptProcessor.SongCom != recallableState.SongCom && recallableState.SongCom != null && recallableState.SongCom.Split('|').Length > 1)
             {
-                ScriptProcessor.ActivateScriptElement(S.SongCom);
+                ScriptProcessor.ActivateScriptElement(recallableState.SongCom);
             }
-            if (S.Flags != null) { Flags = (Hashtable)S.Flags.Clone(); }
-            foreach (WorldEntity W in UpdateQueue)
+            if (recallableState.Flags != null) { s_flags = (Hashtable)recallableState.Flags.Clone(); }
+            foreach (WorldEntity worldEntity in UpdateQueue)
             {
-                if (NonSerializables.Contains(W)) { NewUEnts.Add(W); }
+                if (NonSerializables.Contains(worldEntity)) { newUEnts.Add(worldEntity); }
             }
-            foreach (WorldEntity W in RenderQueue)
+            foreach (WorldEntity worldEntity in RenderQueue)
             {
-                if (NonSerializables.Contains(W)) { NewREnts.Add(W); }
+                if (NonSerializables.Contains(worldEntity)) { newREnts.Add(worldEntity); }
             }
-            UpdateQueue = new ArrayList(NewUEnts);
-            RenderQueue = new ArrayList(NewREnts);
-            foreach (WorldEntity W in ReconstructEnts)
+            UpdateQueue = new List<WorldEntity>(newUEnts);
+            RenderQueue = new List<WorldEntity>(newREnts);
+            foreach (WorldEntity worldEntity in reconstructEnts)
             {
-                W.ResubscribeEvents();
+                worldEntity.ResubscribeEvents();
             }
             ButtonScripts.UnHideUI();
         }
         public static VoidDel GlobalVoid = null;
-        private static object CWriteLockObj = new object();
+        private static object s_cWriteLockObj = new object();
         public static String PullInternalConsoleData
         {
             get
             {
-                StringBuilder OutputBuilder = new StringBuilder();
-                for(int i = InternalLog.Count > 101 ? InternalLog.Count - 101 : 0; i < InternalLog.Count; i++)
+                StringBuilder outputBuilder = new StringBuilder();
+                for (int i = InternalLog.Count > 101 ? InternalLog.Count - 101 : 0; i < InternalLog.Count; i++)
                 {
-                    OutputBuilder.Append("[I]");
+                    outputBuilder.Append("[I]");
                     foreach (object o in InternalLog[i])
                     {
-                        if(o is Color)
+                        if (o is Color)
                         {
-                            Color Tc = (Color)o;
-                            if(Tc == Color.White)
+                            Color textColour = (Color)o;
+                            if (textColour == Color.White)
                             {
-                                OutputBuilder.Append("[F:SYSFONT]");
+                                outputBuilder.Append("[F:SYSFONT]");
                             }
                             else
                             {
-                                OutputBuilder.Append(String.Format("[F:SYSFONT,C:{0}-{1}-{2}-{3}]", Tc.R, Tc.G, Tc.B, Tc.A));
+                                outputBuilder.Append(String.Format("[F:SYSFONT,C:{0}-{1}-{2}-{3}]", textColour.R, textColour.G, textColour.B, textColour.A));
                             }
                         }
-                        else if(o is String)
+                        else if (o is String)
                         {
-                            OutputBuilder.Append((String)o);
+                            outputBuilder.Append((String)o);
                         }
                     }
-                    OutputBuilder.Append("[N]");
+                    outputBuilder.Append("[N]");
                 }
-                OutputBuilder.Remove(OutputBuilder.Length - 3, 3);
-                return OutputBuilder.ToString();
+                outputBuilder.Remove(outputBuilder.Length - 3, 3);
+                return outputBuilder.ToString();
             }
         }
-        static String pLastManualConsoleInput = "";
+        static String s_lastManualConsoleInput = "";
         public static String LastManualConsoleInput
         {
-            get { return pLastManualConsoleInput; }
+            get { return s_lastManualConsoleInput; }
         }
-        public static void HandleConsoleInput(String Input)
+        public static void HandleConsoleInput(String input)
         {
-            pLastManualConsoleInput = Input;
-            SortedDictionary<int, Color> Cols = new SortedDictionary<int, Color>();
-            Cols.Add(0, Color.LightGreen);
-            WriteLine(Input, Cols);
-            String[] Commands = Input.Split(' ');
+            s_lastManualConsoleInput = input;
+            SortedDictionary<int, Color> colours = new SortedDictionary<int, Color>();
+            colours.Add(0, Color.LightGreen);
+            WriteLine(input, colours);
+            String[] commands = input.Split(' ');
             try
             {
-                switch (Commands[0].ToUpper())
+                switch (commands[0].ToUpper())
                 {
                     //Run ScriptProcessor commands as a forced script shift (by default, shift conditions are unchanged).
                     case "INSERT":
-                        ScriptProcessor.ScriptSniffer FoundSniffer = ScriptProcessor.SnifferSearch();
-                        if (FoundSniffer != null)
+                        ScriptProcessor.ScriptSniffer foundSniffer = ScriptProcessor.SnifferSearch();
+                        if (foundSniffer != null)
                         {
-                            FoundSniffer.ForceInsertScriptElement((Input.Remove(0, Input.IndexOf(' ') + 1)).Split(' '), false);
+                            foundSniffer.ForceInsertScriptElement((input.Remove(0, input.IndexOf(' ') + 1)).Split(' '), false);
                         }
                         else { WriteLine("Cannot insert new script shift as a script is not running."); }
                         break;
                     //Activate a single script element.
                     case "ACTIVATE":
-                        ScriptProcessor.ActivateScriptElement(Input.Remove(0, Input.IndexOf(' ') + 1));
+                        ScriptProcessor.ActivateScriptElement(input.Remove(0, input.IndexOf(' ') + 1));
                         break;
                     //Freshly load a new script.
                     case "LOAD":
-                        WriteLine("Attempting to load script " + Commands[1].ToUpper() + ".");
-                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(Commands[1].ToUpper())));
+                        WriteLine("Attempting to load script " + commands[1].ToUpper() + ".");
+                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(commands[1].ToUpper())));
                         break;
                     //Executes a function statement per the EntityFactory's inbuilt function parser.
                     case "DO":
-                        RunQueue.Add(EntityFactory.AssembleVoidDelegate("do=" + Input.Remove(0, Input.IndexOf(' ') + 1)));
+                        RunQueue.Add(EntityFactory.AssembleVoidDelegate("do=" + input.Remove(0, input.IndexOf(' ') + 1)));
                         break;
                     //Executes a method specifier (instance return) per the EntityFactory's inbuilt function parser.
                     case "RUN":
-                        RunQueue.Add(EntityFactory.AssembleVoidDelegate(Input.Remove(0, Input.IndexOf(' ') + 1)));
+                        RunQueue.Add(EntityFactory.AssembleVoidDelegate(input.Remove(0, input.IndexOf(' ') + 1)));
                         break;
                     //Fork to a new script from your current state. Equivalent to "do B|[Script name]".
                     case "FORK":
-                        ScriptProcessor.ActivateScriptElement("B|" + Commands[1].ToUpper());
+                        ScriptProcessor.ActivateScriptElement("B|" + commands[1].ToUpper());
                         break;
                     //Close the program.
                     case "QUIT":
@@ -330,101 +336,101 @@ namespace VNFramework
                         break;
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 WriteLine(e.GetType().Name + ": " + e.Message);
             }
         }
         public static event Action<String> ConsoleWrittenTo;
-        public static void WriteLine(String Text)
+        public static void WriteLine(String text)
         {
-            WriteLine(Text, null);
+            WriteLine(text, null);
         }
-        public static void WriteLine(String Text, SortedDictionary<int, Color> ColourArgs)
+        public static void WriteLine(String text, SortedDictionary<int, Color> colourArgs)
         {
-            String Time = "(" + System.DateTime.Now.ToLongTimeString() + ")";
-            if (pHasConsole) { Console.WriteLine(Time + " " + Text); }
-            Text = Text.Replace('[', '(').Replace(']', ')');
-            ArrayList Store = new ArrayList();
-            Store.Add(Color.Yellow);
-            Store.Add(Time + " ");
-            if(ColourArgs != null)
+            String time = "(" + System.DateTime.Now.ToLongTimeString() + ")";
+            if (s_hasConsole) { Console.WriteLine(time + " " + text); }
+            text = text.Replace('[', '(').Replace(']', ')');
+            ArrayList store = new ArrayList();
+            store.Add(Color.Yellow);
+            store.Add(time + " ");
+            if (colourArgs != null)
             {
-                Color RollingColour = Color.White;
-                int LastI = 0;
-                foreach(int i in ColourArgs.Keys)
+                Color rollingColour = Color.White;
+                int lastI = 0;
+                foreach (int i in colourArgs.Keys)
                 {
-                    if (i - LastI > 0)
+                    if (i - lastI > 0)
                     {
-                        String Seg = Text.Substring(LastI, i - LastI);
-                        Store.Add(RollingColour);
-                        Store.Add(Seg);
+                        String Seg = text.Substring(lastI, i - lastI);
+                        store.Add(rollingColour);
+                        store.Add(Seg);
                     }
-                    RollingColour = ColourArgs[i];
-                    LastI = i;
+                    rollingColour = colourArgs[i];
+                    lastI = i;
                 }
-                if(LastI < Text.Length)
+                if (lastI < text.Length)
                 {
-                    Store.Add(RollingColour);
-                    Store.Add(Text.Remove(0, LastI));
+                    store.Add(rollingColour);
+                    store.Add(text.Remove(0, lastI));
                 }
             }
             else
             {
-                Store.Add(Color.White);
-                Store.Add(Text);
+                store.Add(Color.White);
+                store.Add(text);
             }
-            object[] ThisEntry = Store.ToArray();
-            InternalLog.Add(ThisEntry);
-            ConsoleWrittenTo?.Invoke(Text);
+            object[] thisEntry = store.ToArray();
+            InternalLog.Add(thisEntry);
+            ConsoleWrittenTo?.Invoke(text);
             try
             {
-                Monitor.Enter(CWriteLockObj);
-                pLastLogLine = Text;
+                Monitor.Enter(s_cWriteLockObj);
+                _lastLogLine = text;
             }
-            finally { Monitor.Exit(CWriteLockObj); }
+            finally { Monitor.Exit(s_cWriteLockObj); }
         }
-        private static String pLastLogLine = "";
+        private static String _lastLogLine = "";
         public static String LastLogLine
         {
             get
             {
-                String Out = "";
+                String outString = "";
                 try
                 {
-                    Monitor.Enter(CWriteLockObj);
-                    Out = pLastLogLine;
+                    Monitor.Enter(s_cWriteLockObj);
+                    outString = _lastLogLine;
                 }
-                finally { Monitor.Exit(CWriteLockObj); }
-                return Out;
+                finally { Monitor.Exit(s_cWriteLockObj); }
+                return outString;
             }
         }
         public static Boolean QueryFullscreen()
         {
-            return graphics.IsFullScreen;
+            return s_graphics.IsFullScreen;
         }
         public static void ToggleFullscreen()
         {
-            if(!graphics.IsFullScreen)
+            if (!s_graphics.IsFullScreen)
             {
-                Vector2 FullScreenSize = new Vector2(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height);
-                graphics.PreferredBackBufferWidth = (int)FullScreenSize.X;
-                graphics.PreferredBackBufferHeight = (int)FullScreenSize.Y;
-                ScreenSize = FullScreenSize;
-                graphics.ApplyChanges();
-                graphics.IsFullScreen = true;
+                Vector2 fullScreenSize = new Vector2(GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width, GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height);
+                s_graphics.PreferredBackBufferWidth = (int)fullScreenSize.X;
+                s_graphics.PreferredBackBufferHeight = (int)fullScreenSize.Y;
+                WindowSize = fullScreenSize;
+                s_graphics.ApplyChanges();
+                s_graphics.IsFullScreen = true;
             }
             else
             {
-                Vector2 FullScreenSize = new Vector2(1280, 720);
-                graphics.PreferredBackBufferWidth = (int)FullScreenSize.X;
-                graphics.PreferredBackBufferHeight = (int)FullScreenSize.Y;
-                ScreenSize = FullScreenSize;
-                graphics.ApplyChanges();
-                graphics.IsFullScreen = false;
+                Vector2 fullScreenSize = Resolution;
+                s_graphics.PreferredBackBufferWidth = (int)fullScreenSize.X;
+                s_graphics.PreferredBackBufferHeight = (int)fullScreenSize.Y;
+                WindowSize = fullScreenSize;
+                s_graphics.ApplyChanges();
+                s_graphics.IsFullScreen = false;
             }
-            if (!(CaptureFullscreen is null)) { CaptureFullscreen.ForceState(graphics.IsFullScreen); }
-            graphics.ApplyChanges();
+            if (!(CaptureFullscreen is null)) { CaptureFullscreen.ForceState(s_graphics.IsFullScreen); }
+            s_graphics.ApplyChanges();
         }
         public static void DefaultSettings()
         {
@@ -432,8 +438,8 @@ namespace VNFramework
             GlobalVolume = 0.6f;
             TextEntity.TickWriteInterval = 30;
             SaveLoadModule.ApplicableSaveType = "FullySerializedBinary";
-            if(graphics.IsFullScreen) { ToggleFullscreen(); }
-            if(CaptureFullscreen != null)
+            if (s_graphics.IsFullScreen) { ToggleFullscreen(); }
+            if (CaptureFullscreen != null)
             {
                 CaptureFullscreen.ForceState(QueryFullscreen());
             }
@@ -462,27 +468,55 @@ namespace VNFramework
         }
         public static List<Object[]> InternalLog = new List<object[]>();
         public RenderTarget2D TrueDisplay;
-        public static ArrayList RenderQueue = new ArrayList();
-        public static ArrayList UpdateQueue = new ArrayList();
-        public static ArrayList DeleteQueue = new ArrayList();
-        public static ArrayList RunQueue = new ArrayList();
+        public static List<WorldEntity> RenderQueue = new List<WorldEntity>();
+        public static List<WorldEntity> UpdateQueue = new List<WorldEntity>();
+        public static List<WorldEntity> DeleteQueue = new List<WorldEntity>();
+        public static List<VoidDel> RunQueue = new List<VoidDel>();
         public static TAtlasInfo TestAtlas = new TAtlasInfo();
         public static SpriteFont SysFont;
         public static SpriteFont Default;
         public static SpriteFont King;
-        public static Vector2 ScreenSize = new Vector2(1280, 720);
-        public static Shell DefaultShell { get; set; }
-        public Shell(String BootManifestFilePath, String BootManifestTitle)
+        public static Vector2 WindowSize { get; private set; }
+        private static Vector2? AsyncResUpdate = null;
+        private static Vector2 s_resolution = new Vector2(1280, 720);
+        public static Vector2 Resolution
         {
-            pBootManifest = BootManifestFilePath;
-            pBootManifestReadTitle = BootManifestTitle;
+            get
+            {
+                return s_resolution;
+            }
+            set
+            {
+                s_resolution = value;
+                DefaultShell.TrueDisplay = new RenderTarget2D(
+                    DefaultShell.GraphicsDevice,
+                    (int)s_resolution.X,
+                    (int)s_resolution.Y,
+                    false,
+                    DefaultShell.GraphicsDevice.PresentationParameters.BackBufferFormat,
+                    DepthFormat.Depth24);
+                if (!s_graphics.IsFullScreen)
+                {
+                    s_graphics.PreferredBackBufferWidth = (int)s_resolution.X;
+                    s_graphics.PreferredBackBufferHeight = (int)s_resolution.Y;
+                    WindowSize = s_resolution;
+                    s_graphics.ApplyChanges();
+                }
+                if (AutoCamera != null) { AutoCamera.CenterDefault(); }
+            }
+        }
+        public static Shell DefaultShell { get; set; }
+        public Shell(String bootManifestFilePath, String bootManifestTitle)
+        {
+            _bootManifest = bootManifestFilePath;
+            _bootManifestReadTitle = bootManifestTitle;
             DefaultShell = this;
-            pHasConsole = true;
+            s_hasConsole = true;
             try { int window_height = Console.WindowHeight; }
-            catch { pHasConsole = false; }
+            catch { s_hasConsole = false; }
             this.IsMouseVisible = true;
-            graphics = new GraphicsDeviceManager(this);
-            graphics.PreferHalfPixelOffset = true;
+            s_graphics = new GraphicsDeviceManager(this);
+            s_graphics.PreferHalfPixelOffset = true;
             Content.RootDirectory = "Content";
         }
         /// <summary>
@@ -496,11 +530,9 @@ namespace VNFramework
             WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
-            graphics.PreferredBackBufferHeight = (int)ScreenSize.Y;
-            graphics.PreferredBackBufferWidth = (int)ScreenSize.X;
-            graphics.HardwareModeSwitch = false;
+            s_graphics.HardwareModeSwitch = false;
+            Resolution = new Vector2(1920, 1080);
             this.IsMouseVisible = true;
-            graphics.ApplyChanges();
             SaveLoadModule.InitializeAppFolders();
             LooseCamera = true;
             AutoCamera = new Camera("Default Shell Autocamera");
@@ -521,31 +553,31 @@ namespace VNFramework
         /// </summary>
         public static void ResetFlags()
         {
-            Flags = new Hashtable();
+            s_flags = new Hashtable();
             Sofia.InitSofiaFlags();
         }
-        public static void UpdateFlag(String Index, object Value)
+        public static void UpdateFlag(String index, object value)
         {
-            if (Flags.ContainsKey(Index.ToUpper())) { Flags[Index.ToUpper()] = Value; }
-            else { Flags.Add(Index.ToUpper(), Value); }
-            WriteLine("Flag updated: " + Index + " set to " + Value);
+            if (s_flags.ContainsKey(index.ToUpper())) { s_flags[index.ToUpper()] = value; }
+            else { s_flags.Add(index.ToUpper(), value); }
+            WriteLine("Flag updated: " + index + " set to " + value);
         }
-        public static object ReadFlag(String Index)
+        public static object ReadFlag(String index)
         {
-            if (Flags.ContainsKey(Index.ToUpper())) { return Flags[Index.ToUpper()]; }
+            if (s_flags.ContainsKey(index.ToUpper())) { return s_flags[index.ToUpper()]; }
             else { return null; }
         }
-        private static Boolean pMute = false;
+        private static Boolean _mute = false;
         public static Boolean Mute
         {
             get
             {
-                return pMute;
+                return _mute;
             }
             set
             {
-                pMute = value;
-                if(pMute)
+                _mute = value;
+                if(_mute)
                 {
                     if(!(CaptureVolume is null))
                     {
@@ -553,9 +585,9 @@ namespace VNFramework
                         CaptureVolume.Enabled = false;
                     }
                     MediaPlayer.IsMuted = true;
-                    foreach(SoundEffectInstance S in ActiveSounds)
+                    foreach(SoundEffectInstance sfxInstance in ActiveSounds)
                     {
-                        S.Volume = 0f;
+                        sfxInstance.Volume = 0f;
                     }
                 }
                 else
@@ -566,93 +598,94 @@ namespace VNFramework
                         CaptureVolume.Enabled = true;
                     }
                     MediaPlayer.IsMuted = false;
-                    foreach (SoundEffectInstance S in ActiveSounds)
+                    foreach (SoundEffectInstance sfxInstance in ActiveSounds)
                     {
-                        S.Volume = GlobalVolume;
+                        sfxInstance.Volume = GlobalVolume;
                     }
                 }
             }
         }
-        public static Boolean PlaySoundInstant(String SFXIndex)
+        public static Boolean PlaySoundInstant(String sfxIndex)
         {
-            return PlaySoundInstant(SFXIndex, false);
+            return PlaySoundInstant(sfxIndex, false);
         }
-        public static Boolean PlaySoundInstant(String SFXIndex, Boolean Loop)
+        public static Boolean PlaySoundInstant(String sfxIndex, Boolean loop)
         {
-            if(Mute | !SFXDirectory.ContainsKey(SFXIndex.ToUpper())) { return false; }
-            SoundEffectInstance LocalSound = ((SoundEffect)SFXDirectory[SFXIndex.ToUpper()]).CreateInstance();
+            if(Mute | !SFXDirectory.ContainsKey(sfxIndex.ToUpper())) { return false; }
+            SoundEffectInstance LocalSound = ((SoundEffect)SFXDirectory[sfxIndex.ToUpper()]).CreateInstance();
             LocalSound.Volume = GlobalVolume;
-            LocalSound.IsLooped = Loop;
+            LocalSound.IsLooped = loop;
             LocalSound.Play();
             ActiveSounds.Add(LocalSound);
             return true;
         }
-        private static float pGlobalVolume = 1f;
+        private static float s_globalVolume = 1f;
         public static float GlobalVolume
         {
             get
             {
-                return pGlobalVolume;
+                return s_globalVolume;
             }
             set
             {
-                pGlobalVolume = value;
-                MediaPlayer.Volume = pGlobalVolume;
-                foreach (SoundEffectInstance S in ActiveSounds)
+                s_globalVolume = value;
+                MediaPlayer.Volume = s_globalVolume;
+                foreach (SoundEffectInstance sfxInstance in ActiveSounds)
                 {
-                    S.Volume = pGlobalVolume;
+                    sfxInstance.Volume = s_globalVolume;
                 }
             }
         }
-        public static void QueueInstantTrack(Song S)
+        public static void QueueInstantTrack(Song song)
         {
-            QueueInstantTrack(S, 60f);
+            QueueInstantTrack(song, 60f);
         }
-        public static void QueueInstantTrack(Song S, float FadeoutDivisor)
+        public static void QueueInstantTrack(Song song, float fadeoutDivisor)
         {
-            if (MediaPlayer.State == MediaState.Stopped) { MediaPlayer.Play(S); }
+            if (MediaPlayer.State == MediaState.Stopped) { MediaPlayer.Play(song); }
             else
             {
-                QueuedSong = S;
-                FadeoutAmount = pGlobalVolume / (FadeoutDivisor);
+                s_queuedSong = song;
+                s_fadeoutAmount = s_globalVolume / (fadeoutDivisor);
             }
         }
         public static void OneFadeout()
         {
             OneFadeout(60f);
         }
-        public static void OneFadeout(float FadeoutDivisor)
+        public static void OneFadeout(float fadeoutDivisor)
         {
             if(MediaPlayer.State == MediaState.Stopped) { return; }
-            QueuedSong = null;
-            FadeoutAmount = pGlobalVolume / (FadeoutDivisor);
+            s_queuedSong = null;
+            s_fadeoutAmount = s_globalVolume / (fadeoutDivisor);
         }
-        static float FadeoutAmount = -100;
-        static Song QueuedSong = null;
+        static float s_fadeoutAmount = -100;
+        static Song s_queuedSong = null;
         public static TAtlasInfo ButtonAtlas = new TAtlasInfo();
         public static Texture2D TestLongRect;
-        public static Hashtable AtlasDirectory = new Hashtable();
-        public static Hashtable SFXDirectory = new Hashtable();
-        public static Hashtable SongDirectory = new Hashtable();
-        public static ArrayList ActiveSounds = new ArrayList();
+        public static Dictionary<string, TAtlasInfo> AtlasDirectory = new Dictionary<string, TAtlasInfo>();
+        public static Dictionary<string, SoundEffect> SFXDirectory = new Dictionary<string, SoundEffect>();
+        public static Dictionary<string, Song> SongDirectory = new Dictionary<string, Song>();
+        public static List<SoundEffectInstance> ActiveSounds = new List<SoundEffectInstance>();
         public static Checkbox CaptureFullscreen = null;
         public static Slider CaptureTextrate = null;
         public static TextEntity CaptureRateDisplay = null;
         public static Checkbox CaptureMute = null;
         public static Checkbox CaptureSaveType = null;
         public static Slider CaptureVolume = null;
-        public static Hashtable Fonts = new Hashtable();
+        public static Dictionary<string, SpriteFont> Fonts = new Dictionary<string, SpriteFont>();
         public float LoadPercentage { get; set; }
+        public object AResLockObj = new object();
         public object LPLockObj = new object();
-        String pBootManifest;
-        String pBootManifestReadTitle;
+        String _bootManifest;
+        String _bootManifestReadTitle;
         public String BootManifest
         {
-            get { return pBootManifest; }
+            get { return _bootManifest; }
         }
         public String BootManifestReadTitle
         {
-            get { return pBootManifestReadTitle; }
+            get { return _bootManifestReadTitle; }
         }
         public static void AutoShift()
         {
@@ -661,77 +694,83 @@ namespace VNFramework
         protected object[] AsyncLoad()
         {
             WriteLine("Preload complete, loading remaining content...");
-            ScriptProcessor.ScriptCache = new Hashtable();
+            ScriptProcessor.ScriptCache = new Dictionary<string, object[]>();
 
             TestAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/LethalHexWalk1");
             TestAtlas.DivDimensions = new Point(1, 1);
 
-            TAtlasInfo InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Logos/MatmutLogo");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            AtlasDirectory.Add("MATMUTLOGO", InsertAtlas);
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/MatmutBG");
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            AtlasDirectory.Add("MATMUTBG", InsertAtlas);
+            TAtlasInfo insertAtlas = new TAtlasInfo();
+            insertAtlas.Atlas = Content.Load<Texture2D>("Textures/Logos/MatmutLogo");
+            insertAtlas.DivDimensions = new Point(1, 1);
+            AtlasDirectory.Add("MATMUTLOGO", insertAtlas);
+            insertAtlas = new TAtlasInfo();
+            insertAtlas.Atlas = Content.Load<Texture2D>("Textures/Environment/Backdrops/MatmutBG");
+            insertAtlas.DivDimensions = new Point(1, 1);
+            AtlasDirectory.Add("MATMUTBG", insertAtlas);
 
-            InsertAtlas = new TAtlasInfo();
-            InsertAtlas.DivDimensions = new Point(1, 1);
-            InsertAtlas.SetManualSR(new Rectangle(new Point(0, 0), new Point(320, 180)));
-            AtlasDirectory.Add("THUMBBLANK", InsertAtlas);
+            insertAtlas = new TAtlasInfo();
+            insertAtlas.DivDimensions = new Point(1, 1);
+            insertAtlas.SetManualSR(new Rectangle(new Point(0, 0), new Point(320, 180)));
+            AtlasDirectory.Add("THUMBBLANK", insertAtlas);
 
-            Hashtable Manifests = ManifestReader.ReadManifestFile(BootManifest);
-            object[] Resources = ManifestReader.ParseManifest((String)Manifests[BootManifestReadTitle], this);
-            String FirstScript = "";
-            Boolean RunFirstAsUnique = true;
+            Dictionary<string, string> manifests = ManifestReader.ReadManifestFile(BootManifest);
+            object[] resources = ManifestReader.ParseManifest((String)manifests[BootManifestReadTitle], this);
+            String firstScript = "";
+            Boolean runFirstAsUnique = true;
             WriteLine("Reading application metainfo...");
-            if (((Hashtable)Resources[0]).ContainsKey("startatscript"))
+            if (((Dictionary<object, object>)resources[0]).ContainsKey("startatscript"))
             {
-                FirstScript = (String)((Hashtable)Resources[0])["startatscript"];
+                firstScript = (String)((Dictionary<object, object>)resources[0])["startatscript"];
             }
-            if (((Hashtable)Resources[0]).ContainsKey("useunique"))
+            if (((Dictionary<object, object>)resources[0]).ContainsKey("useunique"))
             {
-                RunFirstAsUnique = (Boolean)((Hashtable)Resources[0])["useunique"];
+                runFirstAsUnique = (Boolean)((Dictionary<object, object>)resources[0])["useunique"];
+            }
+            if (((Dictionary<object, object>)resources[0]).ContainsKey("defaultresolution"))
+            {
+                Monitor.Enter(AResLockObj);
+                AsyncResUpdate = (Vector2)((Dictionary<object, object>)resources[0])["defaultresolution"];
+                Monitor.Exit(AResLockObj);
             }
             WriteLine("Ingesting utility scripts...");
             ManifestReader.IngestScriptFile("vnf_utils.esa");
             WriteLine("Ingesting application scripts...");
             int i = 0;
-            foreach (String Script in ((ArrayList)Resources[1]))
+            foreach (String script in ((List<string>)resources[1]))
             {
-                ManifestReader.IngestScriptFile(Script);
+                ManifestReader.IngestScriptFile(script);
                 i++;
                 Monitor.Enter(LPLockObj);
-                LoadPercentage = (float)(0.95f + (0.05 * (i / ((ArrayList)Resources[1]).Count)));
+                LoadPercentage = (float)(0.95f + (0.05 * (i / ((List<string>)resources[1]).Count)));
                 Monitor.Exit(LPLockObj);
             }
             WriteLine("Integrating loaded resources...");
-            foreach (object key in ((Hashtable)Resources[2]).Keys)
+            foreach (String key in ((Dictionary<object, SpriteFont>)resources[2]).Keys)
             {
-                Fonts.Add(key, (SpriteFont)((Hashtable)Resources[2])[key]);
+                Fonts.Add(key, ((Dictionary<object, SpriteFont>)resources[2])[key]);
             }
-            foreach (object key in ((Hashtable)Resources[3]).Keys)
+            foreach (String key in ((Dictionary<object, SoundEffect>)resources[3]).Keys)
             {
-                SFXDirectory.Add(key, (SoundEffect)((Hashtable)Resources[3])[key]);
+                SFXDirectory.Add(key, ((Dictionary<object, SoundEffect>)resources[3])[key]);
             }
-            foreach (object key in ((Hashtable)Resources[4]).Keys)
+            foreach (String key in ((Dictionary<object, Song>)resources[4]).Keys)
             {
-                SongDirectory.Add(key, (Song)((Hashtable)Resources[4])[key]);
+                SongDirectory.Add(key, ((Dictionary<object, Song>)resources[4])[key]);
             }
-            foreach (String key in ((Hashtable)Resources[5]).Keys)
+            foreach (String key in ((Dictionary<object, TAtlasInfo>)resources[5]).Keys)
             {
-                AtlasDirectory.Add(key, (TAtlasInfo)((Hashtable)Resources[5])[key]);
+                AtlasDirectory.Add(key, ((Dictionary<object, TAtlasInfo>)resources[5])[key]);
             }
-            ArrayList ADKeys = new ArrayList();
-            foreach (String K in AtlasDirectory.Keys)
+            List<string> adKeys = new List<string>();
+            foreach (String key in AtlasDirectory.Keys)
             {
-                ADKeys.Add(K);
+                adKeys.Add(key);
             }
-            foreach (String K in ADKeys)
+            foreach (String key in adKeys)
             {
-                TAtlasInfo Copy = ((TAtlasInfo)AtlasDirectory[K]);
-                Copy.ReferenceHash = K;
-                AtlasDirectory[K] = Copy;
+                TAtlasInfo copy = ((TAtlasInfo)AtlasDirectory[key]);
+                copy.ReferenceHash = key;
+                AtlasDirectory[key] = copy;
             }
             TestLongRect = Content.Load<Texture2D>("Textures/Entities/UI/Elements/TestLongRect");
             ButtonAtlas.Atlas = Content.Load<Texture2D>("Textures/Entities/UI/Buttons/ButtonDefault");
@@ -740,27 +779,27 @@ namespace VNFramework
             LoadPercentage = 1;
             Monitor.Exit(LPLockObj);
             WriteLine("Content load complete.");
-            return new object[] { FirstScript, RunFirstAsUnique };
+            return new object[] { firstScript, runFirstAsUnique };
         }
-        private WorldEntity LoadBar;
+        private WorldEntity _loadBar;
         public WorldEntity LoadBarObj
         {
             get
             {
-                return LoadBar;
+                return _loadBar;
             }
         }
-        private WorldEntity LoadCover;
-        private TextEntity LoadText;
+        private WorldEntity _loadCover;
+        private TextEntity _loadText;
         protected override void LoadContent()
         {
             WriteLine("VNF is loading content...");
             // Create a new SpriteBatch, which can be used to draw textures.
-            pSpriteBatch = new SpriteBatch(GraphicsDevice);
+            _spriteBatch = new SpriteBatch(GraphicsDevice);
             TrueDisplay = new RenderTarget2D(
                 GraphicsDevice,
-                1280,
-                720,
+                (int)Resolution.X,
+                (int)Resolution.Y,
                 false,
                 GraphicsDevice.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
@@ -769,25 +808,25 @@ namespace VNFramework
             Default = Content.Load<SpriteFont>("Fonts/Default");
             King = Content.Load<SpriteFont>("Fonts/Zenda");
 
-            TAtlasInfo BarAtlas = new TAtlasInfo();
-            BarAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingBar");
-            BarAtlas.DivDimensions = new Point(1, 1);
-            TAtlasInfo CoverAtlas = new TAtlasInfo();
-            CoverAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingCover");
-            CoverAtlas.DivDimensions = new Point(1, 1);
+            TAtlasInfo barAtlas = new TAtlasInfo();
+            barAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingBar");
+            barAtlas.DivDimensions = new Point(1, 1);
+            TAtlasInfo coverAtlas = new TAtlasInfo();
+            coverAtlas.Atlas = Content.Load<Texture2D>("Textures/Preload/LoadingCover");
+            coverAtlas.DivDimensions = new Point(1, 1);
 
-            Vector2 AssumedScreenSize = new Vector2(1280, 720);
+            Vector2 assumedScreenSize = Resolution;
 
-            LoadBar = new WorldEntity("LOADBAR", new Vector2((AssumedScreenSize.X / 2) - 250, (AssumedScreenSize.Y / 2) + 100), BarAtlas, 0.5f);
-            LoadCover = new WorldEntity("LOADCOVER", new Vector2((AssumedScreenSize.X / 2) + 243, (AssumedScreenSize.Y / 2) + 107), CoverAtlas, 1f);
-            LoadCover.SetManualOrigin(new Vector2(486, 0));
-            LoadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((AssumedScreenSize.X / 2) - 250, (AssumedScreenSize.Y / 2) + 200), 1f);
-            LoadText.BufferLength = 500;
-            LoadText.TypeWrite = false;
+            _loadBar = new WorldEntity("LOADBAR", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 100), barAtlas, 0.5f);
+            _loadCover = new WorldEntity("LOADCOVER", new Vector2((assumedScreenSize.X / 2) + 243, (assumedScreenSize.Y / 2) + 107), coverAtlas, 1f);
+            _loadCover.SetManualOrigin(new Vector2(486, 0));
+            _loadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 200), 1f);
+            _loadText.BufferLength = 500;
+            _loadText.TypeWrite = false;
 
-            RenderQueue.Add(LoadBar);
-            RenderQueue.Add(LoadCover);
-            RenderQueue.Add(LoadText);
+            RenderQueue.Add(_loadBar);
+            RenderQueue.Add(_loadCover);
+            RenderQueue.Add(_loadText);
 
             LoadGraphicsQueue = new Queue();
             LoadPercentage = 0f;
@@ -807,11 +846,6 @@ namespace VNFramework
             SaveLoadModule.WriteFinals();
         }
 
-        /// <summary>
-        /// Allows the game to run logic such as updating the world,
-        /// checking for collisions, gathering input, and playing audio.
-        /// </summary>
-        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         [field: NonSerialized]
         public static event VoidDel MouseLeftClick;
         public static event VoidDel UpKeyPress;
@@ -821,12 +855,17 @@ namespace VNFramework
         public static Boolean ExitOut = false;
         public static Boolean AllowEnter = true;
         public static Boolean DoNextShifter { get; set; }
-        float LastCapturedVol = 0f;
-        float LastCapturedText = 0f;
+        float lastCapturedVol = 0f;
+        float lastCapturedText = 0f;
         public Queue LoadGraphicsQueue { get; set; }
+        /// <summary>
+        /// Allows the game to run logic such as updating the world,
+        /// checking for collisions, gathering input, and playing audio.
+        /// </summary>
+        /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
-            KeyboardState KCurrent = Keyboard.GetState();
+            KeyboardState kCurrent = Keyboard.GetState();
             if (LoadOperation != null && !LoadOperation.IsCompleted)
             {
                 try
@@ -834,20 +873,30 @@ namespace VNFramework
                     Monitor.Enter(LoadGraphicsQueue);
                     while (LoadGraphicsQueue.Count > 0)
                     {
-                        Task GraphTask = (Task)LoadGraphicsQueue.Dequeue();
-                        GraphTask.RunSynchronously();
+                        Task graphTask = (Task)LoadGraphicsQueue.Dequeue();
+                        graphTask.RunSynchronously();
                     }
                 }
                 finally { Monitor.Exit(LoadGraphicsQueue); }
                 try
                 {
                     Monitor.Enter(LPLockObj);
-                    LoadCover.Scale(new Vector2((1 - LoadPercentage) - LoadCover.ScaleSize.X, 0));
+                    _loadCover.Scale(new Vector2((1 - LoadPercentage) - _loadCover.Size.X, 0));
                 }
                 finally { Monitor.Exit(LPLockObj); }
-                LoadText.Text = "[F:SYSFONT]" + LastLogLine;
-                if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
-                LastKeyState = KCurrent;
+                try
+                {
+                    Monitor.Enter(AResLockObj);
+                    if (AsyncResUpdate != null)
+                    {
+                        Resolution = (Vector2)AsyncResUpdate;
+                        AsyncResUpdate = null;
+                    }
+                }
+                finally { Monitor.Exit(AResLockObj);}
+                _loadText.Text = "[F:SYSFONT]" + LastLogLine;
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
+                LastKeyState = kCurrent;
             }
             else
             {
@@ -859,37 +908,37 @@ namespace VNFramework
                         Exit();
                         return;
                     }
-                    object[] LoadResult = LoadOperation.GetAwaiter().GetResult();
-                    String FirstScript = (String)LoadResult[0];
-                    Boolean RunFirstAsUnique = (Boolean)LoadResult[1];
-                    if (FirstScript.Length > 0)
+                    object[] loadResult = LoadOperation.GetAwaiter().GetResult();
+                    String firstScript = (String)loadResult[0];
+                    Boolean runFirstAsUnique = (Boolean)loadResult[1];
+                    if (firstScript.Length > 0)
                     {
                         WriteLine("Priming first script.");
-                        if (RunFirstAsUnique)
+                        if (runFirstAsUnique)
                         {
-                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("INTRO_SNIFFER_UNIQUE", ScriptProcessor.RetrieveScriptByName(FirstScript), FirstScript));
+                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("INTRO_SNIFFER_UNIQUE", ScriptProcessor.RetrieveScriptByName(firstScript), firstScript));
                         }
                         else
                         {
-                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer(FirstScript + "_SNIFFER", ScriptProcessor.RetrieveScriptByName(FirstScript), FirstScript));
+                            Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer(firstScript + "_SNIFFER", ScriptProcessor.RetrieveScriptByName(firstScript), firstScript));
                         }
                     }
-                    LoadBar.AnimationQueue.Add(Animation.Retrieve("FADEOUT"));
-                    LoadBar.TransientAnimation = true;
-                    UpdateQueue.Add(LoadBar);
-                    DeleteQueue.Add(LoadCover);
-                    DeleteQueue.Add(LoadText);
+                    _loadBar.AnimationQueue.Add(Animation.Retrieve("FADEOUT"));
+                    _loadBar.TransientAnimation = true;
+                    UpdateQueue.Add(_loadBar);
+                    DeleteQueue.Add(_loadCover);
+                    DeleteQueue.Add(_loadText);
                     LoadOperation.Dispose();
                     LoadOperation = null;
                 }
-                MainUpdate(gameTime, KCurrent);
+                MainUpdate(gameTime, kCurrent);
             }
             base.Update(gameTime);
         }
         public static Boolean ConsoleOpen { get; set; }
-        protected void MainUpdate(GameTime gameTime, KeyboardState KCurrent)
+        protected void MainUpdate(GameTime gameTime, KeyboardState kCurrent)
         {
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
             {
                 if (ScriptProcessor.ActiveGame())
                 {
@@ -898,7 +947,7 @@ namespace VNFramework
                 }
                 else { ButtonScripts.Quit(); }
             }
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde))
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde))
             {
                 if (!ConsoleOpen)
                 {
@@ -911,96 +960,96 @@ namespace VNFramework
                     ConsoleOpen = false;
                 }
             }
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && ScriptProcessor.ActiveGame())
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && ScriptProcessor.ActiveGame())
             {
                 ButtonScripts.RefreshUIHideState();
             }
             if (AutoCamera != null && LooseCamera)
             {
-                if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R))
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R))
                 {
                     AutoCamera.CenterDefault();
                     AutoCamera.ResetZoom();
                 }
-                AutoCamera.MouseDragEnabled = KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
+                AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
                 if(!UpdateQueue.Contains(AutoCamera)) { UpdateQueue.Add(AutoCamera); }
             }
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
             {
                 Exit();
             }
-            if (((KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen) || DoNextShifter) && AllowEnter)
+            if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen) || DoNextShifter) && AllowEnter)
             {
                 DoNextShifter = false;
-                Boolean Found = false;
-                foreach(WorldEntity E in UpdateQueue)
+                Boolean found = false;
+                foreach(WorldEntity worldEntity in UpdateQueue)
                 {
-                    if(E is TextEntity && E.Name == "TEXT_MAIN")
+                    if(worldEntity is TextEntity && worldEntity.Name == "TEXT_MAIN")
                     {
-                        if(((TextEntity)E).WrittenAll()) { GlobalWorldState = "CONTINUE"; }
-                        ((TextEntity)E).SkipWrite();
-                        Found = true;
+                        if(((TextEntity)worldEntity).WrittenAll()) { GlobalWorldState = "CONTINUE"; }
+                        ((TextEntity)worldEntity).SkipWrite();
+                        found = true;
                         break;
                     }
                 }
-                if(!Found) { GlobalWorldState = "CONTINUE"; }
+                if(!found) { GlobalWorldState = "CONTINUE"; }
             }      
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { UpKeyPress?.Invoke(); }
-            if (KCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DownKeyPress?.Invoke(); }
-            LastKeyState = KCurrent;
-            foreach (WorldEntity E in UpdateQueue)
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { UpKeyPress?.Invoke(); }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DownKeyPress?.Invoke(); }
+            LastKeyState = kCurrent;
+            foreach (WorldEntity worldEntity in UpdateQueue)
             {
-                E.Update();
+                worldEntity.Update();
             }
-            foreach (WorldEntity E in DeleteQueue)
+            foreach (WorldEntity worldEntity in DeleteQueue)
             {
-                if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
-                if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
-                if (NonSerializables.Contains(E)) { NonSerializables.Remove(E); }
-                E.ManualDispose();
+                if (UpdateQueue.Contains(worldEntity)) { UpdateQueue.Remove(worldEntity); }
+                if (RenderQueue.Contains(worldEntity)) { RenderQueue.Remove(worldEntity); }
+                if (NonSerializables.Contains(worldEntity)) { NonSerializables.Remove(worldEntity); }
+                worldEntity.ManualDispose();
             }
-            DeleteQueue = new ArrayList();
-            foreach (VoidDel V in RunQueue)
+            DeleteQueue = new List<WorldEntity>();
+            foreach (VoidDel runVoid in RunQueue)
             {
-                V();
+                runVoid();
             }
-            RunQueue = new ArrayList();
-            if(FadeoutAmount != -100)
+            RunQueue = new List<VoidDel>();
+            if(s_fadeoutAmount != -100)
             {
                 if(MediaPlayer.Volume > 0)
                 {
-                    MediaPlayer.Volume -= FadeoutAmount;
+                    MediaPlayer.Volume -= s_fadeoutAmount;
                 }
                 else
                 {
                     MediaPlayer.Volume = GlobalVolume;
-                    if (QueuedSong != null) { MediaPlayer.Play(QueuedSong); }
+                    if (s_queuedSong != null) { MediaPlayer.Play(s_queuedSong); }
                     else { MediaPlayer.Stop(); }
-                    QueuedSong = null;
-                    FadeoutAmount = -100;
+                    s_queuedSong = null;
+                    s_fadeoutAmount = -100;
                 }
             }
-            ArrayList RemSounds = new ArrayList();
+            List<SoundEffectInstance> removeSounds = new List<SoundEffectInstance>();
             if (!(CaptureVolume is null) && CaptureVolume.Enabled)
             {
-                if (CaptureVolume.Output() != LastCapturedVol)
+                if (CaptureVolume.Output() != lastCapturedVol)
                 {
                     GlobalVolume = CaptureVolume.Output();
                 }
-                LastCapturedVol = CaptureVolume.Output();
+                lastCapturedVol = CaptureVolume.Output();
             }
-            foreach (SoundEffectInstance S in ActiveSounds)
+            foreach (SoundEffectInstance sound in ActiveSounds)
             {
-                if(S.State == SoundState.Stopped) { RemSounds.Add(S); }
+                if(sound.State == SoundState.Stopped) { removeSounds.Add(sound); }
             }
-            foreach(SoundEffectInstance RS in RemSounds)
+            foreach(SoundEffectInstance removeSound in removeSounds)
             {
-                ActiveSounds.Remove(RS);
+                ActiveSounds.Remove(removeSound);
             }
             if (!(CaptureTextrate is null) && CaptureTextrate.Enabled)
             {
-                if (CaptureTextrate.Output() != LastCapturedText)
+                if (CaptureTextrate.Output() != lastCapturedText)
                 {
                     TextEntity.TickWriteInterval = TextEntity.GetTicksFromSliderValue(CaptureTextrate.Output());
                     if(!(CaptureRateDisplay is null))
@@ -1009,11 +1058,11 @@ namespace VNFramework
                         CaptureRateDisplay.ReWrite();
                     }
                 }
-                LastCapturedText = CaptureTextrate.Output();
+                lastCapturedText = CaptureTextrate.Output();
             }
-            MouseState Current = Mouse.GetState();
-            if(Current.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && LastMouseState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
-            LastMouseState = Current;
+            MouseState currentMouseState = Mouse.GetState();
+            if(currentMouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && LastMouseState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
+            LastMouseState = currentMouseState;
             if (GlobalVoid != null)
             {
                 GlobalVoid();
@@ -1021,52 +1070,52 @@ namespace VNFramework
             }
         }
 
+        public static Boolean HoldRender = false;
         /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
-        public static Boolean HoldRender = false;
         protected override void Draw(GameTime gameTime)
         {
-            foreach(WorldEntity E in RenderQueue)
+            foreach(WorldEntity worldEntity in RenderQueue)
             {
-                if(!(E is Pane || E is VerticalScrollPane)) { continue; }
-                else if (E is Pane && ((Pane)E).RenderAlways) { ((Pane)E).Render(); }
-                else if (E is VerticalScrollPane && ((VerticalScrollPane)E).AssociatedPane.RenderAlways) { ((VerticalScrollPane)E).AssociatedPane.Render(); }
+                if(!(worldEntity is Pane || worldEntity is VerticalScrollPane)) { continue; }
+                else if (worldEntity is Pane && ((Pane)worldEntity).RenderAlways) { ((Pane)worldEntity).Render(); }
+                else if (worldEntity is VerticalScrollPane && ((VerticalScrollPane)worldEntity).AssociatedPane.RenderAlways) { ((VerticalScrollPane)worldEntity).AssociatedPane.Render(); }
             }
             GraphicsDevice.SetRenderTarget(TrueDisplay);
             GraphicsDevice.Clear(Color.Black);
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+            ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
             if (!HoldRender)
             {
                 if (AutoCamera == null)
                 {
-                    foreach (WorldEntity E in RenderQueue)
+                    foreach (WorldEntity worldEntity in RenderQueue)
                     {
-                        if (E.Drawable)
+                        if (worldEntity.Drawable)
                         {
-                            if (E.CustomCamera != null) { E.Draw(spriteBatch, E.CustomCamera); }
-                            else { E.Draw(spriteBatch); }
+                            if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
+                            else { worldEntity.Draw(ShellSpriteBatch); }
                         }
                     }
                 }
                 else
                 {
-                    foreach (WorldEntity E in RenderQueue)
+                    foreach (WorldEntity worldEntity in RenderQueue)
                     {
-                        if (E.Drawable)
+                        if (worldEntity.Drawable)
                         {
-                            if (E.CustomCamera != null) { E.Draw(spriteBatch, E.CustomCamera); }
-                            else { E.Draw(spriteBatch, AutoCamera); }
+                            if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
+                            else { worldEntity.Draw(ShellSpriteBatch, AutoCamera); }
                         }
                     }
                 }
             }
-            spriteBatch.End();
+            ShellSpriteBatch.End();
             GraphicsDevice.SetRenderTarget(null);
-            spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            spriteBatch.Draw(TrueDisplay, new Rectangle(0, 0, (int)ScreenSize.X, (int)ScreenSize.Y), Color.White);
-            spriteBatch.End();
+            ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
+            ShellSpriteBatch.Draw(TrueDisplay, new Rectangle(0, 0, (int)WindowSize.X, (int)WindowSize.Y), Color.White);
+            ShellSpriteBatch.End();
             base.Draw(gameTime);
         }
     }

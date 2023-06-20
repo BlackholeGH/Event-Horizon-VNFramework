@@ -21,50 +21,63 @@ namespace VNFramework
     [Serializable]
     public class WorldEntity
     {
-        protected Boolean pOverlayUtility = false;
+        private Boolean _overlayUtility = false;
         public Boolean OverlayUtility
         {
             get
             {
-                return pOverlayUtility;
+                return _overlayUtility;
             }
             set
             {
-                pOverlayUtility = value;
-                if(pOverlayUtility && !Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Add(this); }
-                else if (!pOverlayUtility && Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
+                _overlayUtility = value;
+                if(_overlayUtility && !Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Add(this); }
+                else if (!_overlayUtility && Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
             }
         }
         public static ulong IDIterator = 0;
-        protected ulong pEntityID;
+        private ulong _entityID;
         [field: NonSerialized]
-        protected int Updatetime = Environment.TickCount;
-        protected String pName;
-        protected Boolean pDrawable = true;
-        protected TAtlasInfo LocalAtlas;
-        protected Vector2 pDrawCoords;
-        protected Point pAtlasCoordinates = new Point(0, 0);
+        private int _updatetime = Environment.TickCount;
+        protected int Updatetime
+        {
+            get { return _updatetime; }
+            set { _updatetime = value; }
+        }
+        private String _name;
+        private Boolean _drawable = true;
+        private TAtlasInfo _localAtlas;
+        private Vector2 _drawCoords;
+        private Point _atlasCoordinates = new Point(0, 0);
         public Point AtlasCoordinates
         {
-            get { return pAtlasCoordinates; }
+            get { return _atlasCoordinates; }
+            protected set { _atlasCoordinates = value; }
         }
-        protected float pRotation = 0f;
-        public float RotationRads { get { return pRotation; } }
-        protected Vector2 pScale = new Vector2(1, 1);
-        public Vector2 ScaleSize { get { return pScale; } }
-        protected Vector2 pOrigin = new Vector2();
-        protected Boolean pCO = false;
-        protected ColourShift pColour = new ColourShift(255f, 255f, 255f, 255f);
+        private float _rotation = 0f;
+        public float RotationRads
+        {
+            get { return _rotation; }
+            protected set { _rotation = value; }
+        }
+        private Vector2 _size = new Vector2(1, 1);
+        public Vector2 Size {
+            get { return _size; }
+            protected set { _size = value; }
+        }
+        private Vector2 _origin = new Vector2();
+        private Boolean _centerOrigin = false;
+        private ColourShift _colour = new ColourShift(255f, 255f, 255f, 255f);
         public Color ColourValue
         {
             get
             {
-                return new Color((byte)Math.Round(pColour.R), (byte)Math.Round(pColour.G), (byte)Math.Round(pColour.B), (byte)Math.Round(pColour.A));
+                return new Color((byte)Math.Round(_colour.R), (byte)Math.Round(_colour.G), (byte)Math.Round(_colour.B), (byte)Math.Round(_colour.A));
             }
             set
             {
-                Color C = value;
-                pColour = ColourShift.Constrain(new ColourShift(C.R, C.G, C.B, C.A));
+                Color colour = value;
+                _colour = ColourShift.Constrain(new ColourShift(colour.R, colour.G, colour.B, colour.A));
             }
         }
         /// <summary>
@@ -72,36 +85,40 @@ namespace VNFramework
         /// </summary>
         public Camera CustomCamera { get; set; }
         public Boolean CameraImmune { get; set; }
-        public TAtlasInfo Atlas { get { return LocalAtlas; } }
-        public Boolean SetAtlasFrame(Point Coords)
+        public TAtlasInfo Atlas
         {
-            if (Coords.X < LocalAtlas.DivDimensions.X && Coords.Y < LocalAtlas.DivDimensions.Y)
+            get { return _localAtlas; }
+            protected set { _localAtlas = value; }
+        }
+        public Boolean SetAtlasFrame(Point coords)
+        {
+            if (coords.X < Atlas.DivDimensions.X && coords.Y < Atlas.DivDimensions.Y)
             {
-                pAtlasCoordinates = Coords;
+                AtlasCoordinates = coords;
                 return true;
             }
             return false;
         }
-        public void SetManualOrigin(Vector2 V)
+        public void SetManualOrigin(Vector2 origin)
         {
-            pOrigin = V;
+            _origin = origin;
         }
         public Boolean CenterOrigin
         {
             get
             {
-                return pCO;
+                return _centerOrigin;
             }
             set
             {
-                pCO = value;
-                if (pCO == true)
+                _centerOrigin = value;
+                if (_centerOrigin == true)
                 {
-                    pOrigin = VNFUtils.ConvertPoint(HitBox.Size) / 2;
+                    _origin = VNFUtils.ConvertPoint(Hitbox.Size) / 2;
                 }
                 else
                 {
-                    pOrigin = new Vector2();
+                    _origin = new Vector2();
                 }
             }
         }
@@ -111,115 +128,115 @@ namespace VNFramework
         [Serializable]
         public struct EventSubRegister
         {
-            public EventSubRegister(String PublisherEntName, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+            public EventSubRegister(String publisherEntName, EventNames eventName, MethodInfo eventHandler, object[] methodArgs)
             {
-                this.PublisherEntName = PublisherEntName;
-                this.EventName = EventName;
-                this.EventHandler = EventHandler;
-                this.MethodArgs = MethodArgs;
+                this.PublisherEntName = publisherEntName;
+                this.EventName = eventName;
+                this.EventHandler = eventHandler;
+                this.MethodArgs = methodArgs;
             }
             public String PublisherEntName;
             public EventNames EventName;
             public MethodInfo EventHandler;
             public object[] MethodArgs;
         }
-        protected List<EventSubRegister> pSubscribedEvents = new List<EventSubRegister>();
+        private List<EventSubRegister> _subscribedEvents = new List<EventSubRegister>();
         public List<EventSubRegister> SubscribedEvents
         {
             get
             {
-                return pSubscribedEvents;
+                return _subscribedEvents;
             }
             set
             {
-                pSubscribedEvents = value;
+                _subscribedEvents = value;
             }
         }
-        public void SubscribeToEvent(EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        public void SubscribeToEvent(EventNames eventName, MethodInfo eventHandler, object[] methodArgs)
         {
-            SubscribeToEvent(this, EventName, EventHandler, MethodArgs);
+            SubscribeToEvent(this, eventName, eventHandler, methodArgs);
         }
-        public void SubscribeToEvent(WorldEntity EventPublisher, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        public void SubscribeToEvent(WorldEntity eventPublisher, EventNames eventName, MethodInfo eventHandler, object[] methodArgs)
         {
-            pSubscribedEvents.Add(new EventSubRegister(EventPublisher.Name, EventName, EventHandler, MethodArgs));
-            EventSubscribeActual(EventPublisher, EventName, EventHandler, MethodArgs);
+            SubscribedEvents.Add(new EventSubRegister(eventPublisher.Name, eventName, eventHandler, methodArgs));
+            EventSubscribeActual(eventPublisher, eventName, eventHandler, methodArgs);
         }
         [field: NonSerialized]
-        protected Dictionary<WorldEntity, ArrayList> TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
-        private void EventSubscribeActual(WorldEntity EventPublisher, EventNames EventName, MethodInfo EventHandler, object[] MethodArgs)
+        private Dictionary<WorldEntity, ArrayList> _trueDetachers = new Dictionary<WorldEntity, ArrayList>();
+        private void EventSubscribeActual(WorldEntity eventPublisher, EventNames eventName, MethodInfo eventHandler, object[] methodArgs)
         {
-            VoidDel ThisHandler = new VoidDel(delegate () {
-                EventHandler.Invoke(this, MethodArgs);
+            VoidDel thisHandler = new VoidDel(delegate () {
+                eventHandler.Invoke(this, methodArgs);
             });
-            if(!TrueDetachers.ContainsKey(EventPublisher))
+            if(!_trueDetachers.ContainsKey(eventPublisher))
             {
-                TrueDetachers.Add(EventPublisher, new ArrayList());
+                _trueDetachers.Add(eventPublisher, new ArrayList());
             }
-            ((ArrayList)TrueDetachers[EventPublisher]).Add(new object[] { EventName, ThisHandler });
-            EventCoupleDecouple(EventPublisher, EventName, ThisHandler, true);
+            ((ArrayList)_trueDetachers[eventPublisher]).Add(new object[] { eventName, thisHandler });
+            EventCoupleDecouple(eventPublisher, eventName, thisHandler, true);
         }
         [Serializable]
         public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction, TextEnteredFunction };
-        public void EventCoupleDecouple(WorldEntity EventPublisher, EventNames EventName, VoidDel Handler, Boolean Subscribe)
+        public void EventCoupleDecouple(WorldEntity eventPublisher, EventNames eventName, VoidDel handler, Boolean subscribe)
         {
-            switch (EventName)
+            switch (eventName)
             {
                 case EventNames.EntityClickFunction:
-                    if (Subscribe) { EventPublisher.EntityClickFunction += Handler; }
-                    else { EventPublisher.EntityClickFunction -= Handler; }
+                    if (subscribe) { eventPublisher.EntityClickFunction += handler; }
+                    else { eventPublisher.EntityClickFunction -= handler; }
                     break;
                 case EventNames.ButtonPressFunction:
-                    if (EventPublisher is Button)
+                    if (eventPublisher is Button)
                     {
-                        Button B = (Button)EventPublisher;
-                        if (Subscribe) { B.ButtonPressFunction += Handler; }
-                        else { B.ButtonPressFunction -= Handler; }
+                        Button button = (Button)eventPublisher;
+                        if (subscribe) { button.ButtonPressFunction += handler; }
+                        else { button.ButtonPressFunction -= handler; }
                     }
                     break;
                 case EventNames.ButtonHoverFunction:
-                    if (EventPublisher is Button)
+                    if (eventPublisher is Button)
                     {
-                        Button B = (Button)EventPublisher;
-                        if (Subscribe) { B.ButtonHoverFunction += Handler; }
-                        else { B.ButtonHoverFunction -= Handler; }
+                        Button button = (Button)eventPublisher;
+                        if (subscribe) { button.ButtonHoverFunction += handler; }
+                        else { button.ButtonHoverFunction -= handler; }
                     }
                     break;
                 case EventNames.ButtonHoverReleaseFunction:
-                    if (EventPublisher is Button)
+                    if (eventPublisher is Button)
                     {
-                        Button B = (Button)EventPublisher;
-                        if (Subscribe) { B.ButtonHoverReleaseFunction += Handler; }
-                        else { B.ButtonHoverReleaseFunction -= Handler; }
+                        Button button = (Button)eventPublisher;
+                        if (subscribe) { button.ButtonHoverReleaseFunction += handler; }
+                        else { button.ButtonHoverReleaseFunction -= handler; }
                     }
                     break;
                 case EventNames.SliderClickFunction:
-                    if (EventPublisher is Slider)
+                    if (eventPublisher is Slider)
                     {
-                        Slider S = (Slider)EventPublisher;
-                        if (Subscribe) { S.SliderClickFunction += Handler; }
-                        else { S.SliderClickFunction -= Handler; }
+                        Slider slider = (Slider)eventPublisher;
+                        if (subscribe) { slider.SliderClickFunction += handler; }
+                        else { slider.SliderClickFunction -= handler; }
                     }
                     break;
                 case EventNames.ScrollBarClickFunction:
-                    if (EventPublisher is ScrollBar)
+                    if (eventPublisher is ScrollBar)
                     {
-                        ScrollBar S = (ScrollBar)EventPublisher;
-                        if (Subscribe) { S.ScrollBarClickFunction += Handler; }
-                        else { S.ScrollBarClickFunction -= Handler; }
+                        ScrollBar scrollbar = (ScrollBar)eventPublisher;
+                        if (subscribe) { scrollbar.ScrollBarClickFunction += handler; }
+                        else { scrollbar.ScrollBarClickFunction -= handler; }
                     }
-                    else if (EventPublisher is VerticalScrollPane)
+                    else if (eventPublisher is VerticalScrollPane)
                     {
-                        VerticalScrollPane S = (VerticalScrollPane)EventPublisher;
-                        if (Subscribe) { S.ScrollBarClickFunction += Handler; }
-                        else { S.ScrollBarClickFunction -= Handler; }
+                        VerticalScrollPane scrollpane = (VerticalScrollPane)eventPublisher;
+                        if (subscribe) { scrollpane.ScrollBarClickFunction += handler; }
+                        else { scrollpane.ScrollBarClickFunction -= handler; }
                     }
                     break;
                 case EventNames.TextEnteredFunction:
-                    if (EventPublisher is TextInputField)
+                    if (eventPublisher is TextInputField)
                     {
-                        TextInputField T = (TextInputField)EventPublisher;
-                        if (Subscribe) { T.TextEnteredFunction += Handler; }
-                        else { T.TextEnteredFunction -= Handler; }
+                        TextInputField textfield = (TextInputField)eventPublisher;
+                        if (subscribe) { textfield.TextEnteredFunction += handler; }
+                        else { textfield.TextEnteredFunction -= handler; }
                     }
                     break;
             }
@@ -242,79 +259,84 @@ namespace VNFramework
         {
             if (EntityClickFunction != null && MouseInBounds() && !SuppressClickable) { EntityClickFunction?.Invoke(); }
         }
-        private Texture2D SerializationBackup = null;
+        private Texture2D _serializationBackup = null;
         public virtual void OnSerializeDo()
         {
             foreach (Animation A in AnimationQueue) { A.TimeHang(); }
-            if (LocalAtlas.ReferenceHash == "" || LocalAtlas.ReferenceHash == null)
+            if (Atlas.ReferenceHash == "" || Atlas.ReferenceHash == null)
             {
-                SerializationBackup = LocalAtlas.Atlas;
+                _serializationBackup = Atlas.Atlas;
             }
         }
         public void ResubscribeEvents()
         {
-            if(TrueDetachers != null && TrueDetachers.Count > 0)
+            if(_trueDetachers != null && _trueDetachers.Count > 0)
             {
                 UnsubscribeEvents();
             }
-            List<EventSubRegister> LocalSubE = SubscribedEvents;
+            List<EventSubRegister> localSubscribedEvents = SubscribedEvents;
             SubscribedEvents = new List<EventSubRegister>();
-            foreach (EventSubRegister ESR in LocalSubE)
+            foreach (EventSubRegister esr in localSubscribedEvents)
             {
-                WorldEntity Publisher = Shell.GetEntityByName(ESR.PublisherEntName);
-                if(Publisher != null)
+                WorldEntity publisher = Shell.GetEntityByName(esr.PublisherEntName);
+                if(publisher != null)
                 {
-                    SubscribeToEvent(Publisher, ESR.EventName, ESR.EventHandler, ESR.MethodArgs);
+                    SubscribeToEvent(publisher, esr.EventName, esr.EventHandler, esr.MethodArgs);
                 }
             }
         }
         private void UnsubscribeEvents()
         {
-            if (TrueDetachers != null)
+            if (_trueDetachers != null)
             {
-                foreach (WorldEntity E in TrueDetachers.Keys)
+                foreach (WorldEntity worldEntity in _trueDetachers.Keys)
                 {
-                    foreach (object[] Pair in TrueDetachers[E])
+                    foreach (object[] pair in _trueDetachers[worldEntity])
                     {
-                        EventCoupleDecouple(E, (EventNames)Pair[0], (VoidDel)Pair[1], false);
+                        EventCoupleDecouple(worldEntity, (EventNames)pair[0], (VoidDel)pair[1], false);
                     }
                 }
             }
-            TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
+            _trueDetachers = new Dictionary<WorldEntity, ArrayList>();
         }
         public virtual void OnDeserializeDo()
         {
             AddEventTriggers();
-            if(MyBehaviours is null) { MyBehaviours = new ArrayList(); }
-            foreach (Animation A in AnimationQueue)
+            if(MyBehaviours is null) { MyBehaviours = new List<Behaviours.IVNFBehaviour>(); }
+            foreach (Animation animation in AnimationQueue)
             {
-                A.ReRegisterSelf();
-                A.UnHang();
-                if (A.Started && A.TimeElapsed > 100) { A.Jump(this); }
+                animation.ReRegisterSelf();
+                animation.UnHang();
+                if (animation.Started && animation.TimeElapsed > 100) { animation.Jump(this); }
             }
-            if (SerializationBackup != null)
+            if (_serializationBackup != null)
             {
-                LocalAtlas.Atlas = SerializationBackup;
-                SerializationBackup = null;
+                TAtlasInfo atlas = Atlas;
+                atlas.Atlas = _serializationBackup;
+                Atlas = atlas;
+                _serializationBackup = null;
             }
-            else if (LocalAtlas.ReferenceHash != "" && LocalAtlas.ReferenceHash != null)
+            else if (Atlas.ReferenceHash != "" && Atlas.ReferenceHash != null)
             {
-                LocalAtlas.Atlas = ((TAtlasInfo)Shell.AtlasDirectory[LocalAtlas.ReferenceHash]).Atlas;
+                TAtlasInfo atlas = Atlas;
+                atlas.Atlas = Shell.AtlasDirectory[Atlas.ReferenceHash].Atlas;
+                Atlas = atlas;
             }
-            TrueDetachers = new Dictionary<WorldEntity, ArrayList>();
+            _trueDetachers = new Dictionary<WorldEntity, ArrayList>();
         }
-        protected Rectangle pHitBox = new Rectangle(0, 0, 0, 0);
-        public virtual Rectangle HitBox
+        private Rectangle _hitbox = new Rectangle(0, 0, 0, 0);
+        public virtual Rectangle Hitbox
         {
             get
             {
-                Point Size = new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y));
-                if (!pCO) { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y), Size); }
-                else { pHitBox = new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - new Point(Size.X / 2, Size.Y / 2), Size); }
-                return pHitBox;
+                Point atlasSize = new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y));
+                if (!CenterOrigin) { _hitbox = new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y), atlasSize); }
+                else { _hitbox = new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y) - new Point(atlasSize.X / 2, atlasSize.Y / 2), atlasSize); }
+                return _hitbox;
             }
+            protected set { _hitbox = value; }
         }
-        public ArrayList AnimationQueue { get; set; }
+        public List<Animation> AnimationQueue { get; set; }
         public override bool Equals(object obj)
         {
             if (obj is WorldEntity) { return Equals((WorldEntity)obj); }
@@ -324,75 +346,74 @@ namespace VNFramework
         {
             return (int)(EntityID % (UInt32.MaxValue - Int32.MaxValue));
         }
-        public Boolean Equals(WorldEntity B)
+        public Boolean Equals(WorldEntity b)
         {
-            if (B is null) { return false; }
-            if (B.EntityID == pEntityID) { return true; }
+            if (b is null) { return false; }
+            if (b.EntityID == EntityID) { return true; }
             else { return false; }
         }
-        public static Boolean operator ==(WorldEntity A, WorldEntity B)
+        public static Boolean operator ==(WorldEntity a, WorldEntity b)
         {
-            if (A is null && B is null) { return true; }
-            else if (A is null ^ B is null) { return false; }
-            return A.Equals(B);
+            if (a is null && b is null) { return true; }
+            else if (a is null ^ b is null) { return false; }
+            return a.Equals(b);
         }
-        public static Boolean operator !=(WorldEntity A, WorldEntity B)
+        public static Boolean operator !=(WorldEntity a, WorldEntity b)
         {
-            if (A is null && B is null) { return false; }
-            else if (A is null ^ B is null) { return true; }
-            return !A.Equals(B);
+            if (a is null && b is null) { return false; }
+            else if (a is null ^ b is null) { return true; }
+            return !a.Equals(b);
         }
         public Vector2 PseudoMouse { get; set; }
         public Boolean UsePseudoMouse { get; set; }
         public Boolean MouseInBounds()
         {
-            if(LocalAtlas.Atlas == null) { return false; }
-            var MouseState = Mouse.GetState();
+            if(Atlas.Atlas == null) { return false; }
+            var mouseState = Mouse.GetState();
             //return HitBox.Contains(new Vector2(MouseState.X, MouseState.Y));
-            Vector2 NormalizedMouseVector;
+            Vector2 normalizedMouseVector;
             if (UsePseudoMouse)
             {
-                NormalizedMouseVector = PseudoMouse;
+                normalizedMouseVector = PseudoMouse;
             }
-            else { NormalizedMouseVector = Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)); }
-            return TextureAwareInBounds(NormalizedMouseVector);
+            else { normalizedMouseVector = Shell.CoordNormalize(new Vector2(mouseState.X, mouseState.Y)); }
+            return TextureAwareInBounds(normalizedMouseVector);
         }
-        public Boolean TextureAwareInBounds(Vector2 V)
+        public Boolean TextureAwareInBounds(Vector2 vector)
         {
-            Vector2 ZoomFactor = new Vector2(1, 1);
             if (!CameraImmune)
             {
                 if (CustomCamera != null)
                 {
-                    V = CustomCamera.TranslateCoordsToEquivalent(V);
+                    vector = CustomCamera.TranslateCoordsToEquivalent(vector);
                 }
                 else if (Shell.AutoCamera != null)
                 {
-                    V = Shell.AutoCamera.TranslateCoordsToEquivalent(V);
+                    vector = Shell.AutoCamera.TranslateCoordsToEquivalent(vector);
                 }
             }
-            if (HitBox.Contains(V))
+            if (Hitbox.Contains(vector))
             {
-                Texture2D MyAtlas = Atlas.Atlas;
-                Color[] RawAtlas = new Color[MyAtlas.Width * MyAtlas.Height];
-                MyAtlas.GetData<Color>(RawAtlas);
-                Color[,] OrderedAtlas = new Color[MyAtlas.Width, MyAtlas.Height];
-                Point AddCoord = new Point(0, 0);
-                foreach (Color C in RawAtlas)
+                Texture2D myAtlas = Atlas.Atlas;
+                Color[] rawAtlas = new Color[myAtlas.Width * myAtlas.Height];
+                myAtlas.GetData<Color>(rawAtlas);
+                Color[,] orderedAtlas = new Color[myAtlas.Width, myAtlas.Height];
+                Point addCoord = new Point(0, 0);
+                foreach (Color colour in rawAtlas)
                 {
-                    if (AddCoord.X >= MyAtlas.Width)
+                    if (addCoord.X >= myAtlas.Width)
                     {
-                        AddCoord = new Point(0, AddCoord.Y + 1);
+                        addCoord = new Point(0, addCoord.Y + 1);
                     }
-                    OrderedAtlas[AddCoord.X, AddCoord.Y] = C;
-                    AddCoord += new Point(1, 0);
+                    orderedAtlas[addCoord.X, addCoord.Y] = colour;
+                    addCoord += new Point(1, 0);
                 }
-                Vector2 PublicCorner = new Vector2(HitBox.X, HitBox.Y);
-                Vector2 LocalCoord = V - PublicCorner;
-                Vector2 AtlasConformity = new Vector2(((float)LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, ((float)LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y);
-                LocalCoord += AtlasConformity;
-                Color Comparitor = OrderedAtlas[(int)LocalCoord.X, (int)LocalCoord.Y];
-                if (Comparitor.A != 0) { return true; }
+                Vector2 publicCorner = new Vector2(Hitbox.X, Hitbox.Y);
+                Vector2 localCoord = vector - publicCorner;
+                Vector2 atlasConformity = new Vector2(((float)Atlas.SourceRect.Width / Atlas.DivDimensions.X) * AtlasCoordinates.X, ((float)Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y);
+                localCoord += atlasConformity;
+                Color comparitor = orderedAtlas[(int)localCoord.X, (int)localCoord.Y];
+                if (comparitor.A != 0) { return true; }
                 else { return false; }
             }
             return false;
@@ -401,31 +422,31 @@ namespace VNFramework
         public Boolean TransientAnimation { get; set; }
         public void ReissueID()
         {
-            pEntityID = IDIterator;
+            EntityID = IDIterator;
             IDIterator++;
         }
-        public WorldEntity(String Name, Vector2 Location, TAtlasInfo? Atlas, float Depth)
+        public WorldEntity(String name, Vector2 location, TAtlasInfo? atlas, float depth)
         {
-            pEntityID = IDIterator;
+            EntityID = IDIterator;
             IDIterator++;
             TransientAnimation = false;
             ManualHorizontalFlip = false;
-            pName = Name;
-            pDrawCoords = Location;
-            LayerDepth = Depth;
+            Name = name;
+            DrawCoords = location;
+            LayerDepth = depth;
             CustomCamera = null;
             CameraImmune = false;
             InitStateHash();
             AddEventTriggers();
             PseudoMouse = new Vector2(float.NaN, float.NaN);
-            if (Atlas != null)
+            if (atlas != null)
             {
-                LocalAtlas = (TAtlasInfo)Atlas;
-                pHitBox = new Rectangle(new Point((int)Location.X, (int)Location.Y), LocalAtlas.FrameSize());
+                Atlas = (TAtlasInfo)atlas;
+                Hitbox = new Rectangle(new Point((int)location.X, (int)location.Y), Atlas.FrameSize());
             }
-            AnimationQueue = new ArrayList();
-            Stickers = new ArrayList();
-            MyBehaviours = new ArrayList();
+            AnimationQueue = new List<Animation>();
+            Stickers = new List<WorldEntity>();
+            MyBehaviours = new List<Behaviours.IVNFBehaviour>();
         }
         ~WorldEntity()
         {
@@ -436,200 +457,218 @@ namespace VNFramework
             RemoveEventTriggers();
             UnsubscribeEvents();
             if(Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
-            foreach (Animation A in AnimationQueue)
+            foreach (Animation animation in AnimationQueue)
             {
-                A.AutoWipe();
+                animation.AutoWipe();
             }
-            AnimationQueue = new ArrayList();
-            foreach (Behaviours.IVNFBehaviour B in MyBehaviours)
+            AnimationQueue = new List<Animation>();
+            foreach (Behaviours.IVNFBehaviour behaviour in MyBehaviours)
             {
-                B.Clear();
+                behaviour.Clear();
             }
-            MyBehaviours = new ArrayList();
+            MyBehaviours = new List<Behaviours.IVNFBehaviour>();
         }
-        public ulong EntityID { get { return pEntityID; } }
-        public String Name { get { return pName; } }
-        public Vector2 DrawCoords { get { return pDrawCoords; } }
-        public void QuickMoveTo(Vector2 Coords)
+        public ulong EntityID
         {
-            pDrawCoords = Coords;
+            get { return _entityID; }
+            protected set { _entityID = value; }
+        }
+        public String Name
+        {
+            get { return _name; }
+            protected set { _name = value; }
+        }
+        public Vector2 DrawCoords
+        {
+            get { return _drawCoords; }
+            protected set { _drawCoords = value; }
+        }
+        public void QuickMoveTo(Vector2 coords)
+        {
+            DrawCoords = coords;
         }
         public Boolean Drawable
         {
             get
             {
-                return pDrawable;
+                return _drawable;
             }
             set
             {
-                pDrawable = value;
+                _drawable = value;
             }
         }
         /// <summary>
         /// The EntityStates hashtable contains information about different ways a WorldEntity is behaving, such as how it is moving or shifting in the world. This can be used as a reference for animation controllers.
         /// </summary>
-        public Hashtable EntityStates
+        public Dictionary<string, object> EntityStates
         {
             get
             {
-                Hashtable StatesReal = new Hashtable();
-                lock(pStateHash.SyncRoot)
+                Dictionary<string, object> statesReal = new Dictionary<string, object>();
+                lock(((ICollection)_stateHash).SyncRoot)
                 {
-                    foreach(String K in pStateHash.Keys)
+                    foreach(String k in _stateHash.Keys)
                     {
-                        StatesReal.Add(K, ((object[])pStateHash[K])[0]);
+                        statesReal.Add(k, _stateHash[k][0]);
                     }
                 }
-                return StatesReal;
+                return statesReal;
             }
         }
-        private Hashtable pStateHash = new Hashtable();
+        private Dictionary<string, object[]> _stateHash = new Dictionary<string, object[]>();
         private void InitStateHash()
         {
+            
             String[] State = new String[] { "NORTHSOUTH", "EASTWEST", "ROTATION", "SCALEHORIZ", "SCALEVERT", "RED", "GREEN", "BLUE", "ALPHA" };
-            lock (pStateHash.SyncRoot)
+            lock (((ICollection)_stateHash).SyncRoot)
             {
                 foreach (String S in State)
                 {
-                    pStateHash.Add(S, new object[] { 0f, 0 });
+                    _stateHash.Add(S, new object[] { 0f, 0 });
                 }
             }
         }
-        public ArrayList Stickers { get; set; }
-        public void Move(Vector2 V)
+        public List<WorldEntity> Stickers { get; set; }
+        public void Move(Vector2 vector)
         {
-            pDrawCoords += V;
-            lock (pStateHash.SyncRoot)
+            DrawCoords += vector;
+            lock (((ICollection)_stateHash).SyncRoot)
             {
-                pStateHash["NORTHSOUTH"] = new object[] { V.Y, V.Y != 0 ? 2 : 0 };
-                pStateHash["EASTWEST"] = new object[] { V.X, V.X != 0 ? 2 : 0 };
+                _stateHash["NORTHSOUTH"] = new object[] { vector.Y, vector.Y != 0 ? 2 : 0 };
+                _stateHash["EASTWEST"] = new object[] { vector.X, vector.X != 0 ? 2 : 0 };
             }
             if (Stickers != null && Stickers.Count > 0)
             {
-                foreach(WorldEntity E in Stickers)
+                foreach(WorldEntity sticker in Stickers)
                 {
-                    E.Move(V);
+                    sticker.Move(vector);
                 }
             }
         }
-        public void Rotate(float R)
+        public void Rotate(float rotation)
         {
-            pRotation += R;
-            lock (pStateHash.SyncRoot)
+            RotationRads += rotation;
+            lock (((ICollection)_stateHash).SyncRoot)
             {
-                pStateHash["ROTATION"] = new object[] { R, R != 0 ? 2 : 0 };
+                _stateHash["ROTATION"] = new object[] { rotation, rotation != 0 ? 2 : 0 };
             }
             if (Stickers != null && Stickers.Count > 0)
             {
-                foreach (WorldEntity E in Stickers)
+                foreach (WorldEntity sticker in Stickers)
                 {
-                    E.Rotate(R);
+                    sticker.Rotate(rotation);
                 }
             }
         }
-        public void Scale(Vector2 S)
+        public void Scale(Vector2 scale)
         {
-            lock (pStateHash.SyncRoot)
+            lock (((ICollection)_stateHash).SyncRoot)
             {
-                pStateHash["SCALEVERT"] = new object[] { S.Y, S.Y != 0 ? 2 : 0 };
-                pStateHash["SCALEHORIZ"] = new object[] { S.X, S.X != 0 ? 2 : 0 };
+                _stateHash["SCALEVERT"] = new object[] { scale.Y, scale.Y != 0 ? 2 : 0 };
+                _stateHash["SCALEHORIZ"] = new object[] { scale.X, scale.X != 0 ? 2 : 0 };
             }
-            if (InvertXScaling && InvertYScaling) { S = new Vector2(-S.X, -S.Y); }
-            else if (InvertXScaling) { S = new Vector2(-S.X, S.Y); }
-            else if (InvertYScaling) { S = new Vector2(S.X, -S.Y); }
-            Vector2 ManualSet = new Vector2();
-            if ((pScale + S).X < 0)
+            if (_invertXScaling && _invertYScaling) { scale = new Vector2(-scale.X, -scale.Y); }
+            else if (_invertXScaling) { scale = new Vector2(-scale.X, scale.Y); }
+            else if (_invertYScaling) { scale = new Vector2(scale.X, -scale.Y); }
+            Vector2 manualSet = new Vector2();
+            if ((Size + scale).X < 0)
             {
-                AutoHorizontalFlip = !AutoHorizontalFlip;
-                InvertXScaling = !InvertXScaling;
-                ManualSet = new Vector2(-(S.X + pScale.X), ManualSet.Y);
+                _autoHorizontalFlip = !_autoHorizontalFlip;
+                _invertXScaling = !_invertXScaling;
+                manualSet = new Vector2(-(scale.X + Size.X), manualSet.Y);
             }
-            if ((pScale + S).Y < 0)
+            if ((Size + scale).Y < 0)
             {
-                AutoVerticalFlip = !AutoVerticalFlip;
-                InvertYScaling = !InvertYScaling;
-                ManualSet = new Vector2(ManualSet.X, -(S.Y + pScale.Y));
+                _autoVerticalFlip = !_autoVerticalFlip;
+                _invertYScaling = !_invertYScaling;
+                manualSet = new Vector2(manualSet.X, -(scale.Y + Size.Y));
             }
-            if(ManualSet == new Vector2()) { pScale += S; }
+            if(manualSet == new Vector2()) { Size += scale; }
             else
             {
-                if (ManualSet.X != 0f) { pScale = new Vector2(ManualSet.X, pScale.Y); }
-                else { pScale = new Vector2(pScale.X + S.X, pScale.Y); }
-                if (ManualSet.Y != 0f) { pScale = new Vector2(pScale.X, ManualSet.Y); }
-                else { pScale = new Vector2(pScale.X, pScale.Y + S.Y); }
+                if (manualSet.X != 0f) { Size = new Vector2(manualSet.X, Size.Y); }
+                else { Size = new Vector2(Size.X + scale.X, Size.Y); }
+                if (manualSet.Y != 0f) { Size = new Vector2(Size.X, manualSet.Y); }
+                else { Size = new Vector2(Size.X, Size.Y + scale.Y); }
             }
-            //Shell.WriteLine(pName + ": Scale now set to: " + pScale.X + ", " + pScale.Y);
+            //Shell.WriteLine(pName + ": Scale now set to: " + _scale.X + ", " + _scale.Y);
             if (Stickers != null && Stickers.Count > 0)
             {
-                foreach (WorldEntity E in Stickers)
+                foreach (WorldEntity sticker in Stickers)
                 {
-                    E.Scale(S);
+                    sticker.Scale(scale);
                 }
             }
         }
-        public void Colour(ColourShift C)
+        public void Colour(ColourShift colourShift)
         {
-            pColour = ColourShift.Constrain(pColour + C);
-            lock (pStateHash.SyncRoot)
+            _colour = ColourShift.Constrain(_colour + colourShift);
+            lock (((ICollection)_stateHash).SyncRoot)
             {
-                pStateHash["RED"] = new object[] { C.R, C.R != 0 ? 2 : 0 };
-                pStateHash["GREEN"] = new object[] { C.G, C.G != 0 ? 2 : 0 };
-                pStateHash["BLUE"] = new object[] { C.B, C.B != 0 ? 2 : 0 };
-                pStateHash["ALPHA"] = new object[] { C.A, C.A != 0 ? 2 : 0 };
+                _stateHash["RED"] = new object[] { colourShift.R, colourShift.R != 0 ? 2 : 0 };
+                _stateHash["GREEN"] = new object[] { colourShift.G, colourShift.G != 0 ? 2 : 0 };
+                _stateHash["BLUE"] = new object[] { colourShift.B, colourShift.B != 0 ? 2 : 0 };
+                _stateHash["ALPHA"] = new object[] { colourShift.A, colourShift.A != 0 ? 2 : 0 };
             }
             if (Stickers != null && Stickers.Count > 0)
             {
-                foreach (WorldEntity E in Stickers)
+                foreach (WorldEntity sticker in Stickers)
                 {
-                    E.Colour(C);
+                    sticker.Colour(colourShift);
                 }
             }
         }
-        protected Boolean InvertXScaling = false;
-        protected Boolean InvertYScaling = false;
+        private Boolean _invertXScaling = false;
+        private Boolean _invertYScaling = false;
         public Boolean[] CheckScaleInversions()
         {
-            return new Boolean[] { InvertXScaling, InvertYScaling };
+            return new Boolean[] { _invertXScaling, _invertYScaling };
         }
         protected float MirrorOriginX
         {
             get
             {
-                float XShift = -((HitBox.X / 2f) - pOrigin.X);
-                return (HitBox.X / 2f) + XShift;
+                float xShift = -((Hitbox.X / 2f) - _origin.X);
+                return (Hitbox.X / 2f) + xShift;
             }
         }
         protected float MirrorOriginY
         {
             get
             {
-                float YShift = -((HitBox.Y / 2f) - pOrigin.Y);
-                return (HitBox.Y / 2f) + YShift;
+                float yShift = -((Hitbox.Y / 2f) - _origin.Y);
+                return (Hitbox.Y / 2f) + yShift;
             }
+        }
+        protected Vector2 Origin
+        {
+            get { return _origin; }
+            set { _origin = value; }
         }
         public Vector2 AdjustedOrigin
         {
             get
             {
-                Vector2 Out = pOrigin;
-                if(InvertXScaling) { Out.X = MirrorOriginX; }
-                if(InvertYScaling) { Out.Y = MirrorOriginY; }
-                return Out;
+                Vector2 originOut = _origin;
+                if(_invertXScaling) { originOut.X = MirrorOriginX; }
+                if(_invertYScaling) { originOut.Y = MirrorOriginY; }
+                return originOut;
             }
         }
-        protected float FlipRotationAddit = 0f;
+        private float _flipRotationAddit = 0f;
         public Boolean ManualHorizontalFlip { get; set; }
         public Boolean ManualVerticalFlip { get; set; }
-        private Boolean AutoHorizontalFlip = false;
-        private Boolean AutoVerticalFlip = false;
-        private Boolean TrueHorizontalFlip { get { return ManualHorizontalFlip ^ AutoHorizontalFlip; } }
-        private Boolean TrueVerticalFlip { get { return ManualVerticalFlip ^ AutoVerticalFlip; } }
-        public ArrayList MyBehaviours { get; set; }
+        private Boolean _autoHorizontalFlip = false;
+        private Boolean _autoVerticalFlip = false;
+        private Boolean TrueHorizontalFlip { get { return ManualHorizontalFlip ^ _autoHorizontalFlip; } }
+        private Boolean TrueVerticalFlip { get { return ManualVerticalFlip ^ _autoVerticalFlip; } }
+        public List<Behaviours.IVNFBehaviour> MyBehaviours { get; set; }
         public virtual void Update()
         {
-            lock (pStateHash.SyncRoot)
+            lock (((ICollection)_stateHash).SyncRoot)
             {
-                foreach (object[] State in pStateHash.Values)
+                foreach (object[] State in _stateHash.Values)
                 {
                     if ((int)State[1] > 0)
                     {
@@ -638,37 +677,37 @@ namespace VNFramework
                     }
                 }
             }
-            foreach(Behaviours.IVNFBehaviour Component in MyBehaviours)
+            foreach(Behaviours.IVNFBehaviour behaviour in MyBehaviours)
             {
-                Component.UpdateFunctionality(this);
+                behaviour.UpdateFunctionality(this);
             }
-            foreach(Animation A in AnimationQueue)
+            foreach(Animation animation in AnimationQueue)
             {
                 if (!ButtonScripts.Paused)
                 {
-                    if(A.PlacedInPauseState)
+                    if(animation.PlacedInPauseState)
                     {
-                        A.UnHang();
-                        A.PlacedInPauseState = false;
+                        animation.UnHang();
+                        animation.PlacedInPauseState = false;
                     }
-                    A.Step(this);
+                    animation.Step(this);
                 }
                 else
                 {
-                    if(!A.PlacedInPauseState)
+                    if(!animation.PlacedInPauseState)
                     {
-                        A.TimeHang();
-                        A.PlacedInPauseState = true;
+                        animation.TimeHang();
+                        animation.PlacedInPauseState = true;
                     }
                 }
             }
             for(int i = 0; i < AnimationQueue.Count; i++)
             {
-                Animation R = ((Animation)AnimationQueue[i]);
-                if (R.Spent)
+                Animation removeAnim = AnimationQueue[i];
+                if (removeAnim.Spent)
                 {
-                    R.AutoWipe();
-                    AnimationQueue.Remove(R);
+                    removeAnim.AutoWipe();
+                    AnimationQueue.Remove(removeAnim);
                     i--;
                     if(AnimationQueue.Count == 0 && TransientAnimation)
                     {
@@ -679,11 +718,11 @@ namespace VNFramework
             if (TrueHorizontalFlip && TrueVerticalFlip)
             {
                 LocalSpriteEffect = SpriteEffects.None;
-                if(FlipRotationAddit == 0f) { FlipRotationAddit = (float)Math.PI; }
+                if(_flipRotationAddit == 0f) { _flipRotationAddit = (float)Math.PI; }
             }
             else
             {
-                if (FlipRotationAddit != 0f) { FlipRotationAddit = 0f; }
+                if (_flipRotationAddit != 0f) { _flipRotationAddit = 0f; }
                 if (TrueHorizontalFlip && LocalSpriteEffect != SpriteEffects.FlipHorizontally) { LocalSpriteEffect = SpriteEffects.FlipHorizontally; }
                 else if (TrueVerticalFlip && LocalSpriteEffect != SpriteEffects.FlipVertically) { LocalSpriteEffect = SpriteEffects.FlipVertically; }
                 else if (!TrueHorizontalFlip && !TrueVerticalFlip && LocalSpriteEffect != SpriteEffects.None) { LocalSpriteEffect = SpriteEffects.None; }
@@ -692,12 +731,14 @@ namespace VNFramework
         protected SpriteEffects LocalSpriteEffect = SpriteEffects.None;
         public virtual void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y), new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y))), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X)*pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
+            spriteBatch.Draw(Atlas.Atlas, new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y), new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y))), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X)*AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
         }
         public virtual void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * pScale.X), (int)(LocalAtlas.FrameSize().Y * pScale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
+            else { spriteBatch.Draw(Atlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)DrawCoords.X, (int)DrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y)), camera.ZoomFactor)), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X) * AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
+          //else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * _scale.X), (int)(LocalAtlas.FrameSize().Y * _scale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
+
         }
     }
     /// <summary>
@@ -710,7 +751,7 @@ namespace VNFramework
         {
             get
             {
-                return -(pDrawCoords - ((new Vector2(1280, 720) / ZoomFactor)/2));
+                return -(DrawCoords - ((new Vector2(Shell.Resolution.X, Shell.Resolution.Y) / ZoomFactor)/2));
             }
         }
         public Point OffsetPoint
@@ -720,79 +761,79 @@ namespace VNFramework
                 return VNFUtils.ConvertVector(OffsetVector);
             }
         }
-        private double ZoomLevel = 0d;
+        private double _zoomLevel = 0d;
         public Vector2 ZoomFactor
         {
             get
             {
-                return (new Vector2((float)Math.Pow(2d, ZoomLevel), (float)Math.Pow(2d, ZoomLevel))) * pScale;
+                return (new Vector2((float)Math.Pow(2d, _zoomLevel), (float)Math.Pow(2d, _zoomLevel))) * Size;
             }
         }
-        public void SnapTo(WorldEntity WE)
+        public void SnapTo(WorldEntity worldEntity)
         {
-            QuickMoveTo(WE.DrawCoords);
+            QuickMoveTo(worldEntity.DrawCoords);
         }
         public void CenterDefault()
         {
-            QuickMoveTo((new Vector2(1280, 720) / 2));
+            QuickMoveTo((Shell.Resolution / 2));
         }
-        public void Zoom(float Z)
+        public void Zoom(float zoomDelta)
         {
-            ZoomLevel += Z;
+            _zoomLevel += zoomDelta;
         }
         public void ResetZoom()
         {
-            ZoomLevel = 0d;
-            pScale = new Vector2(1, 1);
+            _zoomLevel = 0d;
+            Size = new Vector2(1, 1);
         }
-        public Vector2 TranslateCoordsToEquivalent(Vector2 GlobalCoords)
+        public Vector2 TranslateCoordsToEquivalent(Vector2 globalCoords)
         {
-            return (GlobalCoords / ZoomFactor) - OffsetVector;
+            return (globalCoords / ZoomFactor) - OffsetVector;
         }
-        public Camera(String Name) : base(Name, (new Vector2(1280, 720) / 2), null, 1)
+        public Camera(String Name) : base(Name, (Shell.Resolution / 2), null, 1)
         {
             MouseDragEnabled = false;
         }
         public Boolean MouseDragEnabled { get; set; }
-        private Boolean MouseDragging = false;
-        private Boolean ZoomOpen = false;
-        private Vector2 LastMouseDragPos = new Vector2();
-        private int LastMouseScroll = 0;
+        private Boolean _mouseDragging = false;
+        private Boolean _zoomOpen = false;
+        private Vector2 _lastMouseDragPos = new Vector2();
+        private int _lastMouseScroll = 0;
         public override void Update()
         {
             base.Update();
             if (MouseDragEnabled)
             {
-                MouseState MyMouse = Mouse.GetState();
-                if (MyMouse.LeftButton == ButtonState.Pressed)
+                MouseState myMouse = Mouse.GetState();
+                if (myMouse.LeftButton == ButtonState.Pressed)
                 {
-                    if (!MouseDragging)
+                    if (!_mouseDragging)
                     {
-                        LastMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(MyMouse.Position));
-                        MouseDragging = true;
+                        _lastMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(myMouse.Position));
+                        _mouseDragging = true;
                     }
-                    Vector2 CurrentMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(MyMouse.Position));
-                    Vector2 DragDistance = CurrentMouseDragPos - LastMouseDragPos;
-                    Move(-DragDistance / ZoomFactor);
-                    LastMouseDragPos = CurrentMouseDragPos;
+                    Vector2 currentMouseDragPos = Shell.CoordNormalize(VNFUtils.ConvertPoint(myMouse.Position));
+                    Vector2 dragDistance = currentMouseDragPos - _lastMouseDragPos;
+                    Move(-dragDistance / ZoomFactor);
+                    _lastMouseDragPos = currentMouseDragPos;
                 }
-                else if (MyMouse.LeftButton == ButtonState.Released)
+                else if (myMouse.LeftButton == ButtonState.Released)
                 {
-                    MouseDragging = false;
+                    _mouseDragging = false;
                 }
-                if (!ZoomOpen)
+                if (!_zoomOpen)
                 {
-                    LastMouseScroll = MyMouse.ScrollWheelValue;
-                    ZoomOpen = true;
+                    _lastMouseScroll = myMouse.ScrollWheelValue;
+                    _zoomOpen = true;
                 }
-                int CurrentMouseScroll = MyMouse.ScrollWheelValue;
-                ZoomLevel += (CurrentMouseScroll - LastMouseScroll) / 1000d;
-                LastMouseScroll = CurrentMouseScroll;
+                int currentMouseScroll = myMouse.ScrollWheelValue;
+                _zoomLevel += (currentMouseScroll - _lastMouseScroll) / 1000d;
+                _lastMouseScroll = currentMouseScroll;
             }
             else
             {
-                if (MouseDragging) { MouseDragging = false; }
-                if (ZoomOpen) { ZoomOpen = false; }
+                if (_mouseDragging) { _mouseDragging = false; }
+                if (_zoomOpen) { _zoomOpen = false; }
             }
         }
     }
@@ -800,42 +841,42 @@ namespace VNFramework
     public class Pane : WorldEntity
     {
         public Camera DefaultPaneCamera { get; set; }
-        ArrayList UpdateQueue { get; set; }
-        ArrayList RenderQueue { get; set; }
-        ArrayList DeleteQueue { get; set; }
+        List<WorldEntity> UpdateQueue { get; set; }
+        List<WorldEntity> RenderQueue { get; set; }
+        List<WorldEntity> DeleteQueue { get; set; }
         public Color BackgroundColor { get; set; }
         public GraphicsDevice GraphicsDevice { get; set; }
-        RenderTarget2D pRenderPane;
-        public void AddUpdate(WorldEntity E)
+        RenderTarget2D _renderPane;
+        public void AddUpdate(WorldEntity worldEntity)
         {
-            E.CustomCamera = DefaultPaneCamera;
-            E.UsePseudoMouse = true;
-            UpdateQueue.Add(E);
+            worldEntity.CustomCamera = DefaultPaneCamera;
+            worldEntity.UsePseudoMouse = true;
+            UpdateQueue.Add(worldEntity);
         }
-        public void AddRender(WorldEntity E)
+        public void AddRender(WorldEntity worldEntity)
         {
-            E.CustomCamera = DefaultPaneCamera;
-            E.UsePseudoMouse = true;
-            RenderQueue.Add(E);
+            worldEntity.CustomCamera = DefaultPaneCamera;
+            worldEntity.UsePseudoMouse = true;
+            RenderQueue.Add(worldEntity);
         }
-        public void AddDelete(WorldEntity E)
+        public void AddDelete(WorldEntity worldEntity)
         {
-            DeleteQueue.Add(E);
+            DeleteQueue.Add(worldEntity);
         }
         public RenderTarget2D RenderPane
         {
-            get { return pRenderPane; }
+            get { return _renderPane; }
         }
-        Point PaneBaseSize;
-        public Pane(String Name, Vector2 Location, float Depth, Point PaneSize, Color BackgroundCol, GraphicsDevice MyGraphicsDevice) : base(Name, Location, null, Depth)
+        Point _paneBaseSize;
+        public Pane(String name, Vector2 location, float depth, Point paneSize, Color backgroundCol, GraphicsDevice myGraphicsDevice) : base(name, location, null, depth)
         {
-            BackgroundColor = BackgroundCol;
-            GraphicsDevice = MyGraphicsDevice;
-            PaneBaseSize = PaneSize;
-            DefaultPaneCamera = new Camera("CAMERA_PANE_" + Name);
-            UpdateQueue = new ArrayList();
-            RenderQueue = new ArrayList();
-            DeleteQueue = new ArrayList();
+            BackgroundColor = backgroundCol;
+            GraphicsDevice = myGraphicsDevice;
+            _paneBaseSize = paneSize;
+            DefaultPaneCamera = new Camera("CAMERA_PANE_" + name);
+            UpdateQueue = new List<WorldEntity>();
+            RenderQueue = new List<WorldEntity>();
+            DeleteQueue = new List<WorldEntity>();
             RenderAlways = true;
             AllowInternalInteracts = true;
             Render();
@@ -845,12 +886,12 @@ namespace VNFramework
         {
             if(AllowInternalInteracts && MouseInBounds())
             {
-                var MouseState = Mouse.GetState();
-                Vector2 LocalPosition = LocalCoords(Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)));
-                foreach (WorldEntity E in UpdateQueue)
+                var mouseState = Mouse.GetState();
+                Vector2 localPosition = LocalCoords(Shell.CoordNormalize(new Vector2(mouseState.X, mouseState.Y)));
+                foreach (WorldEntity updateEntity in UpdateQueue)
                 {
-                    E.PseudoMouse = LocalPosition;
-                    if (E.MouseInBounds()) { E.ClickTrigger(); }
+                    updateEntity.PseudoMouse = localPosition;
+                    if (updateEntity.MouseInBounds()) { updateEntity.ClickTrigger(); }
                 }
             }
             base.EntityClickFunctionTrigger();
@@ -859,97 +900,98 @@ namespace VNFramework
         {
             Clear();
         }
-        public Vector2 LocalCoords(Vector2 GlobalCoords)
+        public Vector2 LocalCoords(Vector2 globalCoords)
         {
-            Vector2 V = GlobalCoords;
-            Vector2 ZoomFactor = new Vector2(1, 1);
+            Vector2 vectorOut = globalCoords;
+            Vector2 zoomFactor = new Vector2(1, 1);
             if (!CameraImmune)
             {
                 if (CustomCamera != null)
                 {
-                    V = CustomCamera.TranslateCoordsToEquivalent(V);
+                    vectorOut = CustomCamera.TranslateCoordsToEquivalent(vectorOut);
                 }
                 else if (Shell.AutoCamera != null)
                 {
-                    V = Shell.AutoCamera.TranslateCoordsToEquivalent(V);
+                    vectorOut = Shell.AutoCamera.TranslateCoordsToEquivalent(vectorOut);
                 }
             }
-            Vector2 Size = new Vector2((LocalAtlas.FrameSize().X * pScale.X), (LocalAtlas.FrameSize().Y * pScale.Y));
-            Vector2 InternalOriginCoords = pCO ? pDrawCoords - (Size/2) : pDrawCoords;
-            V = (V - InternalOriginCoords) / pScale;
-            return V;
+            Vector2 size = new Vector2((Atlas.FrameSize().X * Size.X), (Atlas.FrameSize().Y * Size.Y));
+            Vector2 InternalOriginCoords = CenterOrigin ? DrawCoords - (size/2) : DrawCoords;
+            vectorOut = (vectorOut - InternalOriginCoords) / Size;
+            return vectorOut;
         }
         public void Clear()
         {
-            foreach (WorldEntity E in UpdateQueue)
+            foreach (WorldEntity worldEntity in UpdateQueue)
             {
-                DeleteQueue.Add(E);
+                DeleteQueue.Add(worldEntity);
             }
-            foreach (WorldEntity E in RenderQueue)
+            foreach (WorldEntity worldEntity in RenderQueue)
             {
-                DeleteQueue.Add(E);
+                DeleteQueue.Add(worldEntity);
             }
-            foreach (WorldEntity E in DeleteQueue)
+            foreach (WorldEntity worldEntity in DeleteQueue)
             {
-                if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
-                if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
-                E.ManualDispose();
+                if (UpdateQueue.Contains(worldEntity)) { UpdateQueue.Remove(worldEntity); }
+                if (RenderQueue.Contains(worldEntity)) { RenderQueue.Remove(worldEntity); }
+                worldEntity.ManualDispose();
             }
-            DeleteQueue = new ArrayList();
+            DeleteQueue = new List<WorldEntity>();
         }
-        Vector2 PanePseudoMouse = new Vector2(float.NaN, float.NaN);
+        Vector2 _panePseudoMouse = new Vector2(float.NaN, float.NaN);
         public Boolean RenderAlways { get; set; }
         public override void Update()
         {
             if (AllowInternalInteracts)
             {
-                var MouseState = Mouse.GetState();
-                PanePseudoMouse = LocalCoords(Shell.CoordNormalize(new Vector2(MouseState.X, MouseState.Y)));
+                var mouseState = Mouse.GetState();
+                _panePseudoMouse = LocalCoords(Shell.CoordNormalize(new Vector2(mouseState.X, mouseState.Y)));
             }
-            else { PanePseudoMouse = new Vector2(float.NaN, float.NaN); }
-            foreach(WorldEntity E in UpdateQueue)
+            else { _panePseudoMouse = new Vector2(float.NaN, float.NaN); }
+            foreach(WorldEntity worldEntity in UpdateQueue)
             {
-                E.PseudoMouse = PanePseudoMouse;
-                E.Update();
+                worldEntity.PseudoMouse = _panePseudoMouse;
+                worldEntity.Update();
             }
-            foreach (WorldEntity E in DeleteQueue)
+            foreach (WorldEntity worldEntity in DeleteQueue)
             {
-                if (UpdateQueue.Contains(E)) { UpdateQueue.Remove(E); }
-                if (RenderQueue.Contains(E)) { RenderQueue.Remove(E); }
-                if (Shell.NonSerializables.Contains(E)) { Shell.NonSerializables.Remove(E); }
+                if (UpdateQueue.Contains(worldEntity)) { UpdateQueue.Remove(worldEntity); }
+                if (RenderQueue.Contains(worldEntity)) { RenderQueue.Remove(worldEntity); }
+                if (Shell.NonSerializables.Contains(worldEntity)) { Shell.NonSerializables.Remove(worldEntity); }
             }
-            DeleteQueue = new ArrayList();
+            DeleteQueue = new List<WorldEntity>();
             base.Update();
         }
         public void Render()
         {
-            if (pRenderPane == null || pRenderPane.Bounds.Size != PaneBaseSize)
+            if (_renderPane == null || _renderPane.Bounds.Size != _paneBaseSize)
             {
-                if (pRenderPane != null) { pRenderPane.Dispose(); }
-                pRenderPane = new RenderTarget2D(GraphicsDevice, PaneBaseSize.X, PaneBaseSize.Y, false,
+                if (_renderPane != null) { _renderPane.Dispose(); }
+                _renderPane = new RenderTarget2D(GraphicsDevice, _paneBaseSize.X, _paneBaseSize.Y, false,
                     GraphicsDevice.PresentationParameters.BackBufferFormat,
                     DepthFormat.Depth24);
             }
-            GraphicsDevice.SetRenderTarget(pRenderPane);
+            GraphicsDevice.SetRenderTarget(_renderPane);
             //Rectangle PreScissor = GraphicsDevice.ScissorRectangle;
             //GraphicsDevice.ScissorRectangle = new Rectangle(new Point(), PaneBaseSize/new Point(2, 2));
             GraphicsDevice.Clear(BackgroundColor);
             SpriteBatch spriteBatch = new SpriteBatch(GraphicsDevice);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            foreach (WorldEntity E in RenderQueue)
+            foreach (WorldEntity worldEntity in RenderQueue)
             {
-                if (E.Drawable)
+                if (worldEntity.Drawable)
                 {
-                    if (E.CustomCamera != null) { E.Draw(spriteBatch, E.CustomCamera); }
-                    else { E.Draw(spriteBatch, DefaultPaneCamera); }
+                    if (worldEntity.CustomCamera != null) { worldEntity.Draw(spriteBatch, worldEntity.CustomCamera); }
+                    else { worldEntity.Draw(spriteBatch, DefaultPaneCamera); }
                 }
             }
             spriteBatch.End();
             GraphicsDevice.SetRenderTarget(null);
             //GraphicsDevice.ScissorRectangle = PreScissor;
-            LocalAtlas = new TAtlasInfo();
-            LocalAtlas.Atlas = RenderPane;
-            LocalAtlas.DivDimensions = new Point(1, 1);
+            TAtlasInfo localAtlas = new TAtlasInfo();
+            localAtlas.Atlas = RenderPane;
+            localAtlas.DivDimensions = new Point(1, 1);
+            Atlas = localAtlas;
         }
     }
     /// <summary>
@@ -980,577 +1022,583 @@ namespace VNFramework
                 Colour = GetRainbowColour();
             }
         }
-        public static int GetTicksFromSliderValue(float SliderValue)
+        public static int GetTicksFromSliderValue(float sliderValue)
         {
-            return (int)Math.Round(1000 / (Math.Pow(10, (3 * SliderValue))));
+            return (int)Math.Round(1000 / (Math.Pow(10, (3 * sliderValue))));
         }
-        public static float GetSliderValueFromTicks(int Ticks)
+        public static float GetSliderValueFromTicks(int ticks)
         {
-            return (float)(Math.Log10(1000 / Ticks) / 3);
+            return (float)(Math.Log10(1000 / ticks) / 3);
         }
         public static Color GetRainbowColour()
         {
-            double[] ScrollColour = new double[3];
-            ScrollColour[0] = ((Environment.TickCount / 10) % 300) * (double)(Math.PI / 150);
-            ScrollColour[1] = (((Environment.TickCount / 10) + 100) % 300) * (double)(Math.PI / 150);
-            ScrollColour[2] = (((Environment.TickCount / 10) + 200) % 300) * (double)(Math.PI / 150);
-            if (ScrollColour[0] >= Math.PI * 2) { ScrollColour[0] = 0; }
-            if (ScrollColour[1] >= Math.PI * 2) { ScrollColour[1] = 0; }
-            if (ScrollColour[2] >= Math.PI * 2) { ScrollColour[2] = 0; }
-            Color Out = new Color((byte)(122.5 * (Math.Sin(ScrollColour[0]) + 1)), (byte)(122.5 * (Math.Sin(ScrollColour[1]) + 1)), (byte)(122.5 * (Math.Sin(ScrollColour[2]) + 1)), (byte)255);
-            return Out;
+            double[] scrollColour = new double[3];
+            scrollColour[0] = ((Environment.TickCount / 10) % 300) * (double)(Math.PI / 150);
+            scrollColour[1] = (((Environment.TickCount / 10) + 100) % 300) * (double)(Math.PI / 150);
+            scrollColour[2] = (((Environment.TickCount / 10) + 200) % 300) * (double)(Math.PI / 150);
+            if (scrollColour[0] >= Math.PI * 2) { scrollColour[0] = 0; }
+            if (scrollColour[1] >= Math.PI * 2) { scrollColour[1] = 0; }
+            if (scrollColour[2] >= Math.PI * 2) { scrollColour[2] = 0; }
+            Color outColour = new Color((byte)(122.5 * (Math.Sin(scrollColour[0]) + 1)), (byte)(122.5 * (Math.Sin(scrollColour[1]) + 1)), (byte)(122.5 * (Math.Sin(scrollColour[2]) + 1)), (byte)255);
+            return outColour;
         }
         public static String GetRainbowColourCode()
         {
-            Color TrueColour = GetRainbowColour();
-            return "[C:" + TrueColour.R + "-" + TrueColour.G + "-" + TrueColour.B + "-255]";
+            Color trueColour = GetRainbowColour();
+            return "[C:" + trueColour.R + "-" + trueColour.G + "-" + trueColour.B + "-255]";
         }
-        protected int pLength = 0;
-        public int Length { get { return pLength; } }
-        public override Rectangle HitBox
+        private int _length = 0;
+        public int Length
+        {
+            get { return _length; }
+            protected set { _length = value; }
+        }
+        public override Rectangle Hitbox
         {
             get
             {
-                pHitBox = new Rectangle(VNFUtils.ConvertVector(pDrawCoords), new Point(pBufferLength, VerticalLength(true)));
-                return pHitBox;
+                Rectangle hitbox = new Rectangle(VNFUtils.ConvertVector(DrawCoords), new Point(_bufferLength, VerticalLength(true)));
+                base.Hitbox = hitbox;
+                return hitbox;
             }
         }
-        protected int pNewlineIndent = 0;
+        private int _newlineIndent = 0;
         public int NewlineIndent
         {
             get
             {
-                return pNewlineIndent;
+                return _newlineIndent;
             }
             set
             {
-                if (value != pNewlineIndent)
+                if (value != _newlineIndent)
                 {
-                    pNewlineIndent = value;
-                    IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, pNewlineIndent);
+                    _newlineIndent = value;
+                    ignoreDelayOnThis = new List<int>();
+                    _textChunkR = PreprocessText(_text, _bufferLength, _forceSplitUnchunkables, _newlineIndent);
                 }
             }
         }
-        protected RenderTarget2D[,] StaticTextures = null;
-        protected Boolean pDrawAsStatic = false;
+        private RenderTarget2D[,] _staticTextures = null;
+        private Boolean _drawAsStatic = false;
         public Boolean DrawAsStatic
         {
             get
             {
-                return pDrawAsStatic;
+                return _drawAsStatic;
             }
             set
             {
-                if(pDrawAsStatic != value)
+                if(_drawAsStatic != value)
                 {
-                    if(!pDrawAsStatic)
+                    if(!_drawAsStatic)
                     {
-                        StaticTextures = new RenderTarget2D[1, 1];
-                        StaticTextures[0,0] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
+                        _staticTextures = new RenderTarget2D[1, 1];
+                        _staticTextures[0,0] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
                             Shell.PubGD.PresentationParameters.BackBufferFormat,
                             DepthFormat.Depth24);
                         StaticRender();
                     }
                     else
                     {
-                        StaticTextures = null;
+                        _staticTextures = null;
                     }
-                    pDrawAsStatic = value;
+                    _drawAsStatic = value;
                 }
             }
         }
         public void StaticRender()
         {
-            Point Dims = new Point((int)Math.Ceiling(HitBox.Width / 1000f), (int)Math.Ceiling(HitBox.Height / 1000f));
-            RenderTarget2D[,] OutR = new RenderTarget2D[Dims.X, Dims.Y];
-            for(int y = 0; y < Dims.Y; y++)
+            Point dims = new Point((int)Math.Ceiling(Hitbox.Width / 1000f), (int)Math.Ceiling(Hitbox.Height / 1000f));
+            RenderTarget2D[,] outArray = new RenderTarget2D[dims.X, dims.Y];
+            for(int y = 0; y < dims.Y; y++)
             {
-                for(int x = 0; x < Dims.X; x++)
+                for(int x = 0; x < dims.X; x++)
                 {
-                    if(x < StaticTextures.GetLength(0) && y < StaticTextures.GetLength(1) && StaticTextures[x, y] != null)
+                    if(x < _staticTextures.GetLength(0) && y < _staticTextures.GetLength(1) && _staticTextures[x, y] != null)
                     {
-                        OutR[x, y] = StaticTextures[x, y];
+                        outArray[x, y] = _staticTextures[x, y];
                     }
                     else
                     {
-                        OutR[x, y] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
+                        outArray[x, y] = new RenderTarget2D(Shell.PubGD, 1000, 1000, false,
                             Shell.PubGD.PresentationParameters.BackBufferFormat,
                             DepthFormat.Depth24);
                     }
-                    GraphicsDevice TextGD = Shell.PubGD;
-                    TextGD.SetRenderTarget(OutR[x, y]);
-                    TextGD.Clear(Color.Transparent);
-                    SpriteBatch spriteBatch = new SpriteBatch(TextGD);
+                    GraphicsDevice textGD = Shell.PubGD;
+                    textGD.SetRenderTarget(outArray[x, y]);
+                    textGD.Clear(Color.Transparent);
+                    SpriteBatch spriteBatch = new SpriteBatch(textGD);
                     spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
                     DrawDynamic(spriteBatch, new Vector2(x * -1000, y * -1000));
                     spriteBatch.End();
                     Shell.PubGD.SetRenderTarget(null);
                 }
             }
-            StaticTextures = OutR;
+            _staticTextures = outArray;
         }
-        public static TextChunk[] PreprocessText(String Text, Boolean ForceSplitUnchunkables, int NewlineIndent)
+        public static TextChunk[] PreprocessText(String text, Boolean forceSplitUnchunkables, int newlineIndent)
         {
-            return PreprocessText(Text, -1, ForceSplitUnchunkables, NewlineIndent);
+            return PreprocessText(text, -1, forceSplitUnchunkables, newlineIndent);
         }
-        public static TextChunk[] PreprocessText(String Text, int PixelBuffer, Boolean ForceSplitUnchunkables, int NewlineIndent)
+        public static TextChunk[] PreprocessText(String text, int pixelBuffer, Boolean forceSplitUnchunkables, int newlineIndent)
         {
-            Text = Text.Replace("\n", "[N]");
-            Text = Text.Replace("][", ",");
-            if (Text.Length > 0 && Text[Text.Length-1] == ']') { Text += " "; }
-            ArrayList ChunkStore = new ArrayList();
-            Vector2 Location = new Vector2();
-            Boolean First = true;
-            while (Text.Contains('[') || First)
+            text = text.Replace("\n", "[N]");
+            text = text.Replace("][", ",");
+            if (text.Length > 0 && text[text.Length-1] == ']') { text += " "; }
+            List<TextChunk> chunkStore = new List<TextChunk>();
+            Vector2 location = new Vector2();
+            Boolean first = true;
+            while (text.Contains('[') || first)
             {
-                First = false;
-                SpriteFont Font = Shell.Default;
-                String FontName = "DEFAULT";
-                Color Colour = Color.White;
-                Boolean Linebreak = false;
-                Boolean IgnoreLinebreak = false;
-                Boolean RainbowMode = false;
-                int TimeDelay = 0;
-                if (Text.IndexOf('[') == 0)
+                first = false;
+                SpriteFont font = Shell.Default;
+                String fontName = "DEFAULT";
+                Color colour = Color.White;
+                Boolean linebreak = false;
+                Boolean ignoreLinebreak = false;
+                Boolean rainbowMode = false;
+                int timeDelay = 0;
+                if (text.IndexOf('[') == 0)
                 {
-                    String Formatting = Text.Remove(Text.IndexOf(']') + 1);
-                    Formatting = Formatting.Replace("[", "").Replace("]", "").ToUpper();
-                    String[] Specs = Formatting.Split(',');
-                    foreach (String S in Specs)
+                    String formatting = text.Remove(text.IndexOf(']') + 1);
+                    formatting = formatting.Replace("[", "").Replace("]", "").ToUpper();
+                    String[] specs = formatting.Split(',');
+                    foreach (String specString in specs)
                     {
-                        String[] SSplit = S.Split(':');
-                        switch(SSplit[0])
+                        String[] strSplit = specString.Split(':');
+                        switch(strSplit[0])
                         {
                             case "C":
-                                switch(SSplit[1])
+                                switch(strSplit[1])
                                 {
                                     case "WHITE":
-                                        Colour = Color.White;
+                                        colour = Color.White;
                                         break;
                                     case "PURPLE":
-                                        Colour = new Color(138, 0, 255, 255);
+                                        colour = new Color(138, 0, 255, 255);
                                         break;
                                     default:
-                                        byte[] RGBA = SSplit[1].Split('-').Select(x => Convert.ToByte(x)).ToArray();
-                                        Colour.R = RGBA[0];
-                                        Colour.G = RGBA[1];
-                                        Colour.B = RGBA[2];
-                                        Colour.A = RGBA[3];
+                                        byte[] rgba = strSplit[1].Split('-').Select(x => Convert.ToByte(x)).ToArray();
+                                        colour.R = rgba[0];
+                                        colour.G = rgba[1];
+                                        colour.B = rgba[2];
+                                        colour.A = rgba[3];
                                         break;
                                 }
                                 break;
                             case "F":
-                                if (SSplit[1] == "SYSFONT")
+                                if (strSplit[1] == "SYSFONT")
                                 {
-                                    Font = (SpriteFont)Shell.SysFont;
+                                    font = (SpriteFont)Shell.SysFont;
                                 }
                                 else
                                 {
-                                    Font = (SpriteFont)Shell.Fonts[SSplit[1]];
+                                    font = (SpriteFont)Shell.Fonts[strSplit[1]];
                                 }
-                                FontName = SSplit[1];
+                                fontName = strSplit[1];
                                 break;
                             case "L":
-                                Vector2 Adjustment = new Vector2(0,0);
-                                Adjustment.X = SSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[0];
-                                Adjustment.Y = SSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[1];
-                                Location += Adjustment;
+                                Vector2 adjustment = new Vector2(0,0);
+                                adjustment.X = strSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[0];
+                                adjustment.Y = strSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[1];
+                                location += adjustment;
                                 break;
                             case "R":
-                                RainbowMode = true;
+                                rainbowMode = true;
                                 break;
                             case "N":
-                                Linebreak = true;
+                                linebreak = true;
                                 break;
                             case "I":
-                                IgnoreLinebreak = true;
+                                ignoreLinebreak = true;
                                 break;
                             case "T":
-                                TimeDelay = Convert.ToInt32(SSplit[1]);
+                                timeDelay = Convert.ToInt32(strSplit[1]);
                                 break;
                             default:
                                 break;
                         }
                     }
-                    Text = Text.Remove(0, Formatting.Length + 2);
+                    text = text.Remove(0, formatting.Length + 2);
                 }
-                TextChunk Temp = new TextChunk();
-                Temp.Font = Font;
-                Temp.FontName = FontName;
-                Temp.Colour = Colour;
-                Temp.DrawLocation = Location;
-                Temp.RainbowMode = RainbowMode;
-                Temp.Linebreak = Linebreak;
-                Temp.IgnoreLinebreak = IgnoreLinebreak;
-                Temp.TimeDelay = TimeDelay;
-                if (Text.Contains('['))
+                TextChunk temp = new TextChunk();
+                temp.Font = font;
+                temp.FontName = fontName;
+                temp.Colour = colour;
+                temp.DrawLocation = location;
+                temp.RainbowMode = rainbowMode;
+                temp.Linebreak = linebreak;
+                temp.IgnoreLinebreak = ignoreLinebreak;
+                temp.TimeDelay = timeDelay;
+                if (text.Contains('['))
                 {
-                    Temp.Text = Text.Remove(Text.IndexOf('['));
+                    temp.Text = text.Remove(text.IndexOf('['));
                 }
-                else { Temp.Text = Text; }
-                ChunkStore.Add(Temp);
-                Location.X += (int)Font.MeasureString(Temp.Text).X;
-                Text = Text.Remove(0, Temp.Text.Length);
+                else { temp.Text = text; }
+                chunkStore.Add(temp);
+                location.X += (int)font.MeasureString(temp.Text).X;
+                text = text.Remove(0, temp.Text.Length);
             }
-            TextChunk[] Out = ChunkStore.ToArray().Select(x => (TextChunk)x).ToArray();
-            if(PixelBuffer != -1) { Out = LinebreakChunks(Out, PixelBuffer, ForceSplitUnchunkables, NewlineIndent); }
-            return Out;
+            TextChunk[] outChunkR = chunkStore.ToArray().Select(x => (TextChunk)x).ToArray();
+            if(pixelBuffer != -1) { outChunkR = LinebreakChunks(outChunkR, pixelBuffer, forceSplitUnchunkables, newlineIndent); }
+            return outChunkR;
         }
-        protected Boolean pForceSplitUnchunkables = false;
+        private Boolean _forceSplitUnchunkables = false;
         public Boolean ForceSplitUnchunkables
         {
             get
             {
-                return pForceSplitUnchunkables;
+                return _forceSplitUnchunkables;
             }
             set
             {
-                if (value != pForceSplitUnchunkables)
+                if (value != _forceSplitUnchunkables)
                 {
-                    pForceSplitUnchunkables = value;
-                    IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
+                    _forceSplitUnchunkables = value;
+                    ignoreDelayOnThis = new List<int>();
+                    _textChunkR = PreprocessText(_text, _bufferLength, _forceSplitUnchunkables, NewlineIndent);
                 }
             }
         }
-        public static TextChunk[] LinebreakChunks(TextChunk[] Initial, int MaxPixelLineLength, Boolean ForceSplitUnchunkables, int NewlineIndent) //Function to insert linebreaks into text as required, based on a given length
+        public static TextChunk[] LinebreakChunks(TextChunk[] initial, int maxPixelLineLength, Boolean forceSplitUnchunkables, int newlineIndent) //Function to insert linebreaks into text as required, based on a given length
         {
-            int CurrentPixelTotal = 0;
-            Vector2 RollingLocationMod = new Vector2(0, 0); //Vector representing the degree to which the next line should be shifted from the previous
-            Vector2 StackableVector2 = new Vector2(0, 0); //Vector representing the degree to which all subsequent text chunks should be additionally shifted by auto-inserted line breaks
-            Vector2 LinebreakAmmendment = new Vector2(); //Vector representing the degree to which all subsequent text chunks should be additionally shifted due to manual line breaks
-            ArrayList RebuildChunks = new ArrayList(); //The new set of chunks broken up correctly to include line breaks
-            ArrayList NewChunkRegistry = new ArrayList(); //Collection of new text chunks created by auto-inserted line breaks, that will be depopulated as they are processed
+            int currentPixelTotal = 0;
+            Vector2 rollingLocationMod = new Vector2(0, 0); //Vector representing the degree to which the next line should be shifted from the previous
+            Vector2 stackableVector2 = new Vector2(0, 0); //Vector representing the degree to which all subsequent text chunks should be additionally shifted by auto-inserted line breaks
+            Vector2 linebreakAmmendment = new Vector2(); //Vector representing the degree to which all subsequent text chunks should be additionally shifted due to manual line breaks
+            ArrayList rebuildChunks = new ArrayList(); //The new set of chunks broken up correctly to include line breaks
+            ArrayList newChunkRegistry = new ArrayList(); //Collection of new text chunks created by auto-inserted line breaks, that will be depopulated as they are processed
             int i = 0;
-            while(i < Initial.Length || NewChunkRegistry.Count > 0)
+            while(i < initial.Length || newChunkRegistry.Count > 0)
             {
-                TextChunk TC; //TC is the current text chunk being processed
-                if (NewChunkRegistry.Count > 0) //If new chunks have been created by automated linebreaking, they are dealt with before the next input text chunk
+                TextChunk currentTC; //currentTC is the current text chunk being processed
+                if (newChunkRegistry.Count > 0) //If new chunks have been created by automated linebreaking, they are dealt with before the next input text chunk
                 {
                     i--;
-                    TC = (TextChunk)NewChunkRegistry[0];
-                    NewChunkRegistry.RemoveAt(0);
-                    StackableVector2 += RollingLocationMod;
+                    currentTC = (TextChunk)newChunkRegistry[0];
+                    newChunkRegistry.RemoveAt(0);
+                    stackableVector2 += rollingLocationMod;
                 }
                 else //If there are none, then the next chunk in the list is selected
                 {
-                    TC = Initial[i];
+                    currentTC = initial[i];
                     if (i > 0)
                     {
-                        TC.DrawLocation += (LinebreakAmmendment + StackableVector2 - RollingLocationMod); //Its initial location is modified from the input location (determined in PreprocessText()) using the three vectors
-                        //RollingLocationMod is subtracted because StackableVector2 will contain its value, if this is a new chunk after an autolinebreak, and it is always added back on regardless, so this nullifies that
+                        currentTC.DrawLocation += (linebreakAmmendment + stackableVector2 - rollingLocationMod); //Its initial location is modified from the input location (determined in PreprocessText()) using the three vectors
+                        //rollingLocationMod is subtracted because stackableVector2 will contain its value, if this is a new chunk after an autolinebreak, and it is always added back on regardless, so this nullifies that
                     }
                 }
-                if(TC.Linebreak)
+                if(currentTC.Linebreak)
                 {
-                    //Manual linebreaks cause RLM to be updated, but the change is also stored in LinebreakAmmendment for future chunks
-                    RollingLocationMod = new Vector2(RollingLocationMod.X - CurrentPixelTotal, RollingLocationMod.Y + (int)TC.Font.MeasureString(" ").Y);
-                    LinebreakAmmendment += new Vector2(-CurrentPixelTotal, (int)TC.Font.MeasureString(" ").Y);
-                    CurrentPixelTotal = 0;
-                    TC.Linebreak = false;
-                    Initial[i].Linebreak = false;
+                    //Manual linebreaks cause RLM to be updated, but the change is also stored in linebreakAmmendment for future chunks
+                    rollingLocationMod = new Vector2(rollingLocationMod.X - currentPixelTotal, rollingLocationMod.Y + (int)currentTC.Font.MeasureString(" ").Y);
+                    linebreakAmmendment += new Vector2(-currentPixelTotal, (int)currentTC.Font.MeasureString(" ").Y);
+                    currentPixelTotal = 0;
+                    currentTC.Linebreak = false;
+                    initial[i].Linebreak = false;
                 }
-                TC.DrawLocation += RollingLocationMod; //The TC draw location is modified by the RLM vector
-                int PixFromNextTotal = 0;
-                if(i + 1 < Initial.Length) //This section of code determines how many pixels the text chunk after this would take up before a line break is possible, for later use
+                currentTC.DrawLocation += rollingLocationMod; //The currentTC draw location is modified by the RLM vector
+                int pixFromNextTotal = 0;
+                if(i + 1 < initial.Length) //This section of code determines how many pixels the text chunk after this would take up before a line break is possible, for later use
                 {
-                    int Forward = 1;
-                    while (i + Forward < Initial.Length)
+                    int forward = 1;
+                    while (i + forward < initial.Length)
                     {
-                        TextChunk NTC = Initial[i + Forward];
-                        if(NTC.Linebreak) { break; }
-                        if (NTC.Text.Contains(' '))
+                        TextChunk nextTextChunk = initial[i + forward];
+                        if(nextTextChunk.Linebreak) { break; }
+                        if (nextTextChunk.Text.Contains(' '))
                         {
-                            PixFromNextTotal += (int)TC.Font.MeasureString(NTC.Text.Remove(NTC.Text.IndexOf(' '))).X;
+                            pixFromNextTotal += (int)currentTC.Font.MeasureString(nextTextChunk.Text.Remove(nextTextChunk.Text.IndexOf(' '))).X;
                             break;
                         }
-                        else { PixFromNextTotal += (int)TC.Font.MeasureString(NTC.Text).X; }
-                        Forward++;
+                        else { pixFromNextTotal += (int)currentTC.Font.MeasureString(nextTextChunk.Text).X; }
+                        forward++;
                     }
                 }
-                if(CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength && !TC.IgnoreLinebreak) //If the current length plus the next chunk's pre-space pixels break the line limit...
+                if(currentPixelTotal + (int)currentTC.Font.MeasureString(currentTC.Text).X + pixFromNextTotal > maxPixelLineLength && !currentTC.IgnoreLinebreak) //If the current length plus the next chunk's pre-space pixels break the line limit...
                 {
-                    Boolean ByPix = false;
-                    //ByPix: whether the next chunk will take the line length over the edge
-                    if (CurrentPixelTotal + (int)TC.Font.MeasureString(TC.Text).X + PixFromNextTotal > MaxPixelLineLength && TC.Font.MeasureString(TC.Text).X + CurrentPixelTotal <= MaxPixelLineLength) { ByPix = true; }
-                    if (TC.Text.Contains(' ')) //First we check for a space to see if a linebreak can be performed in the current text chunk
+                    Boolean overByPix = false;
+                    //overByPix: whether the next chunk will take the line length over the edge
+                    if (currentPixelTotal + (int)currentTC.Font.MeasureString(currentTC.Text).X + pixFromNextTotal > maxPixelLineLength && currentTC.Font.MeasureString(currentTC.Text).X + currentPixelTotal <= maxPixelLineLength) { overByPix = true; }
+                    if (currentTC.Text.Contains(' ')) //First we check for a space to see if a linebreak can be performed in the current text chunk
                     {
-                        String FindLoc = TC.Text;
-                        int FoundLocation = -1;
-                        //ByPix is used to cause a linebreak on the last possible space to avoid overflow next text chunk
+                        String findLoc = currentTC.Text;
+                        int foundLocation = -1;
+                        //overByPix is used to cause a linebreak on the last possible space to avoid overflow next text chunk
                         //Otherwise, each space is checked until one is found that allows the line to be shortened to within the limit
-                        while ((TC.Font.MeasureString(FindLoc).X + CurrentPixelTotal > MaxPixelLineLength || ByPix) && FindLoc.Contains(' '))
+                        while ((currentTC.Font.MeasureString(findLoc).X + currentPixelTotal > maxPixelLineLength || overByPix) && findLoc.Contains(' '))
                         {
-                            ByPix = false;
-                            int CI = FindLoc.LastIndexOf(' ');
-                            FindLoc = FindLoc.Remove(CI);
-                            if (TC.Font.MeasureString(FindLoc).X + CurrentPixelTotal <= MaxPixelLineLength)
+                            overByPix = false;
+                            int currentIndex = findLoc.LastIndexOf(' ');
+                            findLoc = findLoc.Remove(currentIndex);
+                            if (currentTC.Font.MeasureString(findLoc).X + currentPixelTotal <= maxPixelLineLength)
                             {
-                                FoundLocation = CI;
+                                foundLocation = currentIndex;
                             }
                         }
                         //If no workable space is found, the first one is picked as the best compromise
-                        if (FoundLocation == -1)
+                        if (foundLocation == -1)
                         {
-                            FoundLocation = TC.Text.IndexOf(' ');
+                            foundLocation = currentTC.Text.IndexOf(' ');
                         }
                         //A new text chunk is created to represent the text after the line break
-                        TextChunk New = TC;
-                        New.TimeDelay = 0;
-                        New.Text = New.Text.Remove(0, FoundLocation + 1);
-                        if(New.Text.Length > 0 && New.Text[0] == ' ') { New.Text = New.Text.Remove(0, 1); }
+                        TextChunk newTC = currentTC;
+                        newTC.TimeDelay = 0;
+                        newTC.Text = newTC.Text.Remove(0, foundLocation + 1);
+                        if(newTC.Text.Length > 0 && newTC.Text[0] == ' ') { newTC.Text = newTC.Text.Remove(0, 1); }
                         int TCMeasure = 0;
-                        TC.Text = TC.Text.Remove(FoundLocation);
-                        TCMeasure = (int)TC.Font.MeasureString(TC.Text + " ").X; //The length of the first half of the new, broken line is measured
-                        RollingLocationMod.X = -CurrentPixelTotal - TCMeasure + NewlineIndent; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
-                        New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
-                        RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
-                        CurrentPixelTotal = NewlineIndent;
-                        RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
-                        NewChunkRegistry.Add(New);
+                        currentTC.Text = currentTC.Text.Remove(foundLocation);
+                        TCMeasure = (int)currentTC.Font.MeasureString(currentTC.Text + " ").X; //The length of the first half of the new, broken line is measured
+                        rollingLocationMod.X = -currentPixelTotal - TCMeasure + newlineIndent; //rollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
+                        newTC.DrawLocation.X += TCMeasure; //The length is added back on, as the newTC text chunk is starting from the initial location of the old one (currentTC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after currentTC
+                        rollingLocationMod.Y = (int)currentTC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
+                        currentPixelTotal = newlineIndent;
+                        rebuildChunks.Add(currentTC); //The current text chunk is added to the new, final list of chunks                       
+                        newChunkRegistry.Add(newTC);
                     }
                     else //Else, if text cannot be split...
                     {
-                        if (!ByPix && ForceSplitUnchunkables)
+                        if (!overByPix && forceSplitUnchunkables)
                         {
-                            StringBuilder FindLoc = new StringBuilder(TC.Text);
+                            StringBuilder findLoc = new StringBuilder(currentTC.Text);
                             //Similar to above, but spaces are not looked for
-                            while (TC.Font.MeasureString(FindLoc).X + CurrentPixelTotal > MaxPixelLineLength)
+                            while (currentTC.Font.MeasureString(findLoc).X + currentPixelTotal > maxPixelLineLength)
                             {
-                                FindLoc.Remove(FindLoc.Length - 1, 1);
+                                findLoc.Remove(findLoc.Length - 1, 1);
                             }
-                            int FoundLocation = FindLoc.Length;
+                            int FoundLocation = findLoc.Length;
                             //A new text chunk is created to represent the text after the line break
-                            TextChunk New = TC;
-                            New.TimeDelay = 0;
-                            New.Text = New.Text.Remove(0, FoundLocation);
-                            int TCMeasure = 0;
-                            TC.Text = TC.Text.Remove(FoundLocation);
-                            TCMeasure = (int)TC.Font.MeasureString(TC.Text).X; //The length of the first half of the new, broken line is measured
-                            RollingLocationMod.X = -CurrentPixelTotal - TCMeasure + NewlineIndent; //RollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
-                            New.DrawLocation.X += TCMeasure; //The length is added back on, as the New text chunk is starting from the initial location of the old one (TC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after TC
-                            RollingLocationMod.Y = (int)TC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
-                            CurrentPixelTotal = NewlineIndent;
-                            RebuildChunks.Add(TC); //The current text chunk is added to the new, final list of chunks                       
-                            NewChunkRegistry.Add(New);
+                            TextChunk newTC = currentTC;
+                            newTC.TimeDelay = 0;
+                            newTC.Text = newTC.Text.Remove(0, FoundLocation);
+                            int tcMeasure = 0;
+                            currentTC.Text = currentTC.Text.Remove(FoundLocation);
+                            tcMeasure = (int)currentTC.Font.MeasureString(currentTC.Text).X; //The length of the first half of the new, broken line is measured
+                            rollingLocationMod.X = -currentPixelTotal - tcMeasure + newlineIndent; //rollingLocationMod is used to modify the position of the new text chunk, and also to later transfer this information to the SV2 vector
+                            newTC.DrawLocation.X += tcMeasure; //The length is added back on, as the newTC text chunk is starting from the initial location of the old one (currentTC) before being shifted back by RLM, so it must be adjusted for the fact that it comes after currentTC
+                            rollingLocationMod.Y = (int)currentTC.Font.MeasureString(" ").Y; //And the "new" chunk is also shifted down
+                            currentPixelTotal = newlineIndent;
+                            rebuildChunks.Add(currentTC); //The current text chunk is added to the new, final list of chunks                       
+                            newChunkRegistry.Add(newTC);
                         }
                         else
                         {
-                            RebuildChunks.Add(TC); //Ignore split and proceed as normal as it is not possible to split, hoping that the next text chunk will be splitable.
-                            CurrentPixelTotal += (int)TC.Font.MeasureString(TC.Text).X;
+                            rebuildChunks.Add(currentTC); //Ignore split and proceed as normal as it is not possible to split, hoping that the next text chunk will be splitable.
+                            currentPixelTotal += (int)currentTC.Font.MeasureString(currentTC.Text).X;
                         }
                     }
                 }
                 else //If no linebreak is required...
                 {
-                    RebuildChunks.Add(TC); //Simply add TC into the new chunk list as is
-                    CurrentPixelTotal += (int)TC.Font.MeasureString(TC.Text).X; //And increment the CurrentPixelTotal to keep a record of how far we are towards the length limit
+                    rebuildChunks.Add(currentTC); //Simply add currentTC into the new chunk list as is
+                    currentPixelTotal += (int)currentTC.Font.MeasureString(currentTC.Text).X; //And increment the CurrentPixelTotal to keep a record of how far we are towards the length limit
                 }
                 i++;
             }
-            return RebuildChunks.ToArray().Select(x => (TextChunk)x).ToArray(); //The new list of text chunks is returned as an array
+            return rebuildChunks.ToArray().Select(x => (TextChunk)x).ToArray(); //The new list of text chunks is returned as an array
         }
-        ArrayList IgnoreDelayOnThis = new ArrayList();
+        List<int> ignoreDelayOnThis = new List<int>();
         public TextChunk[] RevealXChars(TextChunk[] Initial, int CharCount)
         {
-            TextChunk[] Copy = (TextChunk[])Initial.Clone();
-            int CharR = 0;
-            for (int i = 0; i < Copy.Length; i++)
+            TextChunk[] copyTC = (TextChunk[])Initial.Clone();
+            int charR = 0;
+            for (int i = 0; i < copyTC.Length; i++)
             {
-                TextChunk TC = Copy[i];
-                if(CharR >= CharCount) { TC.Text = ""; }
-                for (int ii = 0; ii < TC.Text.Length; ii++)
+                TextChunk textChunk = copyTC[i];
+                if(charR >= CharCount) { textChunk.Text = ""; }
+                for (int ii = 0; ii < textChunk.Text.Length; ii++)
                 {
-                    if (TC.TimeDelay != 0 && !IgnoreDelayOnThis.Contains(i) && WriteProgress < pLength)
+                    if (textChunk.TimeDelay != 0 && !ignoreDelayOnThis.Contains(i) && writeProgress < _length)
                     {
-                        Updatetime += TC.TimeDelay - 30;
-                        IgnoreDelayOnThis.Add(i);
+                        Updatetime += textChunk.TimeDelay - 30;
+                        ignoreDelayOnThis.Add(i);
                         ii--;
                     }
-                    CharR++;
-                    if(CharR >= CharCount && ii+1 < TC.Text.Length)
+                    charR++;
+                    if(charR >= CharCount && ii+1 < textChunk.Text.Length)
                     {
-                        TC.Text = TC.Text.Remove(ii+1);
+                        textChunk.Text = textChunk.Text.Remove(ii+1);
                         break;
                     }
                 }
-                Copy[i] = TC;
+                copyTC[i] = textChunk;
             }
-            return Copy;
+            return copyTC;
         }
-        String pText = "";
-        TextChunk[] TextChunkR;
+        String _text = "";
+        TextChunk[] _textChunkR;
         public override void OnDeserializeDo()
         {
             base.OnDeserializeDo();
-            for(int i = 0; i < TextChunkR.Length; i++)
+            for(int i = 0; i < _textChunkR.Length; i++)
             {
-                TextChunk TC = TextChunkR[i];
-                String FName = (TC.FontName != null ? TC.FontName : "DEFAULT");
-                TC.Font = (SpriteFont)Shell.Fonts[FName];
-                TextChunkR[i] = TC;
+                TextChunk textChunk = _textChunkR[i];
+                String fontName = (textChunk.FontName != null ? textChunk.FontName : "DEFAULT");
+                textChunk.Font = (SpriteFont)Shell.Fonts[fontName];
+                _textChunkR[i] = textChunk;
             }
-            for (int i = 0; i < ProgressiveChunks.Length; i++)
+            for (int i = 0; i < _progressiveChunks.Length; i++)
             {
-                TextChunk TC = ProgressiveChunks[i];
-                String FName = (TC.FontName != null ? TC.FontName : "DEFAULT");
-                TC.Font = (SpriteFont)Shell.Fonts[FName];
-                ProgressiveChunks[i] = TC;
+                TextChunk textChunk = _progressiveChunks[i];
+                String fontName = (textChunk.FontName != null ? textChunk.FontName : "DEFAULT");
+                textChunk.Font = (SpriteFont)Shell.Fonts[fontName];
+                _progressiveChunks[i] = textChunk;
             }
         }
-        protected int pBufferLength;
+        private int _bufferLength;
         public int BufferLength
         {
             get
             {
-                return pBufferLength;
+                return _bufferLength;
             }
             set
             {
-                if (value != pBufferLength)
+                if (value != _bufferLength)
                 {
-                    pBufferLength = value;
-                    IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(pText, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
+                    _bufferLength = value;
+                    ignoreDelayOnThis = new List<int>();
+                    _textChunkR = PreprocessText(_text, _bufferLength, _forceSplitUnchunkables, NewlineIndent);
                 }
             }
         }
         public String Text
         {
-            get { return pText; }
+            get { return _text; }
             set
             {
-                if (pText != value)
+                if (_text != value)
                 {
-                    pText = value;
-                    TextChunkR = new TextChunk[0];
-                    IgnoreDelayOnThis = new ArrayList();
-                    TextChunkR = PreprocessText(value, pBufferLength, pForceSplitUnchunkables, NewlineIndent);
-                    int L = 0;
-                    foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
-                    pLength = L;
-                    if (pDrawAsStatic)
+                    _text = value;
+                    _textChunkR = new TextChunk[0];
+                    ignoreDelayOnThis = new List<int>();
+                    _textChunkR = PreprocessText(value, _bufferLength, _forceSplitUnchunkables, NewlineIndent);
+                    int len = 0;
+                    foreach (TextChunk textChunk in _textChunkR) { len += textChunk.Text.Length; }
+                    _length = len;
+                    if (_drawAsStatic)
                     {
                         StaticRender();
                     }
                 }
             }
         }
-        public TextEntity(String Name, String TextIn, Vector2 Location, float Depth) : base(Name, Location, null, Depth)
+        public TextEntity(String name, String textIn, Vector2 location, float depth) : base(name, location, null, depth)
         {
-            pBufferLength = 1000;
-            TextChunkR = PreprocessText(TextIn, pBufferLength, false, NewlineIndent);
-            if(TypeWrite) { ProgressiveChunks = RevealXChars(TextChunkR, 0); }
-            int L = 0;
-            foreach (TextChunk TCO in TextChunkR) { L += TCO.Text.Length; }
-            pLength = L;
-            pText = TextIn;
+            _bufferLength = 1000;
+            _textChunkR = PreprocessText(textIn, _bufferLength, false, NewlineIndent);
+            if(TypeWrite) { _progressiveChunks = RevealXChars(_textChunkR, 0); }
+            int len = 0;
+            foreach (TextChunk textChunk in _textChunkR) { len += textChunk.Text.Length; }
+            _length = len;
+            _text = textIn;
             TypeWrite = true;
         }
         public void ReWrite()
         {
-            ProgressiveChunks = new TextChunk[0];
-            WriteProgress = -1;
+            _progressiveChunks = new TextChunk[0];
+            writeProgress = -1;
         }
         public void SkipWrite()
         {
-            WriteProgress = pLength;
-            ProgressiveChunks = RevealXChars(TextChunkR, WriteProgress);
-            if (pDrawAsStatic) { StaticRender(); }
+            writeProgress = _length;
+            _progressiveChunks = RevealXChars(_textChunkR, writeProgress);
+            if (_drawAsStatic) { StaticRender(); }
         }
         public int VerticalLength()
         {
             return VerticalLength(false);
         }
-        public int VerticalLength(Boolean CheckDisplacements)
+        public int VerticalLength(Boolean checkDisplacements)
         {
-            int Out = 0;
-            if(CheckDisplacements)
+            int output = 0;
+            if(checkDisplacements)
             {
-                float CC = 0;
-                Out = (int)(TextChunkR[0].Font.MeasureString(" ").Y);
-                foreach (TextChunk T in TextChunkR)
+                float dispChecker = 0;
+                output = (int)(_textChunkR[0].Font.MeasureString(" ").Y);
+                foreach (TextChunk T in _textChunkR)
                 {
-                    if(T.DrawLocation.Y > CC)
+                    if(T.DrawLocation.Y > dispChecker)
                     {
-                        CC = T.DrawLocation.Y;
-                        Out = (int)(CC + T.Font.MeasureString(" ").Y);
+                        dispChecker = T.DrawLocation.Y;
+                        output = (int)(dispChecker + T.Font.MeasureString(" ").Y);
                     }
                 }
-                foreach (TextChunk T in TextChunkR)
+                foreach (TextChunk T in _textChunkR)
                 {
-                    if (T.DrawLocation.Y < CC)
+                    if (T.DrawLocation.Y < dispChecker)
                     {
-                        CC = T.DrawLocation.Y;
+                        dispChecker = T.DrawLocation.Y;
                     }
                 }
-                Out -= (int)CC;
+                output -= (int)dispChecker;
             }
             else
             {
-                Out = ((int)TextChunkR[TextChunkR.Length - 1].DrawLocation.Y + (int)TextChunkR[TextChunkR.Length - 1].Font.MeasureString(" ").Y);
+                output = ((int)_textChunkR[_textChunkR.Length - 1].DrawLocation.Y + (int)_textChunkR[_textChunkR.Length - 1].Font.MeasureString(" ").Y);
             }
-            return Out;
+            return output;
         }
         public int ChunkCount
         {
-            get { return TextChunkR.Length; }
+            get { return _textChunkR.Length; }
         }
-        protected float[] pChunkFontHeight = null;
+        private float[] _chunkFontHeight = null;
         public float[] ChunkFontHeight
         {
             get
             {
-                pChunkFontHeight = new float[TextChunkR.Length];
+                _chunkFontHeight = new float[_textChunkR.Length];
                 int i = 0;
-                foreach(TextChunk T in TextChunkR)
+                foreach(TextChunk T in _textChunkR)
                 {
-                    pChunkFontHeight[i] = T.Font.MeasureString(" ").Y;
+                    _chunkFontHeight[i] = T.Font.MeasureString(" ").Y;
                     i++;
                 }
-                return pChunkFontHeight;
+                return _chunkFontHeight;
             }
+            protected set { _chunkFontHeight = value; }
         }
-        int WriteProgress = -1;
+        int writeProgress = -1;
         public Boolean TypeWrite { get; set; }
-        private TextChunk[] ProgressiveChunks = new TextChunk[] { };
+        private TextChunk[] _progressiveChunks = new TextChunk[] { };
         public Boolean WrittenAll()
         {
-            return !(WriteProgress < pLength) || !TypeWrite;
+            return !(writeProgress < _length) || !TypeWrite;
         }
         public static void PlayTick()
         {
             if (!Shell.Mute)
             {
-                int Tn = Shell.Rnd.Next(1, 4);
-                SoundEffectInstance Tick = ((SoundEffect)Shell.SFXDirectory["TYPE_" + Tn]).CreateInstance();
+                int tickNum = Shell.Rnd.Next(1, 4);
+                SoundEffectInstance Tick = ((SoundEffect)Shell.SFXDirectory["TYPE_" + tickNum]).CreateInstance();
                 Tick.Volume = Shell.GlobalVolume;
                 Tick.Play();
                 Shell.ActiveSounds.Add(Tick);
             }
         }
-        Boolean Sounder = false;
+        Boolean _sounder = false;
         public override void Update()
         {
             base.Update();
-            if (TypeWrite && WriteProgress < pLength && Updatetime < Environment.TickCount - TickWriteInterval && !Shell.HoldRender)
+            if (TypeWrite && writeProgress < _length && Updatetime < Environment.TickCount - TickWriteInterval && !Shell.HoldRender)
             {
                 Updatetime = Environment.TickCount;
                 if (!ButtonScripts.Paused && !ButtonScripts.Navigating)
                 {
-                    WriteProgress++;
-                    ProgressiveChunks = RevealXChars(TextChunkR, WriteProgress);
-                    if (pDrawAsStatic) { StaticRender(); }
-                    if (Sounder)
+                    writeProgress++;
+                    _progressiveChunks = RevealXChars(_textChunkR, writeProgress);
+                    if (_drawAsStatic) { StaticRender(); }
+                    if (_sounder)
                     {
-                        if (Name == "TEXT_MAIN" && pLength > 0)
+                        if (Name == "TEXT_MAIN" && _length > 0)
                         {
                             PlayTick();
                         }
-                        Sounder = false;
+                        _sounder = false;
                     }
-                    else { Sounder = true; }
+                    else { _sounder = true; }
                 }
             }
         }
@@ -1576,22 +1624,22 @@ namespace VNFramework
                 DrawDynamic(spriteBatch, camera);
             }
         }
-        public void DrawDynamic(SpriteBatch spriteBatch, Vector2? ManualNormalizer)
+        public void DrawDynamic(SpriteBatch spriteBatch, Vector2? manualNormalizer)
         {
             if (!TypeWrite)
             {
-                foreach (TextChunk TC in TextChunkR)
+                foreach (TextChunk textChunk in _textChunkR)
                 {
-                    if(TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + (ManualNormalizer ?? DrawCoords - pOrigin), TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    if(textChunk.RainbowMode) { textChunk.Rainbow(); }
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? DrawCoords - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
             else
             {
-                foreach (TextChunk TC in ProgressiveChunks)
+                foreach (TextChunk textChunk in _progressiveChunks)
                 {
-                    if (TC.RainbowMode) { TC.Rainbow(); }
-                    spriteBatch.DrawString(TC.Font, TC.Text, new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + (ManualNormalizer ?? DrawCoords - pOrigin), TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    if (textChunk.RainbowMode) { textChunk.Rainbow(); }
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? DrawCoords - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
         }
@@ -1602,44 +1650,44 @@ namespace VNFramework
             {
                 if (!TypeWrite)
                 {
-                    foreach (TextChunk TC in TextChunkR)
+                    foreach (TextChunk textChunk in _textChunkR)
                     {
-                        if (TC.RainbowMode) { TC.Rainbow(); }
-                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords - pOrigin + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        if (textChunk.RainbowMode) { textChunk.Rainbow(); }
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + DrawCoords - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
                     }
                 }
                 else
                 {
-                    foreach (TextChunk TC in ProgressiveChunks)
+                    foreach (TextChunk textChunk in _progressiveChunks)
                     {
-                        if (TC.RainbowMode) { TC.Rainbow(); }
-                        spriteBatch.DrawString(TC.Font, TC.Text, (new Vector2(TC.DrawLocation.X, TC.DrawLocation.Y) + DrawCoords - pOrigin + camera.OffsetVector) * camera.ZoomFactor, TC.Colour * (pColour.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        if (textChunk.RainbowMode) { textChunk.Rainbow(); }
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + DrawCoords - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
                     }
                 }
             }
         }
         public void DrawStatic(SpriteBatch spriteBatch)
         {
-            if (StaticTextures != null)
+            if (_staticTextures != null)
             {
-                for(int x = 0; x < StaticTextures.GetLength(0); x++)
+                for(int x = 0; x < _staticTextures.GetLength(0); x++)
                 {
-                    for (int y = 0; y < StaticTextures.GetLength(1); y++)
+                    for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(StaticTextures[x, y], new Rectangle(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - VNFUtils.ConvertVector(pOrigin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), pScale), VNFUtils.PointMultiply(StaticTextures[x, y].Bounds.Size, pScale)), StaticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size), VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, Size)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
                     }
                 }
             }
         }
         public void DrawStatic(SpriteBatch spriteBatch, Camera camera)
         {
-            if (StaticTextures != null)
+            if (_staticTextures != null)
             {
-                for (int x = 0; x < StaticTextures.GetLength(0); x++)
+                for (int x = 0; x < _staticTextures.GetLength(0); x++)
                 {
-                    for (int y = 0; y < StaticTextures.GetLength(1); y++)
+                    for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(StaticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) - VNFUtils.ConvertVector(pOrigin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), pScale) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(StaticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(pScale)), camera.ZoomFactor)), StaticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)DrawCoords.X, (int)DrawCoords.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(Size)), camera.ZoomFactor)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
                     }
                 }
             }

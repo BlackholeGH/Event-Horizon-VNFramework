@@ -9,459 +9,466 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
+using System.Windows.Forms;
+using System.Reflection;
 
 namespace VNFramework
 {
     public partial class Animation
     {
-        public static Animation Retrieve(String Name)
+        public static Animation Retrieve(String name)
         {
-            Animation Out = null;
-            Animation Temp = null;
-            SortedList BFrames;
-            SortedList TempFrames;
-            int Velocity;
-            int Accel;
-            int Frame;
-            switch (Name.ToUpper())
+            Animation animOut = null;
+            Animation animTemp = null;
+            SortedList<int, Vector2> vectorBFrames = new SortedList<int, Vector2>();
+            SortedList<int, Vector2> vectorTempFrames = new SortedList<int, Vector2>();
+            SortedList<int, Point> pointBFrames = new SortedList<int, Point>();
+            SortedList<int, Point> pointTempFrames = new SortedList<int, Point>(); ;
+            SortedList<int, ColourShift> colourBFrames = new SortedList<int, ColourShift>();
+            SortedList<int, ColourShift> colourTempFrames = new SortedList<int, ColourShift>();
+            SortedList<int, float> floatBFrames = new SortedList<int, float>();
+            SortedList<int, float> floatTempFrames = new SortedList<int, float>();
+            int velocity = 0;
+            int accel = 0;
+            int frame = 0;
+            switch (name.ToUpper())
             {
                 case "BOUNCE_1":
-                    Temp = new Animation("bounce_1");
-                    BFrames = new SortedList();
-                    Velocity = -10;
-                    Accel = 1;
-                    Frame = 0;
+                    animTemp = new Animation("bounce_1");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    velocity = -10;
+                    accel = 1;
+                    frame = 0;
                     do
                     {
-                        BFrames.Add(Frame, new Vector2(0, (float)Velocity));
-                        Frame += 20;
-                        Velocity += Accel;
+                        vectorBFrames.Add(frame, new Vector2(0, (float)velocity));
+                        frame += 20;
+                        velocity += accel;
                     }
-                    while (Velocity <= 10);
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (velocity <= 10);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "BOUNCE_2":
-                    Temp = new Animation("bounce_2");
-                    BFrames = new SortedList();
-                    Velocity = -10;
-                    Accel = 1;
-                    Frame = 0;
+                    animTemp = new Animation("bounce_2");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    velocity = -10;
+                    accel = 1;
+                    frame = 0;
                     do
                     {
-                        BFrames.Add(Frame, new Vector2(0, (float)Velocity));
-                        Frame += 20;
-                        Velocity += Accel;
+                        vectorBFrames.Add(frame, new Vector2(0, (float)velocity));
+                        frame += 20;
+                        velocity += accel;
                     }
-                    while (Velocity <= 10);
-                    Velocity = -6;
+                    while (velocity <= 10);
+                    velocity = -6;
                     do
                     {
-                        BFrames.Add(Frame, new Vector2(0, (float)Velocity));
-                        Frame += 20;
-                        Velocity += Accel;
+                        vectorBFrames.Add(frame, new Vector2(0, (float)velocity));
+                        frame += 20;
+                        velocity += accel;
                     }
-                    while (Velocity <= 6);
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (velocity <= 6);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "BOUNCE_3":
-                    Temp = new Animation("bounce_3");
-                    BFrames = new SortedList();
-                    Velocity = -5;
-                    Accel = 1;
-                    Frame = 0;
+                    animTemp = new Animation("bounce_3");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    velocity = -5;
+                    accel = 1;
+                    frame = 0;
                     do
                     {
-                        BFrames.Add(Frame, new Vector2(0, (float)Velocity));
-                        Frame += 20;
-                        Velocity += Accel;
+                        vectorBFrames.Add(frame, new Vector2(0, (float)velocity));
+                        frame += 20;
+                        velocity += accel;
                     }
-                    while (Velocity <= 5);
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (velocity <= 5);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "MOVEUPIN":
-                    Temp = new Animation("moveupin");
-                    Temp.WriteMovement(Animation.CreateVectorTween(new Vector2(0, -600), 1500, 20));
-                    Out = Temp;
+                    animTemp = new Animation("moveupin");
+                    animTemp.WriteMovement(Animation.CreateVectorTween(new Vector2(0, -600), 1500, 20));
+                    animOut = animTemp;
                     break;
                 case "FALLSHOCK":
-                    Temp = new Animation("fallshock");
-                    BFrames = Animation.CreateVectorTween(new Vector2(0, -20), 1500, 20);
-                    TempFrames = Animation.CreateVectorTween(new Vector2(0, 200), 300, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    BFrames.Add(2500, new Vector2(0, 0));
-                    TempFrames = Animation.CreateVectorTween(new Vector2(0, -180), 700, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    Temp.WriteMovement(BFrames);
-                    BFrames = new SortedList();
-                    BFrames.Add(0, new Point(1, 1));
-                    BFrames.Add(1800, new Point(3, 0));
-                    Temp.WriteFrames(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fallshock");
+                    vectorBFrames = Animation.CreateVectorTween(new Vector2(0, -20), 1500, 20);
+                    vectorTempFrames = Animation.CreateVectorTween(new Vector2(0, 200), 300, 20);
+                    vectorBFrames = Animation.MergeFrames(vectorBFrames, vectorTempFrames);
+                    vectorBFrames.Add(2500, new Vector2(0, 0));
+                    vectorTempFrames = Animation.CreateVectorTween(new Vector2(0, -180), 700, 20);
+                    vectorBFrames = Animation.MergeFrames(vectorBFrames, vectorTempFrames);
+                    animTemp.WriteMovement(vectorBFrames);
+                    pointBFrames = new SortedList<int, Point>();
+                    pointBFrames.Add(0, new Point(1, 1));
+                    pointBFrames.Add(1800, new Point(3, 0));
+                    animTemp.WriteFrames(pointBFrames);
+                    animOut = animTemp;
                     break;
                 case "SHAKEMINOR":
-                    Temp = new Animation("shakeminor");
-                    BFrames = new SortedList();
-                    Velocity = -4;
-                    Accel = 1;
-                    Frame = 0;
+                    animTemp = new Animation("shakeminor");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    velocity = -4;
+                    accel = 1;
+                    frame = 0;
                     int FCount = 0;
                     do
                     {
-                        BFrames.Add(Frame, new Vector2((float)Velocity, 0));
-                        Frame += 20;
-                        Velocity += Accel;
-                        if(Velocity == -4 || Velocity == 4)
+                        vectorBFrames.Add(frame, new Vector2((float)velocity, 0));
+                        frame += 20;
+                        velocity += accel;
+                        if(velocity == -4 || velocity == 4)
                         {
                             FCount++;
-                            Accel = Velocity / -4;
+                            accel = velocity / -4;
                         }
                     }
                     while (FCount <= 4);
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "SHAKEMAJOR":
-                    Temp = new Animation("shakemajor");
-                    BFrames = new SortedList();
-                    float FVelocity = -40;
-                    float FAccel = 20;
-                    Frame = 0;
-                    float TrueX = 0;
-                    Boolean CenterPass = false;
+                    animTemp = new Animation("shakemajor");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    float fVelocity = -40;
+                    float fAccel = 20;
+                    frame = 0;
+                    float trueX = 0;
+                    Boolean centerPass = false;
                     do
                     {
-                        CenterPass = false;
-                        BFrames.Add(Frame, new Vector2((float)FVelocity, 0));
-                        TrueX += FVelocity;
-                        Frame += 20;
-                        FVelocity += FAccel;
-                        if (TrueX * FAccel > 0)
+                        centerPass = false;
+                        vectorBFrames.Add(frame, new Vector2((float)fVelocity, 0));
+                        trueX += fVelocity;
+                        frame += 20;
+                        fVelocity += fAccel;
+                        if (trueX * fAccel > 0)
                         {
-                            FVelocity = 0.5f * FVelocity;
-                            FAccel = -FAccel * 0.9f;
-                            CenterPass = true;
+                            fVelocity = 0.5f * fVelocity;
+                            fAccel = -fAccel * 0.9f;
+                            centerPass = true;
                         }
                     }
-                    while (Frame < 5000 && (Math.Sqrt(FVelocity*FVelocity) > 4 || !CenterPass));
-                    BFrames.Add(Frame, new Vector2(-TrueX, 0));
-                    BFrames.Add(Frame + 1000, new Vector2(0, 0));
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (frame < 5000 && (Math.Sqrt(fVelocity*fVelocity) > 4 || !centerPass));
+                    vectorBFrames.Add(frame, new Vector2(-trueX, 0));
+                    vectorBFrames.Add(frame + 1000, new Vector2(0, 0));
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "SHAKEQUAKE":
-                    Temp = new Animation("shakequake");
-                    BFrames = new SortedList();
-                    Frame = 0;
-                    float LastX = 0;
-                    float Mult = 1;
-                    float NowVal = 0;
+                    animTemp = new Animation("shakequake");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    frame = 0;
+                    float lastX = 0;
+                    float mult = 1;
+                    float nowVal = 0;
                     do
                     {
-                        NowVal = (float)Math.Sin((((float)Frame % 1000f) / 1000f) * Math.PI * 16f) * Mult;
-                        Mult = 100 - (Frame / 10f);
-                        BFrames.Add(Frame, new Vector2(NowVal - LastX, 0));
-                        LastX = NowVal;
-                        Frame += 20;
+                        nowVal = (float)Math.Sin((((float)frame % 1000f) / 1000f) * Math.PI * 16f) * mult;
+                        mult = 100 - (frame / 10f);
+                        vectorBFrames.Add(frame, new Vector2(nowVal - lastX, 0));
+                        lastX = nowVal;
+                        frame += 20;
                     }
-                    while (Frame < 5000 && Mult > 1);
-                    BFrames.Add(Frame, new Vector2(-NowVal, 0));
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (frame < 5000 && mult > 1);
+                    vectorBFrames.Add(frame, new Vector2(-nowVal, 0));
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "LASTINGQUAKE":
-                    Temp = new Animation("lastingquake");
-                    BFrames = new SortedList();
-                    Frame = 0;
-                    LastX = 0;
-                    Mult = 1;
-                    NowVal = 0;
+                    animTemp = new Animation("lastingquake");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    frame = 0;
+                    lastX = 0;
+                    mult = 1;
+                    nowVal = 0;
                     do
                     {
-                        NowVal = (float)Math.Sin((((float)Frame % 1000f) / 1000f) * Math.PI * 16f) * Mult;
-                        Mult = Shell.Rnd.Next(5, 20);
-                        BFrames.Add(Frame, new Vector2(NowVal - LastX, 0));
-                        LastX = NowVal;
-                        Frame += 20;
+                        nowVal = (float)Math.Sin((((float)frame % 1000f) / 1000f) * Math.PI * 16f) * mult;
+                        mult = Shell.Rnd.Next(5, 20);
+                        vectorBFrames.Add(frame, new Vector2(nowVal - lastX, 0));
+                        lastX = nowVal;
+                        frame += 20;
                     }
-                    while (Frame < 5000 && Mult > 1);
-                    BFrames.Add(Frame, new Vector2(-NowVal, 0));
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (frame < 5000 && mult > 1);
+                    vectorBFrames.Add(frame, new Vector2(-nowVal, 0));
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "CREDITSROLL":
-                    Temp = new Animation("creditsroll");
-                    SortedList CreditsMovement = Animation.CreateVectorTween(new Vector2(0, -11300), 100800, 20);
-                    Temp.WriteMovement(CreditsMovement);
-                    Temp.AutoTrigger = false;
-                    Out = Temp;
+                    animTemp = new Animation("creditsroll");
+                    SortedList<int, Vector2> creditsMovement = Animation.CreateVectorTween(new Vector2(0, -11300), 100800, 20);
+                    animTemp.WriteMovement(creditsMovement);
+                    animTemp.AutoTrigger = false;
+                    animOut = animTemp;
                     break;
                 case "SPIRALOUT":
-                    Temp = new Animation("spiralout");
-                    BFrames = new SortedList();
-                    SortedList MyScaleFrames = new SortedList();
-                    SortedList MyRotFrames = new SortedList();
-                    Frame = 0;
-                    Vector2 LastVec = new Vector2();
-                    Vector2 NowVec = new Vector2();
-                    float ProgVal = 0f;
-                    float ScaleAmount = 0f;
+                    animTemp = new Animation("spiralout");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    SortedList<int, Vector2> myScaleFrames = new SortedList<int, Vector2>();
+                    SortedList<int, float> myRotFrames = new SortedList<int, float>();
+                    frame = 0;
+                    Vector2 lastVec = new Vector2();
+                    Vector2 nowVec = new Vector2();
+                    float progVal = 0f;
+                    float scaleAmount = 0f;
                     do
                     {
-                        ProgVal = (float)((((float)Frame % 1000f) / 1000f) * Math.PI * 2f);
-                        NowVec = new Vector2((float)Math.Cos((double)ProgVal), (float)Math.Sin((double)ProgVal)) * (300f * (Frame/6500f));
-                        BFrames.Add(Frame, NowVec - LastVec);
-                        ScaleAmount = ((Frame / 200f) * (Frame / 200f)) / 10000f;
-                        MyScaleFrames.Add(Frame, new Vector2(ScaleAmount, ScaleAmount));
-                        MyRotFrames.Add(Frame, 0.01f);
-                        LastVec = NowVec;
-                        Frame += 20;
+                        progVal = (float)((((float)frame % 1000f) / 1000f) * Math.PI * 2f);
+                        nowVec = new Vector2((float)Math.Cos((double)progVal), (float)Math.Sin((double)progVal)) * (300f * (frame/6500f));
+                        vectorBFrames.Add(frame, nowVec - lastVec);
+                        scaleAmount = ((frame / 200f) * (frame / 200f)) / 10000f;
+                        myScaleFrames.Add(frame, new Vector2(scaleAmount, scaleAmount));
+                        myRotFrames.Add(frame, 0.01f);
+                        lastVec = nowVec;
+                        frame += 20;
                     }
-                    while (Frame < 6500);
-                    Temp.WriteMovement(BFrames);
-                    Temp.WriteScaling(MyScaleFrames);
-                    Temp.WriteRotation(MyRotFrames);
-                    Out = Temp;
+                    while (frame < 6500);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animTemp.WriteScaling(myScaleFrames);
+                    animTemp.WriteRotation(myRotFrames);
+                    animOut = animTemp;
                     break;
                 case "BLINKIN":
-                    Temp = new Animation("blinkin");
-                    BFrames = new SortedList();
-                    BFrames.Add(20, new ColourShift(255, 255, 255, 255));
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("blinkin");
+                    colourBFrames = new SortedList<int, ColourShift>();
+                    colourBFrames.Add(20, new ColourShift(255, 255, 255, 255));
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "BLINKOUT":
-                    Temp = new Animation("blinkout");
-                    BFrames = new SortedList();
-                    BFrames.Add(20, new ColourShift(-255, -255, -255, -255));
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("blinkout");
+                    colourBFrames = new SortedList<int, ColourShift>();
+                    colourBFrames.Add(20, new ColourShift(-255, -255, -255, -255));
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FLASH1":
-                    Temp = new Animation("flash1");
-                    BFrames = new SortedList();
-                    BFrames.Add(2700, new ColourShift(255, 255, 255, 255));
-                    BFrames.Add(2800, new ColourShift(-255, -255, -255, -255));
-                    BFrames.Add(2900, new ColourShift(255, 255, 255, 255));
-                    BFrames.Add(3000, new ColourShift(-255, -255, -255, -255));
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("flash1");
+                    colourBFrames = new SortedList<int, ColourShift>();
+                    colourBFrames.Add(2700, new ColourShift(255, 255, 255, 255));
+                    colourBFrames.Add(2800, new ColourShift(-255, -255, -255, -255));
+                    colourBFrames.Add(2900, new ColourShift(255, 255, 255, 255));
+                    colourBFrames.Add(3000, new ColourShift(-255, -255, -255, -255));
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FLASH2":
-                    Temp = new Animation("flash2");
-                    BFrames = new SortedList();
-                    BFrames.Add(2750, new ColourShift(255, 255, 255, 255));
-                    BFrames.Add(2950, new ColourShift(-255, -255, -255, -255));
-                    BFrames.Add(3000, new ColourShift(0,0,0,0));
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("flash2");
+                    colourBFrames = new SortedList<int, ColourShift>();
+                    colourBFrames.Add(2750, new ColourShift(255, 255, 255, 255));
+                    colourBFrames.Add(2950, new ColourShift(-255, -255, -255, -255));
+                    colourBFrames.Add(3000, new ColourShift(0,0,0,0));
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FLOATER":
-                    Temp = new Animation("floater");
-                    BFrames = new SortedList();
-                    Frame = 0;
-                    float Last = 0f;
+                    animTemp = new Animation("floater");
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    frame = 0;
+                    float last = 0f;
                     do
                     {
-                        float Current = (float)Math.Sin((Frame / 4000d) * Math.PI * 2d) * 45;
-                        BFrames.Add(Frame, new Vector2(0, Current - Last));
-                        Last = Current;
-                        Frame += 20;
+                        float current = (float)Math.Sin((frame / 4000d) * Math.PI * 2d) * 45;
+                        vectorBFrames.Add(frame, new Vector2(0, current - last));
+                        last = current;
+                        frame += 20;
                     }
-                    while (Frame < 4000);
-                    Temp.WriteMovement(BFrames);
-                    Out = Temp;
+                    while (frame < 4000);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEIN":
-                    Temp = new Animation("fadein");
-                    BFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 1500, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadein");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 1500, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEINMED":
-                    Temp = new Animation("fadeinmed");
-                    BFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 2000, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeinmed");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 2000, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEINLONG":
-                    Temp = new Animation("fadeinlong");
-                    BFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 3000, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeinlong");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 3000, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEOUT":
-                    Temp = new Animation("fadeout");
-                    BFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 1500, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeout");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 1500, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEOUTMED":
-                    Temp = new Animation("fadeoutmed");
-                    BFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 2000, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeoutmed");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 2000, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEOUTLONG":
-                    Temp = new Animation("fadeoutlong");
-                    BFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 3000, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeoutlong");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 3000, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEOUTRAPID":
-                    Temp = new Animation("fadeoutrapid");
-                    BFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 300, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeoutrapid");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 300, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEOUTCOLOURPRESERVE":
-                    Temp = new Animation("fadeoutcolourpreserve");
-                    BFrames = Animation.CreateColourTween(new ColourShift(0, 0, 0, -255), 2000, 20);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeoutcolourpreserve");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(0, 0, 0, -255), 2000, 20);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEINOUT":
-                    Temp = new Animation("fadeinout");
-                    BFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 1500, 20);
-                    TempFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 1500, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeinout");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 1500, 20);
+                    colourTempFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 1500, 20);
+                    colourBFrames = Animation.MergeFrames(colourBFrames, colourTempFrames);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "FADEINOUTLONG":
-                    Temp = new Animation("fadeinoutlong");
-                    BFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 5000, 20);
-                    TempFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 5000, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    Temp.WriteColouring(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("fadeinoutlong");
+                    colourBFrames = Animation.CreateColourTween(new ColourShift(255, 255, 255, 255), 5000, 20);
+                    colourTempFrames = Animation.CreateColourTween(new ColourShift(-255, -255, -255, -255), 5000, 20);
+                    colourBFrames = Animation.MergeFrames(colourBFrames, colourTempFrames);
+                    animTemp.WriteColouring(colourBFrames);
+                    animOut = animTemp;
                     break;
                 case "01OSCILLATE":
-                    Temp = new Animation("01oscillate");
-                    BFrames = new SortedList();
-                    BFrames.Add(0, new Point(0, 0));
-                    BFrames.Add(50, new Point(1, 0));
-                    BFrames.Add(100, new Point(1, 0));
-                    Temp.WriteFrames(BFrames);
-                    Temp.Loop = true;
-                    Out = Temp;
+                    animTemp = new Animation("01oscillate");
+                    pointBFrames = new SortedList<int, Point>();
+                    pointBFrames.Add(0, new Point(0, 0));
+                    pointBFrames.Add(50, new Point(1, 0));
+                    pointBFrames.Add(100, new Point(1, 0));
+                    animTemp.WriteFrames(pointBFrames);
+                    animTemp.Loop = true;
+                    animOut = animTemp;
                     break;
                 case "SOFIASLIDESHOW":
-                    Temp = new Animation("sofiaslideshow");
-                    BFrames = new SortedList();
+                    animTemp = new Animation("sofiaslideshow");
+                    pointBFrames = new SortedList<int, Point>();
                     int ChangeFrame = 0;
                     for(int ii = 0; ii < 3; ii++)
                     {
                         for (int i = 0; i < 4; i++)
                         {
-                            BFrames.Add(ChangeFrame, new Point(i, ii));
+                            pointBFrames.Add(ChangeFrame, new Point(i, ii));
                             ChangeFrame += 600;
                             if(ii == 2 && i == 1)
                             {
-                                BFrames.Add(ChangeFrame, new Point(0, 0));
+                                pointBFrames.Add(ChangeFrame, new Point(0, 0));
                                 break;
                             }
                         }
                     }
-                    Temp.WriteFrames(BFrames);
-                    Temp.Loop = true;
-                    Out = Temp;
+                    animTemp.WriteFrames(pointBFrames);
+                    animTemp.Loop = true;
+                    animOut = animTemp;
                     break;
                 case "GOLEMSLIDESHOW":
-                    Temp = new Animation("golemslideshow");
-                    BFrames = new SortedList();
-                    BFrames = new SortedList();
-                    BFrames.Add(0, new Point(0, 0));
-                    BFrames.Add(600, new Point(1, 0));
-                    BFrames.Add(1200, new Point(2, 0));
-                    BFrames.Add(1800, new Point(0, 0));
-                    Temp.WriteFrames(BFrames);
-                    Temp.Loop = true;
-                    Out = Temp;
+                    animTemp = new Animation("golemslideshow");
+                    pointBFrames = new SortedList<int, Point>();
+                    pointBFrames.Add(0, new Point(0, 0));
+                    pointBFrames.Add(600, new Point(1, 0));
+                    pointBFrames.Add(1200, new Point(2, 0));
+                    pointBFrames.Add(1800, new Point(0, 0));
+                    animTemp.WriteFrames(pointBFrames);
+                    animTemp.Loop = true;
+                    animOut = animTemp;
                     break;
                 case "SLOWOSCILLATE":
-                    Temp = new Animation("slowoscillate");
-                    BFrames = new SortedList();
+                    animTemp = new Animation("slowoscillate");
+                    pointBFrames = new SortedList<int, Point>();
                     for (int i = 0; i < 9; i++)
                     {
-                        BFrames.Add(500*i, new Point(Math.Floor(((float)500 * i) /1000f) == ((float)500 * i) / 1000f ? 0 : 1, 0));
+                        pointBFrames.Add(500*i, new Point(Math.Floor(((float)500 * i) /1000f) == ((float)500 * i) / 1000f ? 0 : 1, 0));
                     }
-                    Temp.WriteFrames(BFrames);
-                    Out = Temp;
+                    animTemp.WriteFrames(pointBFrames);
+                    animOut = animTemp;
                     break;
                 case "FOCUSGROW":
-                    Temp = new Animation("focusgrow");
-                    BFrames = Animation.CreateVectorTween(new Vector2(0.06f, 0.06f), 200, 20);
-                    Temp.WriteScaling(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("focusgrow");
+                    vectorBFrames = Animation.CreateVectorTween(new Vector2(0.06f, 0.06f), 200, 20);
+                    animTemp.WriteScaling(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "FOCUSSHRINK":
-                    Temp = new Animation("focusshrink");
-                    TempFrames = new SortedList();
-                    TempFrames = Animation.CreateVectorTween(new Vector2(0.06f, 0.06f), 200, 20);
-                    BFrames = new SortedList();
-                    foreach (int K in TempFrames.Keys)
+                    animTemp = new Animation("focusshrink");
+                    vectorTempFrames = new SortedList<int, Vector2>();
+                    vectorTempFrames = Animation.CreateVectorTween(new Vector2(0.06f, 0.06f), 200, 20);
+                    vectorBFrames = new SortedList<int, Vector2>();
+                    foreach (int key in vectorTempFrames.Keys)
                     {
-                        BFrames.Add(K, (Vector2)TempFrames[K] * -1);
+                        vectorBFrames.Add(key, (Vector2)vectorTempFrames[key] * -1);
                     }
-                    Temp.WriteScaling(BFrames);
-                    Out = Temp;
+                    animTemp.WriteScaling(vectorBFrames);
+                    animOut = animTemp;
                     break;
                 case "WIGGLE":
-                    Temp = new Animation("wiggle");
-                    BFrames = Animation.CreateFloatTween(0.1f, 1000, 20);
-                    TempFrames = Animation.CreateFloatTween(-0.2f, 2000, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    TempFrames = Animation.CreateFloatTween(0.1f, 1000, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    Temp.WriteRotation(BFrames);
-                    Out = Temp;
+                    animTemp = new Animation("wiggle");
+                    floatBFrames = Animation.CreateFloatTween(0.1f, 1000, 20);
+                    floatTempFrames = Animation.CreateFloatTween(-0.2f, 2000, 20);
+                    floatBFrames = Animation.MergeFrames(floatBFrames, floatTempFrames);
+                    floatTempFrames = Animation.CreateFloatTween(0.1f, 1000, 20);
+                    floatBFrames = Animation.MergeFrames(floatBFrames, floatTempFrames);
+                    animTemp.WriteRotation(floatBFrames);
+                    animOut = animTemp;
                     break;
                 case "RIGHTLEFT":
-                    Temp = new Animation("rightleft");
-                    BFrames = Animation.CreateVectorTween(new Vector2(200, 0), 2000, 20);
-                    TempFrames = Animation.CreateVectorTween(new Vector2(-200, 0), 2000, 20);
-                    BFrames = Animation.MergeFrames(BFrames, TempFrames);
-                    Temp.WriteMovement(BFrames);
-                    Temp.Loop = true;
-                    Out = Temp;
+                    animTemp = new Animation("rightleft");
+                    vectorBFrames = Animation.CreateVectorTween(new Vector2(200, 0), 2000, 20);
+                    vectorTempFrames = Animation.CreateVectorTween(new Vector2(-200, 0), 2000, 20);
+                    vectorBFrames = Animation.MergeFrames(vectorBFrames, vectorTempFrames);
+                    animTemp.WriteMovement(vectorBFrames);
+                    animTemp.Loop = true;
+                    animOut = animTemp;
                     break;
                 case "MYSTICMOVEMENT":
-                    Animation MysticMovement = new Animation("mysticmovement");
-                    SortedList A = Animation.CreateVectorTween(new Vector2(-530, 0), 800, 20);
-                    MysticMovement.WriteMovement(A);
-                    A = Animation.CreateVectorTween(new Vector2(-0.06f, -0.06f), 800, 20);
-                    SortedList B = Animation.CreateVectorTween(new Vector2(-1.76f, 0), 20, 20);
-                    A = Animation.MergeFrames(A, B);
-                    MysticMovement.WriteScaling(A);
-                    Out = MysticMovement;
+                    Animation mysticMovement = new Animation("mysticmovement");
+                    SortedList<int, Vector2> a = Animation.CreateVectorTween(new Vector2(-530, 0), 800, 20);
+                    mysticMovement.WriteMovement(a);
+                    a = Animation.CreateVectorTween(new Vector2(-0.06f, -0.06f), 800, 20);
+                    SortedList<int, Vector2> b = Animation.CreateVectorTween(new Vector2(-1.76f, 0), 20, 20);
+                    a = Animation.MergeFrames(a, b);
+                    mysticMovement.WriteScaling(a);
+                    animOut = mysticMovement;
                     break;
                 case "SOFIAMOVEMENT":
-                    Animation SofiaMovement = new Animation("sofiamovement");
-                    A = Animation.CreateVectorTween(new Vector2(-100, 0), 200, 20);
-                    SofiaMovement.WriteMovement(A);
-                    Out = SofiaMovement;
+                    Animation sofiaMovement = new Animation("sofiamovement");
+                    a = Animation.CreateVectorTween(new Vector2(-100, 0), 200, 20);
+                    sofiaMovement.WriteMovement(a);
+                    animOut = sofiaMovement;
                     break;
                 case "COOLMOVEMENT":
-                    Animation CoolMovement = new Animation("coolmovement");
-                    A = Animation.CreateVectorTween(new Vector2(0, 0), 800, 20);
-                    B = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
-                    A = Animation.MergeFrames(A, B);
-                    CoolMovement.WriteMovement(A);
-                    Out = CoolMovement;
+                    Animation coolMovement = new Animation("coolmovement");
+                    a = Animation.CreateVectorTween(new Vector2(0, 0), 800, 20);
+                    b = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
+                    a = Animation.MergeFrames(a, b);
+                    coolMovement.WriteMovement(a);
+                    animOut = coolMovement;
                     break;
                 case "KINGMOVEMENT":
-                    Animation KingMovement = new Animation("kingmovement");
-                    A = Animation.CreateVectorTween(new Vector2(0, 0), 1000, 20);
-                    B = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
-                    A = Animation.MergeFrames(A, B);
-                    KingMovement.WriteMovement(A);
-                    Out = KingMovement;
+                    Animation kingMovement = new Animation("kingmovement");
+                    a = Animation.CreateVectorTween(new Vector2(0, 0), 1000, 20);
+                    b = Animation.CreateVectorTween(new Vector2(-550, 0), 800, 20);
+                    a = Animation.MergeFrames(a, b);
+                    kingMovement.WriteMovement(a);
+                    animOut = kingMovement;
                     break;
             }
-            return Out;
+            return animOut;
         }
     }
 }

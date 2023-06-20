@@ -928,7 +928,7 @@ namespace VNFramework
         {
             MediaPlayer.Stop();
             SpoonsTrip = true;
-            Shell.RunQueue = new ArrayList();
+            Shell.RunQueue = new List<VoidDel>();
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
                 if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -1010,7 +1010,7 @@ namespace VNFramework
         {
             MediaPlayer.Stop();
             SpoonsTrip = true;
-            Shell.RunQueue = new ArrayList();
+            Shell.RunQueue = new List<VoidDel>();
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
                 if(!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
@@ -1026,7 +1026,7 @@ namespace VNFramework
             MediaPlayer.Stop();
             SpoonsTrip = true;
             Sofia.ParticleFire.Cease = true;
-            Shell.RunQueue = new ArrayList();
+            Shell.RunQueue = new List<VoidDel>();
             foreach (WorldEntity E in Shell.UpdateQueue)
             {
                 if (E.OverlayUtility) { continue; }
