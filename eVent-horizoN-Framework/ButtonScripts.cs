@@ -941,7 +941,7 @@ namespace VNFramework
             Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("MATMUT_TUTORIAL_SNIFFER", ScriptProcessor.RetrieveScriptByName("MATMUT_TUTORIAL"), "MATMUT_TUTORIAL"));
         }
         public static Boolean SpoonsTrip = true;
-        public static void OpenMainMenu()
+        public static void OpenUSWMainMenu()
         {
             Shell.GlobalWorldState = "MAIN MENU OPENED";
             if (Shell.UpdateQueue.Contains(Shell.DefaultShell.LoadBarObj)) { Shell.DeleteQueue.Add(Shell.DefaultShell.LoadBarObj); }
@@ -1005,6 +1005,54 @@ namespace VNFramework
             TB.CenterOrigin = true;
             Shell.UpdateQueue.Add(TB);
             Shell.RenderQueue.Add(TB);*/
+        }
+        public static void OpenMainMenu()
+        {
+            Shell.GlobalWorldState = "MAIN MENU OPENED";
+            if (Shell.UpdateQueue.Contains(Shell.DefaultShell.LoadBarObj)) { Shell.DeleteQueue.Add(Shell.DefaultShell.LoadBarObj); }
+            if (SpoonsTrip)
+            {
+                MediaPlayer.Play((Song)Shell.SongDirectory["BHAMBIENT"]);
+                MediaPlayer.IsRepeating = true;
+                WorldEntity Black = new WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
+                Black.TransientAnimation = true;
+                Black.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
+                Shell.UpdateQueue.Add(Black);
+                Shell.RenderQueue.Add(Black);
+                SpoonsTrip = false;
+            }
+            WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
+            Shell.UpdateQueue.Add(MainMenuBackdrop);
+            Shell.RenderQueue.Add(MainMenuBackdrop);
+            TextEntity versionText = new TextEntity("VERSION_TEXT", "[F:SYSFONT]eVent horizoN " + Shell.FrameworkVersion, new Vector2(10, 10), 1);
+            versionText.TypeWrite = false;
+            Shell.UpdateQueue.Add(versionText);
+            Shell.RenderQueue.Add(versionText);
+            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO" });
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("LoadSaveMenu"), null);
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            Button = new Button("BUTTON_MAIN_CREDITS", new Vector2(658, 500), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowCredits"), null);
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f);
+            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
         }
         public static void StartTest()
         {
@@ -1088,7 +1136,7 @@ namespace VNFramework
                 if (E.OverlayUtility) { continue; }
                 if (!Shell.DeleteQueue.Contains(E) && E is Button) { Shell.DeleteQueue.Add(E); }
             }
-            String CreditString = "This application is running the Event Horizon visual novel engine, lovingly hand-coded by Blackhole.\n\nAdditional programming also by Blackhole.\nScripting by Blackhole.\nUI design Blackhole.\n\nWritten using the MonoGame framework (www.monogame.net).";
+            String CreditString = "This application is running the eVent horizoN Framework, lovingly hand-coded by Blackhole.\n\nAdditional programming also by Blackhole.\nScripting by Blackhole.\nUI design Blackhole.\n\nWritten using the MonoGame framework (www.monogame.net).";
             //String Ardata = "Ardata Carmia is a young Alternian troll living in Outglut during the time period of Hiveswap and Hiveswap Friendsim. Ardata was first revealed during the Hiveswap Troll Call event alongside Marvus Xoloto. Along with him, she is one of the few trolls whose sign is unknown; it is not visible on any of her sprites and was obscured by her cape on her Troll Call card. Ardata later went on to be one of two trolls to be featured in Hiveswap Friendship Simulator: Volume One after its release on April 13th, 2018, alongside her fellow Troll Call troll, Diemen Xicali.\n\nA high - ranking cerulean - blood, Ardata maintains a significant following on social media by playing up her sinister personality, torturing captives in her basement on camera, and utilizing them as slaves with the aid of her mind control abilities.\n\nArdata's Troll Call card described her as \"bloodthirsty on main\" (later revealed to be very accurate), \"probably Vriska\" and \"fresh to death sentence\".\n\n";
             Texture2D[] SB = CreateDynamicScroll(CreditString, 1000);
             ScrollBar Credits = new ScrollBar("CREDIT_SCROLLBAR", new Vector2(1080, 95), (TAtlasInfo)Shell.AtlasDirectory["SCROLLBAR"], 0.98f, SB, 600);

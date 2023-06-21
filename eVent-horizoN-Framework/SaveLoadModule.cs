@@ -111,13 +111,13 @@ namespace VNFramework
             Dir = new DirectoryInfo(Path.Combine(SaveDatFolder, "thumbs"));
             if (!Dir.Exists) { Dir.Create(); }
             AutoRenumberSaveFiles();
-            Dir = new DirectoryInfo(Path.Combine(EHFFolder, "appdata"));
+            /*Dir = new DirectoryInfo(Path.Combine(EHFFolder, "appdata"));
             if (!Dir.Exists) { Dir.Create(); }
             String AppDatFolder = Dir.FullName;
             Dir = new DirectoryInfo(Path.Combine(AppDatFolder, "scripts"));
             if (!Dir.Exists) { Dir.Create(); }
             Dir = new DirectoryInfo(Path.Combine(AppDatFolder, "appmanifests"));
-            if (!Dir.Exists) { Dir.Create(); }
+            if (!Dir.Exists) { Dir.Create(); }*/
         }
         static public void AutoRenumberSaveFiles()
         {

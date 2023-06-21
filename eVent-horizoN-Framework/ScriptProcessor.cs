@@ -759,6 +759,7 @@ namespace VNFramework
             if (!found)
             {
                 main = new TextEntity("TEXT_MAIN", parts[2], new Vector2(150, 500), 0.96f);
+                main.TypeWrite = true;
                 if(ButtonScripts.UIHideEnabled) { main.Drawable = false; }
                 Shell.RunQueue.Add(new VoidDel(delegate ()
                 {
@@ -794,7 +795,6 @@ namespace VNFramework
                         Shell.RenderQueue.Add(nameBacking);
                     }));
                 }
-                label.TypeWrite = false;
                 label.Text = "[C:PURPLE]" + parts[1];
             }
             else

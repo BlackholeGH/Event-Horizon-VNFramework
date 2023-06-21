@@ -26,7 +26,7 @@ namespace VNFramework
         {
             Shell.WriteLine("Reading from manifest: " + fileName);
             if (fileName.EndsWith(".ehm")) { fileName = fileName.Remove(fileName.Length - 4); }
-            DirectoryInfo manifestDir = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\appdata\\appmanifests");
+            DirectoryInfo manifestDir = new DirectoryInfo("Content\\Data\\appdata\\appmanifests");
             if (manifestDir.Exists)
             {
                 String manifest = "";
@@ -250,7 +250,7 @@ namespace VNFramework
         public static Boolean IngestScriptFile(String filename)
         {
             if (filename.EndsWith(".esa")) { filename = filename.Remove(filename.Length - 4); }
-            DirectoryInfo scriptArchive = new DirectoryInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\appdata\\scripts");
+            DirectoryInfo scriptArchive = new DirectoryInfo("Content\\Data\\appdata\\scripts");
             if (scriptArchive.Exists)
             {
                 foreach (FileInfo fileInfo in scriptArchive.EnumerateFiles())

@@ -1167,6 +1167,15 @@ namespace VNFramework
                     foreach (String specString in specs)
                     {
                         String[] strSplit = specString.Split(':');
+                        /*
+                         * [C:] Set colour
+                         * [F:] Set font to spritefont
+                         * [L:-] Manually adjust textchunk location
+                         * [R] Render in rainbow text
+                         * [N] Insert newline
+                         * [I] Ignore auto-insertion of linebreaks for this textchunk
+                         * [T:] Delay typewrite by given millisecond amount
+                         */
                         switch(strSplit[0])
                         {
                             case "C":
@@ -1493,7 +1502,7 @@ namespace VNFramework
             foreach (TextChunk textChunk in _textChunkR) { len += textChunk.Text.Length; }
             _length = len;
             _text = textIn;
-            TypeWrite = true;
+            TypeWrite = false;
         }
         public void ReWrite()
         {

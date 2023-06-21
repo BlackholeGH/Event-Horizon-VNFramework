@@ -531,7 +531,7 @@ namespace VNFramework
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
             s_graphics.HardwareModeSwitch = false;
-            Resolution = new Vector2(1920, 1080);
+            Resolution = new Vector2(640, 480);
             this.IsMouseVisible = true;
             SaveLoadModule.InitializeAppFolders();
             LooseCamera = true;
@@ -817,10 +817,10 @@ namespace VNFramework
 
             Vector2 assumedScreenSize = Resolution;
 
-            _loadBar = new WorldEntity("LOADBAR", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 100), barAtlas, 0.5f);
-            _loadCover = new WorldEntity("LOADCOVER", new Vector2((assumedScreenSize.X / 2) + 243, (assumedScreenSize.Y / 2) + 107), coverAtlas, 1f);
+            _loadBar = new WorldEntity("LOADBAR", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 50), barAtlas, 0.5f);
+            _loadCover = new WorldEntity("LOADCOVER", new Vector2((assumedScreenSize.X / 2) + 243, (assumedScreenSize.Y / 2) + 57), coverAtlas, 1f);
             _loadCover.SetManualOrigin(new Vector2(486, 0));
-            _loadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 200), 1f);
+            _loadText = new TextEntity("LOADTEXT", "[F:SYSFONT]Loading content...", new Vector2((assumedScreenSize.X / 2) - 250, (assumedScreenSize.Y / 2) + 150), 1f);
             _loadText.BufferLength = 500;
             _loadText.TypeWrite = false;
 
@@ -890,6 +890,8 @@ namespace VNFramework
                     if (AsyncResUpdate != null)
                     {
                         Resolution = (Vector2)AsyncResUpdate;
+                        _loadBar.QuickMoveTo(new Vector2((Resolution.X / 2) - 250, (Resolution.Y / 2) + 50));
+                        _loadText.QuickMoveTo(new Vector2((Resolution.X / 2) - 250, (Resolution.Y / 2) + 150));
                         AsyncResUpdate = null;
                     }
                 }

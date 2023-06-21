@@ -21,7 +21,8 @@ namespace VNFramework
     {
         static void Main(string[] args)
         {
-            using (var game = new VNFramework.Shell("ultrasofiaworld_manifest.ehm", "ULTRASOFIAWORLD"))
+            //PythonController.Test();
+            using (var game = new VNFramework.Shell("vnf_dev_manifest.ehm", "VNF_DEV"))
             {
                 game.Run();
             }

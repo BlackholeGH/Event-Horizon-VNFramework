@@ -576,8 +576,8 @@ namespace VNFramework
         /// <summary>
         /// Processes an entity factory command, either creating or ammending a constructed WorldEntity.
         /// </summary>
-        /// <param name="SchemeParams">The paramters/definition for the current scheme; the operation to be performed in the factory, as a String.</param>
-        /// <param name="Identifier">An optional scheme identifier String, to specify unique operations such as new entity creation or retrieval of existing entities.</param>
+        /// <param name="SchemeParams">The paramters/definition for the current scheme; the operation to be performed in the factory as the parameter of the identifier, formatted as a String. Can also be empty for nonparameterized identifiers, or evaluate to a value to assign.</param>
+        /// <param name="Identifier">A scheme identifier String, to specify unique operations such as new entity creation or retrieval of existing entities. Can also be an expression to evalute or assign.</param>
         /// <param name="CurrentEnt">The current working WorldEntity. Null if there is no current entity.</param>
         /// <returns></returns>
         public static WorldEntity Process(String SchemeParams, String Identifier, WorldEntity CurrentEnt)
