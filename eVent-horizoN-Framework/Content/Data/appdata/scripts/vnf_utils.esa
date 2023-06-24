@@ -1,0 +1,213 @@
+eVent horizoN Framework Event Script Archive
+declare_script "TEST_SCRIPT":
+{ "C|TIME:0",
+RUN
+{{
+ButtonScripts.InitDefaultUI
+}}
+},
+{ "C|TIME:2000", "T|Test client|This is the first section of text." },
+{ "C|TIME:2000", "T|Test client|This is the second section of text." },
+{ "C|TIME:1000" },
+{ "C|GWS:BUTTON_TEST_PRESSED", "T|Instructor|Press the button.",
+FACTORY
+{{
+new=Button("TEST_BUTTON_SCRIPT", new Vector2(400, 200), Shell.ButtonAtlas, 0.1f, ButtonScripts.DelegateFetch("setgws_BUTTON_TEST_PRESSED"));
+B.MLCRecord = new String[] { "setgws_BUTTON_TEST_PRESSED" };
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=WorldEntity("TEST_OSCILLATOR", new Vector2(800, 200), Shell.ButtonAtlas, 0.1f);
+W.CenterOrigin = true;
+W.AnimationQueue.Add(Animation.Retrieve("01OSCILLATE"));
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "C|TIME:1000", "T||You pressed it!", "S|YAY", "A|TEST_BUTTON_SCRIPT||2,500,10|||loop" },
+{ "C|TIME:2000", "T||[R]You pressed it!", "A|TEST_BUTTON_SCRIPT|bounce_1" },
+{ "C|GWS:BUTTON_TEST_PRESSED", "G|NULL", "T||Now press this button.", "D|TEST_BUTTON_SCRIPT",
+FACTORY
+{{
+new=Button("TEST_BUTTON_SCRIPT_2", new Vector2(600, 200), Shell.ButtonAtlas, 0.1f, ButtonScripts.DelegateFetch("setgws_BUTTON_TEST_PRESSED") );
+B.MLCRecord = new String[] { "setgws_BUTTON_TEST_PRESSED" };
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "C|TIME:2000", "T||You pressed it!", "S|YAY", "A|TEST_BUTTON_SCRIPT_2|bounce_2" },
+{ "C|TIME:1000", "T||Now you will get two choices..." },
+{ "C|GWS:impos", "T||[R]Choose wisely...",
+FACTORY
+{{
+new=Button("PATH_1_BUTTON", new Vector2(400, 200), Shell.ButtonAtlas, 0.1f, ButtonScripts.DelegateFetch("runscript_PATH_1"));
+B.MLCRecord = new String[] { "runscript_PATH_1" };
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=Button("PATH_2_BUTTON", new Vector2(600, 200), Shell.ButtonAtlas, 0.1f, ButtonScripts.DelegateFetch("runscript_PATH_2"));
+B2.MLCRecord = new String[] { "runscript_PATH_2" };
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+}
+declare_script "PATH_1":
+{ "C|TIME:2000", "T||[R]Path 1 was chosen." },
+{ "B" }
+declare_script "PATH_2":
+{ "C|TIME:2000", "T||Path 2 was chosen." },
+{ "B" }
+declare_script "INTRO_PRELOAD_USW":
+{ "S|BHLOGO2", "C|TIME:1600:ORSKIP",
+FACTORY
+{{
+new=WorldEntity("BMS", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BMS"], 0f);
+Add.SubscribeToEvent(WorldEntity\+EventNames.EntityClickFunction, typeof(Shell).GetMethod("AutoShift"), null);
+Add.ColourValue = new Color(0,0,0,0);
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "C|TIME:3000:ORSKIP", "A|BMS|FADEIN" },
+{ "C|TIME:1500:ORSKIP", "A|BMS|FADEOUT" },
+{ "C|TIME:0:ORSKIP",
+FACTORY
+{{
+new=WorldEntity("PRESENTING", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PRESENTING"], 0f);
+Add.SubscribeToEvent(WorldEntity\+EventNames.EntityClickFunction, typeof(Shell).GetMethod("AutoShift"), null);
+Add.ColourValue = new Color(0,0,0,0);
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "C|TIME:3000:ORSKIP", "A|PRESENTING|FADEIN" },
+{ "C|TIME:1500:ORSKIP", "A|PRESENTING|FADEOUT" },
+{ "D|BMS", "D|PRESENTING", "S|#CLOSEALL",
+RUN
+{{
+ButtonScripts.OpenUSWMainMenu
+}},
+"B" }
+declare_script "SCRIPTFADEINOUT":
+{ "C|TIME:1500", "T||",
+FACTORY
+{{
+new=WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
+Add.ColourValue = new Color(0,0,0,0);
+Add.AnimationQueue.Add(Animation.Retrieve("FADEINOUT"));
+Add.TransientAnimation = true;
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "M|#NULL", "C|TIME:0",
+RUN
+{{
+ClearNonUIEntities;
+}}
+},
+{ "B|#SCRIPTTHROWTARGET" }
+declare_script "INTRO_PRELOAD":
+{ "S|BHLOGO2", "C|TIME:1600:ORSKIP",
+FACTORY
+{{
+new=WorldEntity("BMS", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BMS"], 0f);
+Add.SubscribeToEvent(WorldEntity\+EventNames.EntityClickFunction, typeof(Shell).GetMethod("AutoShift"), null);
+Add.ColourValue = new Color(0,0,0,0);
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "C|TIME:6000:ORSKIP", "A|BMS|FADEIN" },
+{ "C|TIME:1500:ORSKIP", "A|BMS|FADEOUT" },
+{ "D|BMS", "S|#CLOSEALL",
+RUN
+{{
+ButtonScripts.OpenMainMenu
+}},
+"B" }
+declare_script "MAIN_MENU_CONSTRUCTOR":
+{ "C|TIME:0", "R|SPOONSTRIP|=:TRUE|D|#ALL", "R|SPOONSTRIP|=:TRUE|M|#NULL", "T||" },
+{ "C|TIME:0", "R|SPOONSTRIP|=:TRUE|M|BHAMBIENT|TRUE",
+"R|SPOONSTRIP|=:TRUE|FACTORY
+{{
+new=WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
+Add.ColourValue = new Color(0,0,0,0);
+Add.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
+Add.TransientAnimation = true;
+Shell.UpdateQueue
+Shell.RenderQueue
+}}",
+"R|SPOONSTRIP|=:TRUE|RUN
+{{
+assign=ButtonScripts.SpoonsTrip,false
+}}",
+FACTORY
+{{
+new=WorldEntity("BACKDROP_MAIN", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=TextEntity("VERSION_TEXT", "[F:SYSFONT]eVent horizoN " + Shell.FrameworkVersion, new Vector2(10, 10), 1);
+versionText.TypeWrite = false;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+get=ButtonScripts.GetQuickButton("Launch IMemBots sim", 500);
+Button.QuickMoveTo(new Vector2(80, 300))
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO", true });
+Button.CenterOrigin = false;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+get=ButtonScripts.GetQuickButton("Launch ULTRASOFIAWORLD", 500);
+Button.QuickMoveTo(new Vector2(80, 380))
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO", true });
+Button.CenterOrigin = false;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=Button("BUTTON_MAIN_LOAD", new Vector2(340, 550), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f);
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("LoadSaveMenu"), null);
+Button.CenterOrigin = true;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=Button("BUTTON_MAIN_CREDITS", new Vector2(640, 550), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f);
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowCredits"), null);
+Button.CenterOrigin = true;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=Button("BUTTON_MAIN_SETTINGS", new Vector2(940, 550), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f);
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
+Button.CenterOrigin = true;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+new=Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f);
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
+Button.CenterOrigin = false;
+Shell.UpdateQueue
+Shell.RenderQueue
+}}
+},
+{ "G|MAIN MENU OPENED", "B" }
