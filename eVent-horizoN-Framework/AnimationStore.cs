@@ -16,6 +16,22 @@ namespace VNFramework
 {
     public partial class Animation
     {
+        public static Animation PlayAllFrames(TAtlasInfo atlas, int frameLength, Boolean loop)
+        {
+            Animation animTemp = new Animation("framescroll");
+            SortedList<int, Point> pointBFrames = new SortedList<int, Point>();
+            for (int y = 0; y < atlas.DivDimensions.Y; y++)
+            {
+                for(int x = 0; x < atlas.DivDimensions.X; x++)
+                {
+                    pointBFrames.Add(frameLength * (x + (y * atlas.DivDimensions.X)), new Point(x, y));
+                }
+            }
+            pointBFrames.Add((frameLength * atlas.DivDimensions.X * atlas.DivDimensions.Y) - 1, new Point(atlas.DivDimensions.X-1, atlas.DivDimensions.Y-1));
+            animTemp.WriteFrames(pointBFrames);
+            animTemp.Loop = loop;
+            return animTemp;
+        }
         public static Animation Retrieve(String name)
         {
             return Animation.Retrieve(name, false);

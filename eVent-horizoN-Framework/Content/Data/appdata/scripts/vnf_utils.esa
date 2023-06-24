@@ -163,7 +163,7 @@ FACTORY
 {{
 get=ButtonScripts.GetQuickButton("Launch IMemBots sim", 500);
 Button.QuickMoveTo(new Vector2(80, 300))
-Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO", true });
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializeBots"), new object[] { new Point(5, 5) });
 Button.CenterOrigin = false;
 Shell.UpdateQueue
 Shell.RenderQueue

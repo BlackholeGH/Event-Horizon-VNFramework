@@ -768,27 +768,33 @@ namespace VNFramework
             }
             WorldEntity Pane = new WorldEntity("PAUSE_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUPANE"], 0.97f);
             Pane.CenterOrigin = true;
+            Pane.CameraImmune = true;
             Pane.ColourValue = new Color(200, 200, 200, 150);
             Shell.UpdateQueue.Add(Pane);
             Shell.RenderQueue.Add(Pane);
             Button Back = new Button("BUTTON_PAUSE_RETURN", new Vector2(640, 180), (TAtlasInfo)Shell.AtlasDirectory["PAUSERETURNBUTTON"], 0.98f);
             Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unpause"), null);
+            Back.CameraImmune = true;
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
             Button SaveB = new Button("BUTTON_PAUSE_SAVE", new Vector2(640, 270), (TAtlasInfo)Shell.AtlasDirectory["PAUSESAVEBUTTON"], 0.98f);
             SaveB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Save"), null);
+            SaveB.CameraImmune = true;
             Shell.UpdateQueue.Add(SaveB);
             Shell.RenderQueue.Add(SaveB);
             Button Settings = new Button("BUTTON_PAUSE_SETTINGS", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSESETTINGSBUTTON"], 0.98f);
             Settings.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
+            Settings.CameraImmune = true;
             Shell.UpdateQueue.Add(Settings);
             Shell.RenderQueue.Add(Settings);
             Button Main = new Button("BUTTON_PAUSE_MAINMENU", new Vector2(640, 450), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMAINMENUBUTTON"], 0.98f);
             Main.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
+            Main.CameraImmune = true;
             Shell.UpdateQueue.Add(Main);
             Shell.RenderQueue.Add(Main);
             Button QuitB = new Button("BUTTON_PAUSE_QUIT", new Vector2(640, 540), (TAtlasInfo)Shell.AtlasDirectory["PAUSEQUITBUTTON"], 0.98f);
             QuitB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
+            QuitB.CameraImmune = true;
             Shell.UpdateQueue.Add(QuitB);
             Shell.RenderQueue.Add(QuitB);
         }
@@ -956,10 +962,12 @@ namespace VNFramework
         }
         public static void OpenUSWMainMenu()
         {
+            ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("USW_MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void OpenMainMenu()
         {
+            ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void StartTest()

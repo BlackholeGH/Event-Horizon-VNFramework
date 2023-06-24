@@ -31,13 +31,14 @@ namespace VNFramework
         public static String SongCom = "";
         static String s_textArchive = "";
         public static Boolean AllowScriptExit { get; set; }
+        public static Boolean AssertGameRunningWithoutScript { get; set; }
         public static Boolean ActiveGame()
         {
             foreach(WorldEntity worldEntity in Shell.UpdateQueue)
             {
                 if(worldEntity is ScriptSniffer && worldEntity.Name != "INTRO_SNIFFER_UNIQUE") { return true; }
             }
-            return false;
+            return AssertGameRunningWithoutScript;
         }
         public static ScriptSniffer SnifferSearch()
         {

@@ -426,7 +426,7 @@ namespace VNFramework
                         }
                     }
                 }
-                else if (VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"'))
+                else if (VNFUtils.Strings.ContainsExclosed(DP, '(', '\"') && VNFUtils.Strings.ContainsExclosed(DP, ')', '\"') && (!VNFUtils.Strings.ContainsExclosed(DP, '{', '\"') || (VNFUtils.Strings.IndexOfExclosed(DP, "(", '\"') < VNFUtils.Strings.IndexOfExclosed(DP, "{", '\"'))))
                 {
                     if (DP.ToLower().StartsWith("new"))
                     {
@@ -467,7 +467,7 @@ namespace VNFramework
                             }
                             else
                             {
-                                RLength = VNFUtils.Strings.SplitAtExclosed(IsolatedCurls, ',', '\"').Length;
+                                RLength = VNFUtils.Strings.SplitAtExclosed(IsolatedCurls, ',', '(', ')', '\"').Length;
                             }
                             Dictionary<String, String> AliasLookup = VNFUtils.TypeAliasLookup();
                             if(AliasLookup.ContainsKey(IsolatedIdentifier)) { IsolatedIdentifier = AliasLookup[IsolatedIdentifier]; }
