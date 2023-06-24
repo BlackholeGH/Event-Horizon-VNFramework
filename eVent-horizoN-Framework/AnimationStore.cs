@@ -18,6 +18,10 @@ namespace VNFramework
     {
         public static Animation Retrieve(String name)
         {
+            return Animation.Retrieve(name, false);
+        }
+        public static Animation Retrieve(String name, Boolean asLooping)
+        {
             Animation animOut = null;
             Animation animTemp = null;
             SortedList<int, Vector2> vectorBFrames = new SortedList<int, Vector2>();
@@ -468,6 +472,7 @@ namespace VNFramework
                     animOut = kingMovement;
                     break;
             }
+            if(asLooping) { animOut.Loop = true; }
             return animOut;
         }
     }

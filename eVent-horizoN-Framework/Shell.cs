@@ -312,7 +312,7 @@ namespace VNFramework
                     //Freshly load a new script.
                     case "LOAD":
                         WriteLine("Attempting to load script " + commands[1].ToUpper() + ".");
-                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(commands[1].ToUpper())));
+                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(commands[1].ToUpper(), true)));
                         break;
                     //Executes a function statement per the EntityFactory's inbuilt function parser.
                     case "DO":
@@ -554,6 +554,7 @@ namespace VNFramework
         public static void ResetFlags()
         {
             s_flags = new Hashtable();
+            s_flags.Add("SPOONSTRIP", ButtonScripts.SpoonsTrip);
             Sofia.InitSofiaFlags();
         }
         public static void UpdateFlag(String index, object value)

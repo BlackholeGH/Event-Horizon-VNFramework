@@ -161,6 +161,49 @@ namespace VNFramework
             }
             return eventScripts;
         }
+        /// <summary>
+        /// Extract a factory command string and assembles the delegate, either running or returning it.
+        /// </summary>
+        /// <param name="command">Command string containing the factory schema.</param>
+        /// <param name="assemblyMode">1: Runs in regular WorldEntity assembly mode. 2: Runs in "RUN" assembly mode. Other: Returns null.</param>
+        /// <param name="executeInstantly">Boolean flag for whether the delegate should be returned or put on the run queue.</param>
+        /// <returns></returns>
+        private static VoidDel? RunFactoryCommand(string command, int assemblyMode, Boolean executeInstantly)
+        {
+            String factoryBlueprint = command.Remove(0, command.IndexOf('^') + 1);
+            factoryBlueprint = VNFUtils.Strings.RemoveExclosed(factoryBlueprint, '^', '\"');
+            factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "£", "{", '\"');
+            factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "$", "}", '\"');
+            factoryBlueprint = factoryBlueprint.Trim('\n');
+            VoidDel factoryDelegate;
+            if (assemblyMode == 1)
+            {
+                factoryDelegate = new VoidDel(delegate ()
+                {
+                    Shell.RunQueue.Add(new VoidDel(delegate ()
+                    {
+                        EntityFactory.Assemble(factoryBlueprint);
+                    }));
+                });
+            }
+            else if(assemblyMode == 2)
+            {
+                factoryDelegate = new VoidDel(delegate ()
+                {
+                    Shell.RunQueue.Add(EntityFactory.AssembleVoidDelegate(factoryBlueprint));
+                });
+            }
+            else { return null; }
+            if(executeInstantly)
+            {
+                factoryDelegate();
+                return null;
+            }
+            else
+            {
+                return factoryDelegate;
+            }
+        }
         public static Object[] AssembleEventScript(String stringFormatScript)
         {
             stringFormatScript = VNFUtils.Strings.RemoveExclosed(stringFormatScript, ' ', '\"');
@@ -179,34 +222,11 @@ namespace VNFramework
                     if (command[0] == '\"' && command[command.Length - 1] == '\"') { thisTrueShift[commandIndex] = command.Remove(0, 1).Remove(command.Length - 2); }
                     else if (command.StartsWith("FACTORY"))
                     {
-                        String factoryBlueprint = command.Remove(0, command.IndexOf('^') + 1);
-                        factoryBlueprint = VNFUtils.Strings.RemoveExclosed(factoryBlueprint, '^', '\"');
-                        factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "£", "{", '\"');
-                        factoryBlueprint = VNFUtils.Strings.ReplaceExclosed(factoryBlueprint, "$", "}", '\"');
-                        factoryBlueprint = factoryBlueprint.Trim('\n');
-                        thisTrueShift[commandIndex] = new VoidDel(delegate ()
-                        {
-                            Shell.RunQueue.Add(new VoidDel(delegate ()
-                            {
-                                EntityFactory.Assemble(factoryBlueprint);
-                            }));
-                        });
+                        thisTrueShift[commandIndex] = RunFactoryCommand(command, 1, false);
                     }
                     else if (command.StartsWith("RUN"))
                     {
-                        String voidDelegateBlueprint = command.Remove(0, command.IndexOf('^') + 1);
-                        voidDelegateBlueprint = VNFUtils.Strings.RemoveExclosed(voidDelegateBlueprint, '^', '\"');
-                        voidDelegateBlueprint = VNFUtils.Strings.ReplaceExclosed(voidDelegateBlueprint, "£", "{", '\"');
-                        voidDelegateBlueprint = VNFUtils.Strings.ReplaceExclosed(voidDelegateBlueprint, "$", "}", '\"');
-                        voidDelegateBlueprint = voidDelegateBlueprint.Trim('\n');
-                        VoidDel voidDelegate = EntityFactory.AssembleVoidDelegate(voidDelegateBlueprint);
-                        thisTrueShift[commandIndex] = new VoidDel(delegate ()
-                        {
-                            Shell.RunQueue.Add(new VoidDel(delegate ()
-                            {
-                                voidDelegate();
-                            }));
-                        });
+                        thisTrueShift[commandIndex] = RunFactoryCommand(command, 2, false);
                     }
                     else if (command.StartsWith("MERGE_IN"))
                     {
@@ -658,6 +678,18 @@ namespace VNFramework
                     Shell.WriteLine((String)element, colours);
                 }
                 String elementStr = (String)element;
+                if(elementStr.StartsWith("FACTORY"))
+                {
+                    elementStr = VNFUtils.Strings.ReplaceExclosed(elementStr, "{{", "^", '\"');
+                    elementStr = VNFUtils.Strings.ReplaceExclosed(elementStr, "}}", "^", '\"');
+                    RunFactoryCommand(elementStr, 1, true);
+                }
+                else if(elementStr.StartsWith("RUN"))
+                {
+                    elementStr = VNFUtils.Strings.ReplaceExclosed(elementStr, "{{", "^", '\"');
+                    elementStr = VNFUtils.Strings.ReplaceExclosed(elementStr, "}}", "^", '\"');
+                    RunFactoryCommand(elementStr, 2, true);
+                }
                 String[] parts = elementStr.Split('|');
                 if (parts[0].ToUpper() == "T")
                 {
@@ -1188,7 +1220,6 @@ namespace VNFramework
         /// <param name="MCommand"></param>
         private static void M(String[] parts, String MCommand)
         {
-            ButtonScripts.SpoonsTrip = true;
             SongCom = MCommand;
             Boolean instant = false;
             if (parts.Length > 3 && parts[3].ToUpper() != "")

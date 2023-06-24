@@ -493,12 +493,16 @@ namespace VNFramework
             Out.SetData<Color>(OutModify);
             return Out;
         }
-        public static Button GetQuickButton(String Text)
+        public static Button GetQuickButton(String text)
+        {
+            return GetQuickButton(text, 600);
+        }
+        public static Button GetQuickButton(String text, int width)
         {
             TAtlasInfo NewAtlas = new TAtlasInfo();
-            NewAtlas.Atlas = CreateDynamicCustomButton(Text, 600);
+            NewAtlas.Atlas = CreateDynamicCustomButton(text, width);
             NewAtlas.DivDimensions = new Point(2, 1);
-            Button NewB = new Button("BUTTON_CUSTOM_" + Text.ToUpper(), new Vector2(), NewAtlas, 0.91f);
+            Button NewB = new Button("BUTTON_CUSTOM_" + text.ToUpper(), new Vector2(), NewAtlas, 0.91f);
             return NewB;
         }
         public static void OpenAndConstructConsole()
@@ -940,119 +944,23 @@ namespace VNFramework
             ScriptProcessor.PastStates.Clear();
             Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("MATMUT_TUTORIAL_SNIFFER", ScriptProcessor.RetrieveScriptByName("MATMUT_TUTORIAL"), "MATMUT_TUTORIAL"));
         }
-        public static Boolean SpoonsTrip = true;
+        private static Boolean s_spoonsTrip = true;
+        public static Boolean SpoonsTrip
+        {
+            get { return s_spoonsTrip; }
+            set
+            {
+                s_spoonsTrip = value;
+                Shell.UpdateFlag("SPOONSTRIP", s_spoonsTrip);
+            }
+        }
         public static void OpenUSWMainMenu()
         {
-            Shell.GlobalWorldState = "MAIN MENU OPENED";
-            if (Shell.UpdateQueue.Contains(Shell.DefaultShell.LoadBarObj)) { Shell.DeleteQueue.Add(Shell.DefaultShell.LoadBarObj); }
-            if (SpoonsTrip)
-            {
-                MediaPlayer.Play((Song)Shell.SongDirectory["MEDLEY"]);
-                MediaPlayer.IsRepeating = true;
-                WorldEntity Black = new WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
-                Black.TransientAnimation = true;
-                Black.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
-                Shell.UpdateQueue.Add(Black);
-                Shell.RenderQueue.Add(Black);
-                SpoonsTrip = false;
-            }
-            WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
-            Shell.UpdateQueue.Add(MainMenuBackdrop);
-            Shell.RenderQueue.Add(MainMenuBackdrop);
-            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO" });
-            //Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f, delegate () { ButtonScripts.StartMain(); });
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            /*Pane TestPane = new Pane("TEST_PANE", new Vector2(200, 200), 1f, new Point(300, 300), Color.Gold, Shell.PubGD);
-            TestPane.AddUpdate(Button);
-            TestPane.AddRender(Button);
-            TestPane.AnimationQueue.Add(Animation.Retrieve("RIGHTLEFT"));
-            TestPane.Scale(new Vector2(0, -0.5f));
-            Shell.UpdateQueue.Add(TestPane);
-            Shell.RenderQueue.Add(TestPane);*/
-            Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("LoadSaveMenu"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_CREDITS", new Vector2(658, 500), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowCredits"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            WorldEntity Title = new WorldEntity("TITLE_MAIN", new Vector2(640, 200), (TAtlasInfo)Shell.AtlasDirectory["SOFIAWORLD"], 0.5f);
-            Title.CenterOrigin = true;
-            Animation A = Animation.Retrieve("WIGGLE");
-            A.Loop = true;
-            Title.AnimationQueue.Add(A);
-            Shell.UpdateQueue.Add(Title);
-            Shell.RenderQueue.Add(Title);
-            WorldEntity Fire = new Sofia.ParticleFire("PARTICLEFIRE_MAIN");
-            Shell.UpdateQueue.Add(Fire);
-            /*Sofia.BigSofia TB = new Sofia.BigSofia("BIGSOFIA", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BIGSOFIA"], 0.8f, new ArrayList(new String[] { "FLOATING", "GLOW", "SPEW1", "SHIFTER" }));
-            TB.CenterOrigin = true;
-            Shell.UpdateQueue.Add(TB);
-            Shell.RenderQueue.Add(TB);*/
+            Shell.GlobalVoid = new VoidDel(() => { StartScript("USW_MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void OpenMainMenu()
         {
-            Shell.GlobalWorldState = "MAIN MENU OPENED";
-            if (Shell.UpdateQueue.Contains(Shell.DefaultShell.LoadBarObj)) { Shell.DeleteQueue.Add(Shell.DefaultShell.LoadBarObj); }
-            if (SpoonsTrip)
-            {
-                MediaPlayer.Play((Song)Shell.SongDirectory["BHAMBIENT"]);
-                MediaPlayer.IsRepeating = true;
-                WorldEntity Black = new WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
-                Black.TransientAnimation = true;
-                Black.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
-                Shell.UpdateQueue.Add(Black);
-                Shell.RenderQueue.Add(Black);
-                SpoonsTrip = false;
-            }
-            WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
-            Shell.UpdateQueue.Add(MainMenuBackdrop);
-            Shell.RenderQueue.Add(MainMenuBackdrop);
-            TextEntity versionText = new TextEntity("VERSION_TEXT", "[F:SYSFONT]eVent horizoN " + Shell.FrameworkVersion, new Vector2(10, 10), 1);
-            versionText.TypeWrite = false;
-            Shell.UpdateQueue.Add(versionText);
-            Shell.RenderQueue.Add(versionText);
-            Button Button = new Button("BUTTON_MAIN_PLAY", new Vector2(86, 500), (TAtlasInfo)Shell.AtlasDirectory["PLAYBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("StartScript"), new object[] { "SOFIA_MAIN_INTRO" });
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_LOAD", new Vector2(372, 500), (TAtlasInfo)Shell.AtlasDirectory["LOADBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("LoadSaveMenu"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_CREDITS", new Vector2(658, 500), (TAtlasInfo)Shell.AtlasDirectory["CREDITSBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowCredits"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f);
-            Button.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
+            Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void StartTest()
         {
@@ -1069,23 +977,34 @@ namespace VNFramework
             }
             Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer("TEST_SNIFFER", ScriptProcessor.RetrieveScriptByName("TEST"), "TEST"));
         }
-        public static void StartScript(String ScriptName)
+        public static void StartScript(String ScriptName, Boolean startAsFresh)
         {
-            MediaPlayer.Stop();
-            SpoonsTrip = true;
-            Sofia.ParticleFire.Cease = true;
-            Shell.RunQueue = new List<VoidDel>();
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            if (startAsFresh)
             {
-                if (E.OverlayUtility) { continue; }
-                if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                SpoonsTrip = true;
+                MediaPlayer.Stop();
+                Sofia.ParticleFire.Cease = true;
+                Shell.RunQueue = new List<VoidDel>();
+                foreach (WorldEntity E in Shell.UpdateQueue)
+                {
+                    if (E.OverlayUtility) { continue; }
+                    if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                }
+                foreach (WorldEntity E in Shell.RenderQueue)
+                {
+                    if (E.OverlayUtility) { continue; }
+                    if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                }
+                ScriptProcessor.PastStates.Clear();
             }
-            foreach (WorldEntity E in Shell.RenderQueue)
+            else
             {
-                if (E.OverlayUtility) { continue; }
-                if (!Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                ScriptProcessor.ScriptSniffer curSniffer = ScriptProcessor.SnifferSearch();
+                if(curSniffer != null && !Shell.DeleteQueue.Contains(curSniffer))
+                {
+                    Shell.DeleteQueue.Add(curSniffer);
+                }
             }
-            ScriptProcessor.PastStates.Clear();
             Shell.UpdateQueue.Add(new ScriptProcessor.ScriptSniffer(ScriptName + "_SNIFFER", ScriptProcessor.RetrieveScriptByName(ScriptName), ScriptName));
         }
         public static void BackToMainMenu()

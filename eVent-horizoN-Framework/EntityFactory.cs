@@ -143,7 +143,7 @@ namespace VNFramework
                     IsolatedParamList = IsolatedParamList.Remove(IsolatedParamList.LastIndexOf(')'));
                     Object[] TrueParameters = new Object[0];
                     if (IsolatedParamList.Length > 0) { TrueParameters = ParseDataList(IsolatedParamList); }
-                    if(InstancedObject is null)
+                    if (InstancedObject is null)
                     {
                         foreach (var me in SuperType.GetMethods())
                         {
@@ -151,14 +151,25 @@ namespace VNFramework
                             {
                                 Boolean InvocationFlag = true;
                                 int i = 0;
-                                foreach(ParameterInfo pi in me.GetParameters())
+                                foreach (ParameterInfo pi in me.GetParameters())
                                 {
                                     Type ParamType = pi.ParameterType;
-                                    Type GivenType = TrueParameters[i].GetType();
-                                    if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
+                                    if (!(TrueParameters[i] is null))
                                     {
-                                        InvocationFlag = false;
-                                        break;
+                                        Type GivenType = TrueParameters[i].GetType();
+                                        if (!(CanConvert(ParamType, GivenType) || ParamType.IsAssignableFrom(GivenType)))
+                                        {
+                                            InvocationFlag = false;
+                                            break;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (ParamType.IsValueType && Nullable.GetUnderlyingType(ParamType) == null)
+                                        {
+                                            InvocationFlag = false;
+                                            break;
+                                        }
                                     }
                                     i++;
                                 }
@@ -210,6 +221,10 @@ namespace VNFramework
                         {
                             if (p.Name == S)
                             {
+                                if (ExplicitSet != null && Count == TreeElements.Length)
+                                {
+                                    p.SetValue(null, ExplicitSet);
+                                }
                                 InstancedObject = p.GetValue(null);
                                 break;
                             }
@@ -219,6 +234,10 @@ namespace VNFramework
                         {
                             if (field.Name == S)
                             {
+                                if (ExplicitSet != null && Count == TreeElements.Length)
+                                {
+                                    field.SetValue(null, ExplicitSet);
+                                }
                                 InstancedObject = field.GetValue(null);
                                 break;
                             }
@@ -239,7 +258,8 @@ namespace VNFramework
                     else
                     {
                         Object Initial = InstancedObject;
-                        foreach (var p in Initial.GetType().GetProperties())
+                        var properties = Initial.GetType().GetProperties();
+                        foreach (var p in properties)
                         {
                             if (p.Name == S)
                             {
@@ -252,7 +272,8 @@ namespace VNFramework
                             }
                         }
                         if (InstancedObject != Initial) { continue; }
-                        foreach (var field in Initial.GetType().GetFields())
+                        var fields = Initial.GetType().GetFields();
+                        foreach (var field in fields)
                         {
                             if (field.Name == S)
                             {
@@ -267,7 +288,8 @@ namespace VNFramework
                         if (InstancedObject != Initial) { continue; }
                         else if (Count == TreeElements.Length)
                         {
-                            foreach (var method in Initial.GetType().GetMethods())
+                            var methods = Initial.GetType().GetMethods();
+                            foreach (var method in methods)
                             {
                                 if (method.Name == S)
                                 {
@@ -660,6 +682,12 @@ namespace VNFramework
             if (VDSchema.StartsWith("do="))
             {
                 NewVoidDelegate = new VoidDel(delegate () { ReturnMemberOrFuncValue(VDSchema.Remove(0, 3), null, null); });
+            }
+            else if (VDSchema.StartsWith("assign=")) //some syntactic sugar here for static assigns
+            {
+                String assignScheme = VDSchema.Remove(0, 7);
+                String[] assignSplit = assignScheme.Split(",");
+                NewVoidDelegate = new VoidDel(delegate () { ReturnMemberOrFuncValue(assignSplit[0], null, ParseRealData(assignSplit[1])) ; });
             }
             else
             {
