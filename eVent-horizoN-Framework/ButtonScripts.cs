@@ -102,7 +102,7 @@ namespace VNFramework
                     {
                         String NT = "Page " + PageNumber + " of " + MaxPage;
                         ((TextEntity)E).Text = "[C:138-0-255-255]" + NT;
-                        E.Move(new Vector2((640 - (Shell.Default.MeasureString(NT).X / 2f)) - E.DrawCoords.X, 0));
+                        E.Move(new Vector2((640 - (Shell.Default.MeasureString(NT).X / 2f)) - E.Position.X, 0));
                     }
                 }
                 if(PageNumber > 1 && !Prev)
@@ -365,14 +365,14 @@ namespace VNFramework
         }
         static Texture2D[] CreateSequenceWithEntity(WorldEntity E, Vector2 ScrollDimensions)
         {
-            float EStartY = E.DrawCoords.Y;
+            float EStartY = E.Position.Y;
             ArrayList ScrollTextures = new ArrayList();
             int UpShift = 0;
             while (UpShift < ScrollDimensions.Y)
             {
                 int RealScrollY = (int)ScrollDimensions.Y - UpShift;
                 if (RealScrollY > 2000) { RealScrollY = 2000; }
-                E.QuickMoveTo(new Vector2(E.DrawCoords.X, EStartY - UpShift));
+                E.QuickMoveTo(new Vector2(E.Position.X, EStartY - UpShift));
                 RenderTarget2D Output = new RenderTarget2D(Shell.PubGD, (int)ScrollDimensions.X, RealScrollY, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);

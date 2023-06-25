@@ -193,13 +193,13 @@ namespace VNFramework
         void PopulateDropList(String[] textList)
         {
             DepopulateDropList();
-            float cumulativeY = DrawCoords.Y + (Atlas.Atlas.Bounds.Height / 2) + 10;
+            float cumulativeY = Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10;
             foreach (String label in textList)
             {
                 TAtlasInfo buttonAtlas = new TAtlasInfo();
                 buttonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(label, BoxWidth);
                 buttonAtlas.DivDimensions = new Point(2, 1);
-                Button button = new Button(Name + "_DROPOPTION_" + label, new Vector2(DrawCoords.X, cumulativeY), buttonAtlas, LayerDepth - 0.001f);
+                Button button = new Button(Name + "_DROPOPTION_" + label, new Vector2(Position.X, cumulativeY), buttonAtlas, LayerDepth - 0.001f);
                 button.SubscribeToEvent(EventNames.ButtonPressFunction, typeof(Button).GetMethod("SetTopText"), new object[] { label });
                 button.CenterOrigin = false;
                 button.Enabled = _droppedDown;
@@ -207,7 +207,7 @@ namespace VNFramework
                 Stickers.Add(button);
                 Shell.UpdateQueue.Add(button);
                 cumulativeY += (Atlas.Atlas.Bounds.Height / 2) + 10;
-                _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(cumulativeY - (DrawCoords.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));
+                _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(cumulativeY - (Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));
             }
 
         }
@@ -237,14 +237,14 @@ namespace VNFramework
         public override void Draw(SpriteBatch spriteBatch)
         {
             base.Draw(spriteBatch);
-            if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, DrawCoords + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), new Vector2(1, 1), SpriteEffects.None, LayerDepth - 0.002f); }
+            if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, Position + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), new Vector2(1, 1), SpriteEffects.None, LayerDepth - 0.002f); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, DrawCoords + camera.OffsetVector + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.Size, SpriteEffects.None, LayerDepth - 0.002f); }
+                if (_droppedDown) { spriteBatch.Draw(_dropBackingTexture, Position + camera.OffsetVector + new Vector2(0, (Atlas.Atlas.Bounds.Height / 2)), _dropBackingTexture.Bounds, Color.White, 0f, new Vector2(), camera.Size, SpriteEffects.None, LayerDepth - 0.002f); }
                 base.Draw(spriteBatch, camera);
             }
         }
@@ -292,11 +292,11 @@ namespace VNFramework
         }
         public float Output()
         {
-            return (float)(VNFUtils.GetLinearDistance(EndpointA, DrawCoords) / VNFUtils.GetLinearDistance(EndpointA, EndpointB));
+            return (float)(VNFUtils.GetLinearDistance(EndpointA, Position) / VNFUtils.GetLinearDistance(EndpointA, EndpointB));
         }
         public void ForceState(float state)
         {
-            DrawCoords = GetLocationByOutput(state, EndpointA, EndpointB);
+            Position = GetLocationByOutput(state, EndpointA, EndpointB);
         }
         public static Vector2 GetLocationByOutput(float output, Vector2 a, Vector2 b)
         {
@@ -367,7 +367,7 @@ namespace VNFramework
                     if (mouseDerived.X < leastX) { mouseDerived.X = leastX; }
                     if (mouseDerived.Y > greatestY) { mouseDerived.Y = greatestY; }
                     if (mouseDerived.Y < leastY) { mouseDerived.Y = leastY; }
-                    DrawCoords = mouseDerived;
+                    Position = mouseDerived;
                     if (mouseState.LeftButton != ButtonState.Pressed)
                     {
                         _engaged = false;
@@ -456,13 +456,13 @@ namespace VNFramework
         }
         public float ExtentPosition()
         {
-            return ((DrawCoords.Y - _minHeight) / (_maxHeight - _minHeight));
+            return ((Position.Y - _minHeight) / (_maxHeight - _minHeight));
         }
         public ScrollBar(String name, Vector2 location, TAtlasInfo? atlas, float depth, Texture2D[] scrollPlane, int scrollHeight) : base(name, location, atlas, depth)
         {
             Enabled = true;
-            _minHeight = (int)DrawCoords.Y;
-            _maxHeight = (int)(DrawCoords.Y + scrollHeight - Hitbox.Height);
+            _minHeight = (int)Position.Y;
+            _maxHeight = (int)(Position.Y + scrollHeight - Hitbox.Height);
             foreach (Texture2D textturePanel in scrollPlane)
             {
                 _totalScrollHeight += textturePanel.Bounds.Height;
@@ -473,7 +473,7 @@ namespace VNFramework
             if (TotalScrollHeight <= ScrollFrameHeight) { _hideBar = true; }
             CenterOrigin = true;
             _displayRect = new Rectangle(0, 0, DisplayScrollR[0].Width, ScrollFrameHeight);
-            _detectScrollRectangle = new Rectangle((int)DrawCoords.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width + 20 + (Hitbox.Width / 2), _displayRect.Height);
+            _detectScrollRectangle = new Rectangle((int)Position.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width + 20 + (Hitbox.Width / 2), _displayRect.Height);
             _lastMouseScroll = Mouse.GetState().ScrollWheelValue;
             MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(_lastMouseScroll));
         }
@@ -537,11 +537,11 @@ namespace VNFramework
         public void JumpTo(float fraction)
         {
             float pos = fraction * (_maxHeight - _minHeight);
-            DrawCoords = new Vector2(DrawCoords.X, _minHeight + pos);
+            Position = new Vector2(Position.X, _minHeight + pos);
         }
         public Texture2D CalculateDisplayTexture(Texture2D[] scrollSequence)
         {
-            int drsh = (int)(((float)(DrawCoords.Y - _minHeight) / (float)(_maxHeight - _minHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            int drsh = (int)(((float)(Position.Y - _minHeight) / (float)(_maxHeight - _minHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
             int startTIndex = (int)Math.Floor((double)drsh / 2000d);
             Texture2D one = DisplayScrollR[startTIndex];
             Texture2D two = null;
@@ -583,7 +583,7 @@ namespace VNFramework
         }
         public override void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(DisplayScroll, new Rectangle((int)DrawCoords.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width, _displayRect.Height), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+            spriteBatch.Draw(DisplayScroll, new Rectangle((int)Position.X - 20 - _displayRect.Width, _minHeight - (Hitbox.Height / 2), _displayRect.Width, _displayRect.Height), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
             if (!_hideBar) { base.Draw(spriteBatch); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
@@ -591,7 +591,7 @@ namespace VNFramework
             if (CameraImmune) { Draw(spriteBatch); }
             else
             {
-                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)DrawCoords.X - 20 - _displayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((_minHeight - (Hitbox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(_displayRect.Width * camera.ZoomFactor.X), (int)(_displayRect.Height * camera.ZoomFactor.Y)), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
+                spriteBatch.Draw(DisplayScroll, new Rectangle((int)(((int)Position.X - 20 - _displayRect.Width + (int)camera.OffsetVector.X) * camera.ZoomFactor.X), (int)((_minHeight - (Hitbox.Height / 2) + (int)camera.OffsetVector.Y) * camera.ZoomFactor.Y), (int)(_displayRect.Width * camera.ZoomFactor.X), (int)(_displayRect.Height * camera.ZoomFactor.Y)), _displayRect, Color.White, 0f, new Vector2(), SpriteEffects.None, 0.97f);
                 if (!_hideBar) { base.Draw(spriteBatch, camera); }
             }
         }
@@ -641,7 +641,7 @@ namespace VNFramework
         }
         public float ExtentPosition()
         {
-            return ((DrawCoords.Y - MinHeight) / (MaxHeight - MinHeight));
+            return ((Position.Y - MinHeight) / (MaxHeight - MinHeight));
         }
         public Pane AssociatedPane
         {
@@ -659,14 +659,14 @@ namespace VNFramework
         public VerticalScrollPane(String name, Vector2 location, TAtlasInfo? atlas, float depth, Point paneDimensions, Color backgroundColour) : base(name, location, atlas, depth)
         {
             Enabled = true;
-            _minHeight = (int)DrawCoords.Y;
-            _maxHeight = (int)DrawCoords.Y + paneDimensions.Y - Hitbox.Height;
+            _minHeight = (int)Position.Y;
+            _maxHeight = (int)Position.Y + paneDimensions.Y - Hitbox.Height;
             _scrollFrameHeight = (int)paneDimensions.Y;
             _paneDimensions = paneDimensions;
             CenterOrigin = true;
-            _detectScrollRectangle = new Rectangle((int)DrawCoords.X - 20 - (int)paneDimensions.X, MinHeight - (Hitbox.Height / 2), (int)paneDimensions.X + 20 + (Hitbox.Width / 2), (int)paneDimensions.Y);
+            _detectScrollRectangle = new Rectangle((int)Position.X - 20 - (int)paneDimensions.X, MinHeight - (Hitbox.Height / 2), (int)paneDimensions.X + 20 + (Hitbox.Width / 2), (int)paneDimensions.Y);
             _lastMouseScroll = Mouse.GetState().ScrollWheelValue;
-            _associatedPane = new Pane(name + "_ATTACHED_PANE", new Vector2((int)DrawCoords.X - 20 - paneDimensions.X, MinHeight - (Hitbox.Height / 2)), depth, paneDimensions, backgroundColour, Shell.PubGD);
+            _associatedPane = new Pane(name + "_ATTACHED_PANE", new Vector2((int)Position.X - 20 - paneDimensions.X, MinHeight - (Hitbox.Height / 2)), depth, paneDimensions, backgroundColour, Shell.PubGD);
             MyBehaviours.Add(new Behaviours.ScrollBarControlBehaviour(_lastMouseScroll));
         }
         ~VerticalScrollPane()
@@ -717,7 +717,7 @@ namespace VNFramework
         public void JumpTo(float fraction)
         {
             float Pos = fraction * (MaxHeight - MinHeight);
-            DrawCoords = new Vector2(DrawCoords.X, MinHeight + Pos);
+            Position = new Vector2(Position.X, MinHeight + Pos);
         }
         private TextEntity _defaultTextPaneText = null;
         public void SetAsTextPane(String text, int newlineIndent)
@@ -748,7 +748,7 @@ namespace VNFramework
         }
         void UpdatePaneCameraPos()
         {
-            int YDown = (int)(((float)(DrawCoords.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
+            int YDown = (int)(((float)(Position.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
             _associatedPane.DefaultPaneCamera.QuickMoveTo(_associatedPane.DefaultPaneCamera.OffsetVector); //This should be updated to use camera FOV once that is implemented.
             _associatedPane.Update();
         }

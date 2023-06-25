@@ -155,17 +155,17 @@ namespace VNFramework
                         int MY = (int)FullyAdjustedMouseCoords.Y;
                         if (M.ScrollWheelValue != LastMouseScroll && SB.DetectScrollRectangle.Contains(FullyAdjustedMouseCoords) && !SB.Engaged)
                         {
-                            if (((WorldEntity)SB).DrawCoords.Y >= SB.MinHeight && ((WorldEntity)SB).DrawCoords.Y <= SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, ((WorldEntity)SB).DrawCoords.Y + -(int)(((float)(M.ScrollWheelValue - LastMouseScroll) * (float)(SB.ScrollFrameHeight)) / (2 * (float)SB.TotalScrollHeight)))); }
-                            if (((WorldEntity)SB).DrawCoords.Y < SB.MinHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, SB.MinHeight)); }
-                            else if (((WorldEntity)SB).DrawCoords.Y > SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, SB.MaxHeight)); }
+                            if (((WorldEntity)SB).Position.Y >= SB.MinHeight && ((WorldEntity)SB).Position.Y <= SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, ((WorldEntity)SB).Position.Y + -(int)(((float)(M.ScrollWheelValue - LastMouseScroll) * (float)(SB.ScrollFrameHeight)) / (2 * (float)SB.TotalScrollHeight)))); }
+                            if (((WorldEntity)SB).Position.Y < SB.MinHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, SB.MinHeight)); }
+                            else if (((WorldEntity)SB).Position.Y > SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, SB.MaxHeight)); }
                         }
                         LastMouseScroll = M.ScrollWheelValue;
                         if (SB.Engaged)
                         {
                             ((WorldEntity)SB).SetAtlasFrame(new Point(2, ((WorldEntity)SB).AtlasCoordinates.Y));
-                            if (MY < SB.MinHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, SB.MinHeight)); }
-                            else if (MY > SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, SB.MaxHeight)); }
-                            else if (MY >= SB.MinHeight && MY <= SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).DrawCoords.X, MY)); }
+                            if (MY < SB.MinHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, SB.MinHeight)); }
+                            else if (MY > SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, SB.MaxHeight)); }
+                            else if (MY >= SB.MinHeight && MY <= SB.MaxHeight) { ((WorldEntity)SB).QuickMoveTo(new Vector2(((WorldEntity)SB).Position.X, MY)); }
                             if (M.LeftButton != ButtonState.Pressed) { SB.Engaged = false; }
                         }
                         else

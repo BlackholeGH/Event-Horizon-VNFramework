@@ -23,7 +23,7 @@ namespace VNFramework
             WorldEntity ourSofia = Shell.GetEntityByName("SOFIA");
             ourSofia.AnimationQueue.Clear();
             Animation freshTween = new Animation("sofia_return_tween");
-            SortedList<int, Vector2> TweenFrames = Animation.CreateVectorTween(new Vector2(0, 405 - ourSofia.DrawCoords.Y), 1000, 20);
+            SortedList<int, Vector2> TweenFrames = Animation.CreateVectorTween(new Vector2(0, 405 - ourSofia.Position.Y), 1000, 20);
             freshTween.WriteMovement(TweenFrames);
             ourSofia.AnimationQueue.Add(freshTween);
         }
@@ -98,15 +98,15 @@ namespace VNFramework
                         WorldEntity PotentialKing = Shell.GetEntityByName("KING SOFIA");
                         WorldEntity PotentialMystic = Shell.GetEntityByName("MYSTIC SOFIA");
                         WorldEntity PotentialCrooked = Shell.GetEntityByName("CROOKED SOFIA");
-                        if (PotentialKing != null && PotentialKing.ColourValue.A >= 254f && PotentialKing.DrawCoords.X < 1280 && PotentialKing.DrawCoords.X > 0)
+                        if (PotentialKing != null && PotentialKing.ColourValue.A >= 254f && PotentialKing.Position.X < 1280 && PotentialKing.Position.X > 0)
                         {
                             exitScript = "EXIT_DEFAULT_KING";
                         }
-                        else if (PotentialMystic != null && PotentialMystic.ColourValue.A >= 254f && PotentialMystic.DrawCoords.X < 1280 && PotentialMystic.DrawCoords.X > 0)
+                        else if (PotentialMystic != null && PotentialMystic.ColourValue.A >= 254f && PotentialMystic.Position.X < 1280 && PotentialMystic.Position.X > 0)
                         {
                             exitScript = "EXIT_DEFAULT_MYSTIC";
                         }
-                        else if (PotentialCrooked != null && PotentialCrooked.ColourValue.A >= 254f && PotentialCrooked.DrawCoords.X < 1280 && PotentialCrooked.DrawCoords.X > 0)
+                        else if (PotentialCrooked != null && PotentialCrooked.ColourValue.A >= 254f && PotentialCrooked.Position.X < 1280 && PotentialCrooked.Position.X > 0)
                         {
                             exitScript = "EXIT_DEFAULT_CROOKED";
                         }
@@ -219,7 +219,7 @@ namespace VNFramework
                         Transient add = new Transient("MEME", spawnPos, (TAtlasInfo)Shell.AtlasDirectory["MEMES"], ((float)Shell.Rnd.NextDouble() * 0.09f) + 0.405f);
                         add.CenterOrigin = true;
                         Vector2 target = new Vector2(Shell.Rnd.Next(400, 881), Shell.Rnd.Next(300, 420));
-                        Vector2 trajectory = (target - add.DrawCoords) * 2;
+                        Vector2 trajectory = (target - add.Position) * 2;
                         Animation a = new Animation("MEMEFLOATER");
                         Animation b = new Animation("MEMEFLOATER_TURN");
                         SortedList<int, Vector2> moves = Animation.CreateVectorTween(trajectory, 7000, 33);
@@ -335,8 +335,8 @@ namespace VNFramework
             private void Mirror(WorldEntity worldEntity)
             {
                 Size = worldEntity.Size;
-                if (worldEntity is BigSofia) { QuickMoveTo(worldEntity.DrawCoords + new Vector2(35, 100)); }
-                else { QuickMoveTo(worldEntity.DrawCoords); }
+                if (worldEntity is BigSofia) { QuickMoveTo(worldEntity.Position + new Vector2(35, 100)); }
+                else { QuickMoveTo(worldEntity.Position); }
             }
             public override void Update()
             {
@@ -456,7 +456,7 @@ namespace VNFramework
             private Vector2 _basePosition = new Vector2();
             public void ResetBasePosition()
             {
-                _basePosition = DrawCoords;
+                _basePosition = Position;
             }
             public ArrayList States
             {
@@ -513,7 +513,7 @@ namespace VNFramework
                 {
                     if(_myMask == null)
                     {
-                        _myMask = new EssenseGlow("BIGSOFIA_CHILD_ESSENCEGLOW", DrawCoords + new Vector2(35, 100), (TAtlasInfo)Shell.AtlasDirectory["BIGJUDGINGGLOW"], LayerDepth + 0.1f, Name);
+                        _myMask = new EssenseGlow("BIGSOFIA_CHILD_ESSENCEGLOW", Position + new Vector2(35, 100), (TAtlasInfo)Shell.AtlasDirectory["BIGJUDGINGGLOW"], LayerDepth + 0.1f, Name);
                         _dependents.Add(_myMask);
                         Shell.RunQueue.Add(new VoidDel(delegate ()
                         {
@@ -524,7 +524,7 @@ namespace VNFramework
                     }
                     else
                     {
-                        _myMask.QuickMoveTo(DrawCoords + new Vector2(35, 100));
+                        _myMask.QuickMoveTo(Position + new Vector2(35, 100));
                     }
                 }
                 else if(_myMask != null)
@@ -562,7 +562,7 @@ namespace VNFramework
                     {
                         if(_spewCounter1 < Math.Floor(((_myTime % SpewFreqencyOne) - 1000)/50f) + 1)
                         {
-                            Transient add = new Transient("BIGSOFIA_CHILD_SPEW", DrawCoords + new Vector2(0, -80), (TAtlasInfo)Shell.AtlasDirectory["BIGSOFIA"], LayerDepth - 0.1f + (0.001f*_spewCounter1));
+                            Transient add = new Transient("BIGSOFIA_CHILD_SPEW", Position + new Vector2(0, -80), (TAtlasInfo)Shell.AtlasDirectory["BIGSOFIA"], LayerDepth - 0.1f + (0.001f*_spewCounter1));
                             _dependents.Add(add);
                             add.Lifespan = 1500;
                             add.CenterOrigin = true;
@@ -615,7 +615,7 @@ namespace VNFramework
                         {
                             for (int i = 0; i < 12; i++)
                             {
-                                Transient add = new Transient("BIGSOFIA_CHILD_SPEW", DrawCoords + new Vector2(0,-70), (TAtlasInfo)Shell.AtlasDirectory["BIGSOFIA"], LayerDepth - 0.1f + (0.001f * _spewCounter1));
+                                Transient add = new Transient("BIGSOFIA_CHILD_SPEW", Position + new Vector2(0,-70), (TAtlasInfo)Shell.AtlasDirectory["BIGSOFIA"], LayerDepth - 0.1f + (0.001f * _spewCounter1));
                                 _dependents.Add(add);
                                 add.Lifespan = 1500;
                                 add.CenterOrigin = true;

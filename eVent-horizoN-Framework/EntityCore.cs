@@ -11,6 +11,7 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.Serialization;
 using System.Reflection;
+using static VNFramework.GraphicsTools;
 
 namespace VNFramework
 {
@@ -47,7 +48,7 @@ namespace VNFramework
         private String _name;
         private Boolean _drawable = true;
         private TAtlasInfo _localAtlas;
-        private Vector2 _drawCoords;
+        private Vector2 _position;
         private Point _atlasCoordinates = new Point(0, 0);
         public Point AtlasCoordinates
         {
@@ -330,11 +331,21 @@ namespace VNFramework
             get
             {
                 Point atlasSize = new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y));
-                if (!CenterOrigin) { _hitbox = new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y), atlasSize); }
-                else { _hitbox = new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y) - new Point(atlasSize.X / 2, atlasSize.Y / 2), atlasSize); }
+                if (!CenterOrigin) { _hitbox = new Rectangle(new Point((int)Position.X, (int)Position.Y), atlasSize); }
+                else { _hitbox = new Rectangle(new Point((int)Position.X, (int)Position.Y) - new Point(atlasSize.X / 2, atlasSize.Y / 2), atlasSize); }
                 return _hitbox;
             }
             protected set { _hitbox = value; }
+        }
+        private ICollider _collider = null;
+        public ICollider Collider
+        {
+            get
+            {
+                ICollider adjustedCollider = _collider != null ? _collider.Scale(new Vector2(), Size).Rotate(new Vector2(), RotationRads).Translate(Position) : null;
+                return adjustedCollider;
+            }
+            protected set { _collider = value; }
         }
         public List<Animation> AnimationQueue { get; set; }
         public override bool Equals(object obj)
@@ -432,7 +443,7 @@ namespace VNFramework
             TransientAnimation = false;
             ManualHorizontalFlip = false;
             Name = name;
-            DrawCoords = location;
+            Position = location;
             LayerDepth = depth;
             CustomCamera = null;
             CameraImmune = false;
@@ -478,14 +489,18 @@ namespace VNFramework
             get { return _name; }
             protected set { _name = value; }
         }
-        public Vector2 DrawCoords
+        public Vector2 Position
         {
-            get { return _drawCoords; }
-            protected set { _drawCoords = value; }
+            get { return _position; }
+            protected set { _position = value; }
+        }
+        public Trace TraceTo(Vector2 coords)
+        {
+            return new Trace(Position, coords);
         }
         public void QuickMoveTo(Vector2 coords)
         {
-            DrawCoords = coords;
+            Position = coords;
         }
         public Boolean Drawable
         {
@@ -532,7 +547,7 @@ namespace VNFramework
         public List<WorldEntity> Stickers { get; set; }
         public void Move(Vector2 vector)
         {
-            DrawCoords += vector;
+            Position += vector;
             lock (((ICollection)_stateHash).SyncRoot)
             {
                 _stateHash["NORTHSOUTH"] = new object[] { vector.Y, vector.Y != 0 ? 2 : 0 };
@@ -731,12 +746,12 @@ namespace VNFramework
         protected SpriteEffects LocalSpriteEffect = SpriteEffects.None;
         public virtual void Draw(SpriteBatch spriteBatch)
         {
-            spriteBatch.Draw(Atlas.Atlas, new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y), new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y))), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X)*AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
+            spriteBatch.Draw(Atlas.Atlas, new Rectangle(new Point((int)Position.X, (int)Position.Y), new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y))), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X)*AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth);
         }
         public virtual void Draw(SpriteBatch spriteBatch, Camera camera)
         {
             if (CameraImmune) { Draw(spriteBatch); }
-            else { spriteBatch.Draw(Atlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)DrawCoords.X, (int)DrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y)), camera.ZoomFactor)), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X) * AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
+            else { spriteBatch.Draw(Atlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)Position.X, (int)Position.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(Atlas.FrameSize().X * Size.X), (int)(Atlas.FrameSize().Y * Size.Y)), camera.ZoomFactor)), new Rectangle(new Point((Atlas.SourceRect.Width / Atlas.DivDimensions.X) * AtlasCoordinates.X, (Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y), Atlas.FrameSize()), ColourValue, RotationRads + _flipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
           //else { spriteBatch.Draw(LocalAtlas.Atlas, new Rectangle(VNFUtils.PointMultiply(new Point((int)pDrawCoords.X, (int)pDrawCoords.Y) + camera.OffsetPoint, camera.ZoomFactor), VNFUtils.PointMultiply(new Point((int)(LocalAtlas.FrameSize().X * _scale.X), (int)(LocalAtlas.FrameSize().Y * _scale.Y)), camera.ZoomFactor)), new Rectangle(new Point((LocalAtlas.SourceRect.Width / LocalAtlas.DivDimensions.X) * pAtlasCoordinates.X, (LocalAtlas.SourceRect.Height / LocalAtlas.DivDimensions.Y) * pAtlasCoordinates.Y), LocalAtlas.FrameSize()), ColourValue, pRotation + FlipRotationAddit, AdjustedOrigin, LocalSpriteEffect, LayerDepth); }
 
         }
@@ -751,7 +766,7 @@ namespace VNFramework
         {
             get
             {
-                return -(DrawCoords - ((new Vector2(Shell.Resolution.X, Shell.Resolution.Y) / ZoomFactor)/2));
+                return -(Position - ((new Vector2(Shell.Resolution.X, Shell.Resolution.Y) / ZoomFactor)/2));
             }
         }
         public Point OffsetPoint
@@ -771,7 +786,7 @@ namespace VNFramework
         }
         public void SnapTo(WorldEntity worldEntity)
         {
-            QuickMoveTo(worldEntity.DrawCoords);
+            QuickMoveTo(worldEntity.Position);
         }
         public void CenterDefault()
         {
@@ -916,7 +931,7 @@ namespace VNFramework
                 }
             }
             Vector2 size = new Vector2((Atlas.FrameSize().X * Size.X), (Atlas.FrameSize().Y * Size.Y));
-            Vector2 InternalOriginCoords = CenterOrigin ? DrawCoords - (size/2) : DrawCoords;
+            Vector2 InternalOriginCoords = CenterOrigin ? Position - (size/2) : Position;
             vectorOut = (vectorOut - InternalOriginCoords) / Size;
             return vectorOut;
         }
@@ -1057,7 +1072,7 @@ namespace VNFramework
         {
             get
             {
-                Rectangle hitbox = new Rectangle(VNFUtils.ConvertVector(DrawCoords), new Point(_bufferLength, VerticalLength(true)));
+                Rectangle hitbox = new Rectangle(VNFUtils.ConvertVector(Position), new Point(_bufferLength, VerticalLength(true)));
                 base.Hitbox = hitbox;
                 return hitbox;
             }
@@ -1640,7 +1655,7 @@ namespace VNFramework
                 foreach (TextChunk textChunk in _textChunkR)
                 {
                     if(textChunk.RainbowMode) { textChunk.Rainbow(); }
-                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? DrawCoords - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
             else
@@ -1648,7 +1663,7 @@ namespace VNFramework
                 foreach (TextChunk textChunk in _progressiveChunks)
                 {
                     if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? DrawCoords - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
                 }
             }
         }
@@ -1662,7 +1677,7 @@ namespace VNFramework
                     foreach (TextChunk textChunk in _textChunkR)
                     {
                         if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + DrawCoords - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
                     }
                 }
                 else
@@ -1670,7 +1685,7 @@ namespace VNFramework
                     foreach (TextChunk textChunk in _progressiveChunks)
                     {
                         if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + DrawCoords - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
                     }
                 }
             }
@@ -1683,7 +1698,7 @@ namespace VNFramework
                 {
                     for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(new Point((int)DrawCoords.X, (int)DrawCoords.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size), VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, Size)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size), VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, Size)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
                     }
                 }
             }
@@ -1696,7 +1711,7 @@ namespace VNFramework
                 {
                     for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)DrawCoords.X, (int)DrawCoords.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(Size)), camera.ZoomFactor)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(Size)), camera.ZoomFactor)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
                     }
                 }
             }
