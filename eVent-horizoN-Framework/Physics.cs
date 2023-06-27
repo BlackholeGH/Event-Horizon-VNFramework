@@ -25,6 +25,7 @@ namespace VNFramework
         public ICollider Scale(Vector2 origin, Vector2 scale);
         public ICollider Rotate(Vector2 origin, double rotation);
         public ICollider Translate(Vector2 translation);
+        public void ResolveCollision(DynamicEntity selfAttach, WorldEntity remoteAttach);
     }
     /// <summary>
     /// A radial collider object with a point center.
@@ -113,6 +114,111 @@ namespace VNFramework
                 return new Trace(closestTrace.Terminus, closestTrace.Bearing, Radius - closestTrace.Length);
             }
         }
+        public void ResolveCollision(DynamicEntity selfAttach, WorldEntity remoteAttach)
+        {
+            /*
+            * Move out of intersection with remote collider. If both objects can move, then each does half the movement.
+            */
+            Trace impingementOnCollider = selfAttach.Collider.GetImpingementOn(remoteAttach.Collider);
+            Vector2 bufferVector = new Vector2();
+            if (DynamicEntity.ColliderPushbackBuffer > 0) { bufferVector = new Trace(new Vector2(), impingementOnCollider.Flip().Bearing, DynamicEntity.ColliderPushbackBuffer).AsAlignedVector; }
+            Vector2 baseUnintersectVector = impingementOnCollider.Flip().AsAlignedVector;
+            selfAttach.Move((baseUnintersectVector / (remoteAttach is DynamicEntity ? 2 : 1)) + bufferVector);
+
+            //selfAttach.Move(baseUnintersectVector + bufferVector);
+            Vector2 targetPerpendicularVelocity = Trace.GetPerpendicularComponent(selfAttach.Velocity, impingementOnCollider.AsAlignedVector);
+            Vector2 velocityDelta = targetPerpendicularVelocity - selfAttach.Velocity;
+
+            Vector2 reboundDelta = new Vector2();
+            if (remoteAttach is DynamicEntity)
+            {
+                /*
+                 * Using standard momentum and kinetic energy conservation equations:
+                 * Elastic bounce occurs using components of velocity aligned with collision.
+                 */
+                DynamicEntity remote = (DynamicEntity)remoteAttach;
+
+                Vector2 remoteBufferVector = new Vector2();
+                if (DynamicEntity.ColliderPushbackBuffer > 0) { remoteBufferVector = new Trace(new Vector2(), impingementOnCollider.Bearing, DynamicEntity.ColliderPushbackBuffer).AsAlignedVector; }
+                Vector2 remoteUnintersectVector = impingementOnCollider.AsAlignedVector;
+                remote.Move((remoteUnintersectVector / 2) + remoteBufferVector);
+                Vector2 remoteTargetPerpendicularVelocity = Trace.GetPerpendicularComponent(remote.Velocity, impingementOnCollider.AsAlignedVector);
+                Vector2 remoteVelocityDelta = remoteTargetPerpendicularVelocity - remote.Velocity;
+
+                /*Console.WriteLine();
+                Console.WriteLine("New dynamic collision! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
+                Console.WriteLine("Collision start!");
+                Console.WriteLine("Local entity " + selfAttach.Name + " was unintersected by X: " + ((baseUnintersectVector / 2) + bufferVector).X + ", Y: " + ((baseUnintersectVector / 2) + bufferVector).Y);*/
+
+                Trace thisVelocityTrace = new Trace(new Vector2(), selfAttach.Velocity);
+                Trace remoteVelocityTrace = new Trace(new Vector2(), remote.Velocity);
+                Trace thisAlignedVelocityTrace = thisVelocityTrace.GetAlignedComponentTo(impingementOnCollider);
+                Trace remoteAlignedVelocityTrace = remoteVelocityTrace.GetAlignedComponentTo(impingementOnCollider);
+
+                Double thisAngleDifference = GraphicsTools.AngleDifference(thisAlignedVelocityTrace.Bearing, impingementOnCollider.Bearing);
+                Double thisScalarVelocity = thisAlignedVelocityTrace.Length * (Math.Abs(thisAngleDifference) <= Math.PI / 2 ? 1 : -1);
+                Double remoteAngleDifference = GraphicsTools.AngleDifference(remoteAlignedVelocityTrace.Bearing, impingementOnCollider.Bearing);
+                Double remoteScalarVelocity = remoteAlignedVelocityTrace.Length * (Math.Abs(remoteAngleDifference) <= Math.PI / 2 ? 1 : -1);
+
+                /*Console.WriteLine("Local entity " + selfAttach.Name + " ke component: " + (Math.Pow(thisScalarVelocity, 2) * selfAttach.Mass));
+                Console.WriteLine("Local entity " + selfAttach.Name + " velocity component: " + thisScalarVelocity);
+                Console.WriteLine("Remote entity " + remoteAttach.Name + " was unintersected by X: " + ((remoteUnintersectVector / 2) + remoteBufferVector).X + ", Y: " + ((remoteUnintersectVector / 2) + remoteBufferVector).Y);
+                Console.WriteLine("Remote entity  " + remoteAttach.Name + " ke component: " + (Math.Pow(remoteScalarVelocity, 2) * remote.Mass));
+                Console.WriteLine("Remote entity  " + remoteAttach.Name + " velocity component: " + remoteScalarVelocity);
+                Console.WriteLine();
+                Console.WriteLine("Remote entity " + remote.Name + " total ke: " + (Math.Pow(remote.Velocity.Length(), 2) * selfAttach.Mass));
+                Console.WriteLine("Local entity " + selfAttach.Name + " total ke: " + (Math.Pow(selfAttach.Velocity.Length(), 2) * selfAttach.Mass));*/
+
+                Double thisTargetSpeedAfterCollision = (((selfAttach.Mass - remote.Mass) / (selfAttach.Mass + remote.Mass)) * thisScalarVelocity) + (((remote.Mass * 2) / (selfAttach.Mass + remote.Mass)) * remoteScalarVelocity);
+                Trace targetVelocityTrace = new Trace(new Vector2(), impingementOnCollider.Bearing, thisTargetSpeedAfterCollision);
+                reboundDelta = targetVelocityTrace.AsAlignedVector;
+
+                Double remoteTargetSpeedAfterCollision = (((selfAttach.Mass * 2) / (selfAttach.Mass + remote.Mass)) * thisScalarVelocity) + (((remote.Mass - selfAttach.Mass) / (selfAttach.Mass + remote.Mass)) * remoteScalarVelocity);
+                Trace remoteTargetVelocityTrace = new Trace(new Vector2(), impingementOnCollider.Bearing, remoteTargetSpeedAfterCollision);
+                Vector2 remoteReboundDelta = remoteTargetVelocityTrace.AsAlignedVector;
+
+                remote.ShuntVelocity(remoteVelocityDelta);
+                if (Math.Abs(GraphicsTools.AngleDifference(new Trace(remoteReboundDelta).Bearing, impingementOnCollider.Flip().Bearing)) > Math.PI / 2)
+                {
+                    remote.ShuntVelocity(remoteReboundDelta);
+                }
+                else
+                {
+                    remote.ShuntVelocity(-remoteReboundDelta);
+                }
+
+                /*Console.WriteLine("Collision End!");
+                Console.WriteLine("Local entity " + selfAttach.Name + " ke component: " + (Math.Pow(reboundDelta.Length(), 2) * selfAttach.Mass));
+                Console.WriteLine("Local entity " + selfAttach.Name + " velocity component: " + thisTargetSpeedAfterCollision);
+                Console.WriteLine("Remote entity  " + remoteAttach.Name + " ke component: " + (Math.Pow(remoteReboundDelta.Length(), 2) * remote.Mass));
+                Console.WriteLine("Remote entity  " + remoteAttach.Name + " velocity component: " + remoteTargetSpeedAfterCollision);
+                Console.WriteLine();
+                Console.WriteLine("Remote entity " + remote.Name + " total ke: " + (Math.Pow(remote.Velocity.Length(), 2) * selfAttach.Mass));*/
+            }
+            else
+            {
+                /*Console.WriteLine();
+                Console.WriteLine("Wall collision for " + selfAttach.Name + "! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);*/
+                /*
+                 * Simply flip velocity component aligned with collision.
+                 */
+                Vector2 totalAlignedVelocity = Trace.GetAlignedComponent(selfAttach.Velocity, impingementOnCollider.AsAlignedVector);
+                Trace alignedVelocityAsTrace = new Trace(totalAlignedVelocity);
+                reboundDelta = alignedVelocityAsTrace.Flip().AsAlignedVector;
+            }
+            //selfAttach.Accelerate(reboundDelta);
+            selfAttach.ShuntVelocity(velocityDelta);
+            //Flip acceleration if it is somehow already coming out the other side of the collider.
+            if(Math.Abs(GraphicsTools.AngleDifference(new Trace(reboundDelta).Bearing, impingementOnCollider.Bearing)) > Math.PI / 2)
+            {
+                selfAttach.ShuntVelocity(reboundDelta);
+            }
+            else
+            {
+                selfAttach.ShuntVelocity(-reboundDelta);
+            }
+            //Console.WriteLine("Local entity " + selfAttach.Name + " total ke: " + (Math.Pow(selfAttach.Velocity.Length(), 2) * selfAttach.Mass));
+        }
     }
     /// <summary>
     /// Dynamic extension of WorldEntity that holds physics model variables.
@@ -120,6 +226,7 @@ namespace VNFramework
     [Serializable]
     public class DynamicEntity : WorldEntity
     {
+        public static readonly float ColliderPushbackBuffer = 0.01f;
         private float _angularAcceleration = 0f;
         public float AngularAcceleration
         {
@@ -182,59 +289,66 @@ namespace VNFramework
         {
             Mass = mass;
             CenterOfMass = Origin;
+            AlreadyCollidedWithThisIteration = new List<WorldEntity>();
         }
         public override void Update()
         {
+            AlreadyCollidedWithThisIteration.Clear();
             _velocity += _acceleration;
             Move(_velocity);
             _angularVelocity += _angularAcceleration;
             Rotate(_angularVelocity);
+            /*Console.WriteLine();
+            Console.WriteLine("Update block for " + Name + ":");
+            Console.WriteLine("Acceleration applied was X: " + _acceleration.X + ", Y: " + _acceleration.Y);
+            Console.WriteLine("Velocity (dPos) was X: " + _velocity.X + ", Y: " + _velocity.Y);
+            Console.WriteLine("Kinetic energy factor was: " + Math.Pow(Velocity.Length(), 2) * Mass);*/
             _acceleration.X = 0;
             _acceleration.Y = 0;
             _angularAcceleration = 0f;
-            CheckCollisions();
+            Vector2 oldPos = Position;
+            Vector2 oldAccel = Acceleration;
+            /*if((_velocity + _acceleration).Length() > _velocity.Length())
+            {
+                Position = oldPos;
+                Acceleration = oldAccel;
+                Shell.DefaultShell.PauseUpdates = true;
+                CheckCollisions();
+            }*/
+
             base.Update();
         }
-        private void CheckCollisions()
+        public List<WorldEntity> AlreadyCollidedWithThisIteration { get; protected set; }
+        public void CheckAndResolveCollisions()
         {
             if(Collider is null) { return; }
             //Console.WriteLine("StartCollide");
+            SortedList<float, List<WorldEntity>> sortedCollides = new System.Collections.Generic.SortedList<float, List<WorldEntity>>();
             foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if(worldEntity == this) { continue; }
-                if(worldEntity.Collider != null && worldEntity.TraceTo(Position).Length < (worldEntity.Collider.GetMaximumExtent() + Collider.GetMaximumExtent()))
+                if (worldEntity == this || (worldEntity is DynamicEntity && ((DynamicEntity)worldEntity).AlreadyCollidedWithThisIteration.Contains(this))) { continue; }
+                if (worldEntity.Collider != null && worldEntity.TraceTo(Position).Length < (worldEntity.Collider.GetMaximumExtent() + Collider.GetMaximumExtent()))
                 {
-                    if(Collider.Collides(worldEntity.Collider))
+                    if (Collider.Collides(worldEntity.Collider))
                     {
-                        //Console.WriteLine("Collided with " + worldEntity.Name);
-                        if (worldEntity is DynamicEntity)
-                        {
-                            Trace impingementOnCollider = Collider.GetImpingementOn(worldEntity.Collider);
-                            Move((impingementOnCollider.Flip().AsAlignedVector / 2) * 1.0001f);
-                            Vector2 targetPerpendicularVelocity = Trace.GetPerpendicularComponent(Velocity, impingementOnCollider.AsAlignedVector);
-                            Vector2 velocityDelta = targetPerpendicularVelocity - Velocity;
-                            Acceleration += velocityDelta;
-
-                            DynamicEntity remote = (DynamicEntity)worldEntity;
-                            Vector2 totalAlignedVelocity = Trace.GetAlignedComponent(Velocity, impingementOnCollider.AsAlignedVector) - Trace.GetAlignedComponent(remote.Velocity, impingementOnCollider.AsAlignedVector);
-                            Double proportionOfThis = Mass / (Mass + remote.Mass);
-                            Trace alignedVelocityAsTrace = new Trace(totalAlignedVelocity);
-                            Vector2 flipAligned = alignedVelocityAsTrace.Flip().AsAlignedVector;
-                            Acceleration += new Vector2((float)(flipAligned.X * (1 - proportionOfThis)), (float)(flipAligned.Y * (1 - proportionOfThis)));
-                        }
+                        float trueImpingement = Collider.GetImpingementOn(worldEntity.Collider).AsAlignedVector.Length();
+                        if (sortedCollides.ContainsKey(trueImpingement)) { sortedCollides[trueImpingement].Add(worldEntity); }
                         else
                         {
-                            Trace impingementOnCollider = Collider.GetImpingementOn(worldEntity.Collider);
-                            Move(impingementOnCollider.Flip().AsAlignedVector * 1.0001f);
-                            Vector2 targetPerpendicularVelocity = Trace.GetPerpendicularComponent(Velocity, impingementOnCollider.AsAlignedVector);
-                            Vector2 velocityDelta = targetPerpendicularVelocity - Velocity;
-                            Acceleration += velocityDelta;
-
-                            Vector2 totalAlignedVelocity = Trace.GetAlignedComponent(Velocity, impingementOnCollider.AsAlignedVector);
-                            Trace alignedVelocityAsTrace = new Trace(totalAlignedVelocity);
-                            Vector2 flipAligned = alignedVelocityAsTrace.Flip().AsAlignedVector;
-                            Acceleration += flipAligned;
+                            sortedCollides.Add(trueImpingement, new List<WorldEntity>(new WorldEntity[] { worldEntity }));
                         }
+                    }
+                }
+            }
+            for(int i = sortedCollides.Count - 1; i >= 0; i--)
+            {
+                foreach (WorldEntity colliderEntity in sortedCollides.Values[i])
+                {
+                    if (Collider.Collides(colliderEntity.Collider))
+                    {
+                        //Console.WriteLine("Collided with " + worldEntity.Name);
+                        Collider.ResolveCollision(this, colliderEntity);
+                        AlreadyCollidedWithThisIteration.Add(colliderEntity);
                     }
                 }
             }
@@ -246,6 +360,10 @@ namespace VNFramework
         public void Accelerate(Vector2 acceleration)
         {
             Acceleration += acceleration;
+        }
+        public void ShuntVelocity(Vector2 acceleration)
+        {
+            Velocity += acceleration;
         }
     }
 }

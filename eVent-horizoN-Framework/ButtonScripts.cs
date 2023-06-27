@@ -962,11 +962,13 @@ namespace VNFramework
         }
         public static void OpenUSWMainMenu()
         {
+            Shell.BackdropColour = Color.Black;
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("USW_MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void OpenMainMenu()
         {
+            Shell.BackdropColour = Color.Black;
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }

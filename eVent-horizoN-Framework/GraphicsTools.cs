@@ -23,9 +23,22 @@ namespace VNFramework
     {
         public static Double Mod2PI(Double radians)
         {
-            while (radians > Math.PI * 2) { radians -= Math.PI * 2; }
+            while (radians >= Math.PI * 2) { radians -= Math.PI * 2; }
             while (radians < 0) { radians += Math.PI * 2; }
             return radians;
+        }
+        /// <summary>
+        /// Normalizes angle comparisons to take into account the 0-2pi modulus circle
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static Double AngleDifference(Double a, Double b)
+        {
+            Double flatDif = a - b;
+            if (flatDif < -Math.PI) { return flatDif + (Math.PI * 2); }
+            else if (flatDif >= Math.PI) { return flatDif - (Math.PI * 2); }
+            return flatDif;
         }
         /// <summary>
         /// Defines geometric polygons as a series of directed lines. Polygons are constructed clockwise; the righthand side of a line should be the shape interior.
@@ -57,9 +70,9 @@ namespace VNFramework
             }
             public void InstanceFromVectors(Vector2[] vectors)
             {
-                InstanceFromVectors(vectors, new Vector2());
+                InstanceFromVectors(vectors, new Vector2(), new Vector2());
             }
-            public void InstanceFromVectors(Vector2[] vectors, Vector2 normalizingOrigin)
+            public void InstanceFromVectors(Vector2[] vectors, Vector2 normalizingOrigin, Vector2 distanceBoundsOrigin)
             {
                 _maxDistanceFromLocalOrigin = 0;
                 _lineTraces = new List<Trace>();
@@ -67,17 +80,19 @@ namespace VNFramework
                 {
                     Vector2 origin = vectors[i] - normalizingOrigin;
                     Vector2 terminus = i < vectors.Length - 1 ? vectors[i + 1] : vectors[0];
+                    terminus = terminus - normalizingOrigin;
                     _lineTraces.Add(new Trace(origin, terminus));
-                    if(origin.Length() > _maxDistanceFromLocalOrigin) { _maxDistanceFromLocalOrigin = origin.Length(); }
+                    Vector2 distanceBoundsVector = origin - distanceBoundsOrigin;
+                    if(distanceBoundsVector.Length() > _maxDistanceFromLocalOrigin) { _maxDistanceFromLocalOrigin = distanceBoundsVector.Length(); }
                 }
             }
             public void InstanceFromPoints(Point[] points)
             {
-                InstanceFromVectors(points.Select(x => VNFUtils.ConvertPoint(x)).ToArray(), new Vector2());
+                InstanceFromVectors(points.Select(x => VNFUtils.ConvertPoint(x)).ToArray(), new Vector2(), new Vector2());
             }
-            public void InstanceFromPoints(Point[] points, Point normalizingOrigin)
+            public void InstanceFromPoints(Point[] points, Point normalizingOrigin, Point distanceBoundsOrigin)
             {
-                InstanceFromVectors(points.Select(x => VNFUtils.ConvertPoint(x)).ToArray(), VNFUtils.ConvertPoint(normalizingOrigin));
+                InstanceFromVectors(points.Select(x => VNFUtils.ConvertPoint(x)).ToArray(), VNFUtils.ConvertPoint(normalizingOrigin), VNFUtils.ConvertPoint(distanceBoundsOrigin));
             }
             public (Vector2[], Trace[], int[]) GetTraceIntersections(Trace trace)
             {
@@ -110,19 +125,19 @@ namespace VNFramework
             }
             public Polygon(Rectangle rectangle)
             {
-                InstanceFromVectors(new Vector2[] { new Vector2(rectangle.Left, rectangle.Top), new Vector2(rectangle.Right, rectangle.Top), new Vector2(rectangle.Right, rectangle.Bottom), new Vector2(rectangle.Left, rectangle.Bottom) }, new Vector2());
+                InstanceFromVectors(new Vector2[] { new Vector2(rectangle.Left, rectangle.Top), new Vector2(rectangle.Right, rectangle.Top), new Vector2(rectangle.Right, rectangle.Bottom), new Vector2(rectangle.Left, rectangle.Bottom) }, new Vector2(), new Vector2());
             }
-            public Polygon(Rectangle rectangle, Vector2 normalizingOrigin)
+            public Polygon(Rectangle rectangle, Vector2 normalizingOrigin, Vector2 distanceBoundsOrigin)
             {
-                InstanceFromVectors(new Vector2[] { new Vector2(rectangle.Left, rectangle.Top), new Vector2(rectangle.Right, rectangle.Top), new Vector2(rectangle.Right, rectangle.Bottom), new Vector2(rectangle.Left, rectangle.Bottom) }, normalizingOrigin);
+                InstanceFromVectors(new Vector2[] { new Vector2(rectangle.Left, rectangle.Top), new Vector2(rectangle.Right, rectangle.Top), new Vector2(rectangle.Right, rectangle.Bottom), new Vector2(rectangle.Left, rectangle.Bottom) }, normalizingOrigin, distanceBoundsOrigin);
             }
             public Polygon(Vector2[] indices)
             {
-                InstanceFromVectors(indices, new Vector2());
+                InstanceFromVectors(indices, new Vector2(), new Vector2());
             }
-            public Polygon(Vector2[] indices, Vector2 normalizingOrigin) 
+            public Polygon(Vector2[] indices, Vector2 normalizingOrigin, Vector2 distanceBoundsOrigin)
             {
-                InstanceFromVectors(indices, normalizingOrigin);
+                InstanceFromVectors(indices, normalizingOrigin, distanceBoundsOrigin);
             }
             public Boolean EdgesIntersect(Polygon polygon)
             {
@@ -152,6 +167,10 @@ namespace VNFramework
                 if (collider is Polygon) { return null; } //Implement a proper solve for this later if we do a proper collider mesh physics engine
                 else if (collider is RadialCollider) { return ((RadialCollider)collider).GetImpingementOn(this).Flip(); }
                 return null;
+            }
+            public void ResolveCollision(DynamicEntity selfAttach, WorldEntity remoteAttach)
+            {
+                return;
             }
             public ICollider Scale(Vector2 origin, Vector2 scale) 
             {
@@ -184,7 +203,7 @@ namespace VNFramework
                 {
                     newCoords.Add(trace.Origin + translation);
                 }
-                return new Polygon(newCoords.ToArray());
+                return new Polygon(newCoords.ToArray(), new Vector2(), translation);
             }
         }
         /// <summary>

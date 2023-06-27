@@ -531,6 +531,7 @@ namespace VNFramework
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
             s_graphics.HardwareModeSwitch = false;
+            BackdropColour = Color.Black;
             Resolution = new Vector2(640, 480);
             this.IsMouseVisible = true;
             SaveLoadModule.InitializeAppFolders();
@@ -538,6 +539,7 @@ namespace VNFramework
             AutoCamera = new Camera("Default Shell Autocamera");
             Mute = false;
             GlobalVolume = 0.6f;
+            PauseUpdates = false;
             SaveLoadModule.ApplicableSaveType = "FullySerializedBinary";
             SaveLoadModule.PullOrInitPersistentState();
             ScriptProcessor.AllowScriptExit = true;
@@ -859,6 +861,7 @@ namespace VNFramework
         float lastCapturedVol = 0f;
         float lastCapturedText = 0f;
         public Queue LoadGraphicsQueue { get; set; }
+        public GameTime LastUpdateGameTime { get; set; }
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -866,6 +869,7 @@ namespace VNFramework
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         protected override void Update(GameTime gameTime)
         {
+            LastUpdateGameTime = gameTime;
             KeyboardState kCurrent = Keyboard.GetState();
             if (LoadOperation != null && !LoadOperation.IsCompleted)
             {
@@ -939,6 +943,9 @@ namespace VNFramework
             base.Update(gameTime);
         }
         public static Boolean ConsoleOpen { get; set; }
+        public static Color BackdropColour { get; set; }
+        public Boolean PauseUpdates { get; set; }
+        //Double lastTotalKE = 0d;
         protected void MainUpdate(GameTime gameTime, KeyboardState kCurrent)
         {
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
@@ -1000,10 +1007,39 @@ namespace VNFramework
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { UpKeyPress?.Invoke(); }
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DownKeyPress?.Invoke(); }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
             LastKeyState = kCurrent;
-            foreach (WorldEntity worldEntity in UpdateQueue)
+            if (!PauseUpdates)
             {
-                worldEntity.Update();
+                List<DynamicEntity> dynamicEntities = new List<DynamicEntity>();
+                foreach (WorldEntity worldEntity in UpdateQueue)
+                {
+                    worldEntity.Update();
+                    if(worldEntity is DynamicEntity) { dynamicEntities.Add((DynamicEntity)worldEntity); }
+                }
+
+                foreach (DynamicEntity dynamicEntity in dynamicEntities)
+                {
+                    dynamicEntity.CheckAndResolveCollisions();
+                }
+                /*
+                Double totalKE = 0d;
+                foreach (DynamicEntity dynamicEntity in dynamicEntities)
+                {
+                    totalKE += Math.Pow(dynamicEntity.Velocity.Length(), 2) * dynamicEntity.Mass;
+                }
+                Console.WriteLine();
+                if (Math.Round(totalKE) != Math.Round(lastTotalKE) && lastTotalKE > 0 && totalKE > 0)
+                {
+                    Console.WriteLine("Kinetic energy factor discrepancy! Went from " + lastTotalKE + " to " + totalKE + "! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
+                    Console.WriteLine();
+                }
+                else
+                {
+                    Console.WriteLine("No discrepancy! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
+                    Console.WriteLine();
+                }
+                lastTotalKE = totalKE;*/
             }
             foreach (WorldEntity worldEntity in DeleteQueue)
             {
@@ -1087,7 +1123,7 @@ namespace VNFramework
                 else if (worldEntity is VerticalScrollPane && ((VerticalScrollPane)worldEntity).AssociatedPane.RenderAlways) { ((VerticalScrollPane)worldEntity).AssociatedPane.Render(); }
             }
             GraphicsDevice.SetRenderTarget(TrueDisplay);
-            GraphicsDevice.Clear(Color.Black);
+            GraphicsDevice.Clear(BackdropColour);
             ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
             if (!HoldRender)
             {
