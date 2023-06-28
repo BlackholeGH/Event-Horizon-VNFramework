@@ -50,23 +50,66 @@ namespace VNFramework
                     Bot bot = new Bot("IMEMBOT_" + x + "_" + y, new Vector2(175 + 120 * (x+1), 175 + 120 * (y+1)), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 11), new Vector2(Shell.Rnd.Next(-5, 5), Shell.Rnd.Next(-5, 5)));
                     bot.CenterOrigin = true;
                     bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                    if(total == 1)
+                    {
+                        bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
+                        bot.AutoRotateToVelocityBearing = false;
+                        bot.Stickers.Add(Shell.AutoCamera);
+                        Shell.AutoCamera.QuickMoveTo(bot.Position);
+                    }
                     Shell.UpdateQueue.Add(bot);
                     Shell.RenderQueue.Add(bot);
                 }
             }
-            /*for (int y = 0; y < 1; y++)
+        }
+        public static void InitializeMainSim(int botCount, int spawnRadius)
+        {
+            ButtonScripts.SpoonsTrip = true;
+            ScriptProcessor.ClearNonUIEntities();
+            Shell.LooseCamera = true;
+            ScriptProcessor.AssertGameRunningWithoutScript = true;
+            Shell.BackdropColour = Color.Aquamarine;
+            //PythonController.StartPythonProcess("C:\\Users\\Blackhole\\PycharmProjects\\Brains\\venv\\socketmanager.py");
+            int totalWall = 0;
+            for (int i = 0; i < 20; i++)
             {
-                for(int x = 0; x < 2; x++)
+                Wall wall = new Wall("WALL_" + totalWall, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.8f);
+                wall.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                totalWall++;
+                Shell.UpdateQueue.Add(wall);
+                Shell.RenderQueue.Add(wall);
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                Plant plant = new Plant("PLANT_" + i, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.6f + i * 0.001f, 30, new Vector2());
+                plant.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                Shell.UpdateQueue.Add(plant);
+                Shell.RenderQueue.Add(plant);
+            }
+            for (int i = 0; i < 10; i++)
+            {
+                Spike spike = new Spike("SPIKE_" + i, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.7f + i * 0.001f, 30, new Vector2());
+                spike.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                Shell.UpdateQueue.Add(spike);
+                Shell.RenderQueue.Add(spike);
+            }
+            int total = 0;
+            while (total < botCount)
+            {
+                total++;
+                Bot bot = new Bot("IMEMBOT_" + total, new Vector2((float)Math.Sin(total * (Math.PI / 4)), (float)Math.Cos(total * (Math.PI / 4))) * (float)(105 * Math.Ceiling((total-1) / 8d)), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 11), new Vector2());
+                bot.CenterOrigin = true;
+                bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                if (total == 1)
                 {
-                    total++;
-                    Bot bot = new Bot("IMEMBOT_" + x + "_" + y, new Vector2(200 + 200 * (x+1), 200 + 125 * (y+1)), 0.4f + (0.001f * total), (x == 0 ? 4 : 2), new Vector2(x == 0 ? 5 : -5, 0));
-                    bot.CenterOrigin = true;
-                    bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
-                    Shell.UpdateQueue.Add(bot);
-                    Shell.RenderQueue.Add(bot);
+                    bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
+                    bot.AutoRotateToVelocityBearing = false;
+                    bot.Stickers.Add(Shell.AutoCamera);
+                    Shell.AutoCamera.QuickMoveTo(bot.Position);
                 }
-            }*/
-            
+                Shell.UpdateQueue.Add(bot);
+                Shell.RenderQueue.Add(bot);
+            }
         }
         public class Bot : DynamicEntity
         {
@@ -74,6 +117,7 @@ namespace VNFramework
             {
                 get; private set;
             }
+            public Boolean AutoRotateToVelocityBearing { get; set; }
             public Bot(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["BOT"], depth, mass)
             {
                 int subtractColour = (int)((250 / 9) * (mass - 1));
@@ -81,12 +125,36 @@ namespace VNFramework
                 Collider = new RadialCollider(50, new Vector2());
                 AnimationQueue.Add(Animation.PlayAllFrames(Atlas, 200, true));
                 Velocity = initialVelocity;
+                AutoRotateToVelocityBearing = true;
+                MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 //SocketID = PythonController.SocketInterface.AddNewSocketAsTask();
             }
             public override void Update()
             {
-                RotationRads = (float)new Trace(Velocity).Bearing;
+                if (AutoRotateToVelocityBearing) { RotationRads = (float)new Trace(Velocity).Bearing; }
                 base.Update();
+            }
+        }
+        public class Plant : DynamicEntity
+        {
+            public Plant(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["FOODPLANT"], depth, mass)
+            {
+                CenterOrigin = true;
+                Collider = new RadialCollider(60, new Vector2());
+                Velocity = initialVelocity;
+                MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
+                AngularVelocity = (float)(Shell.Rnd.NextDouble() - 0.5) * 0.05f;
+            }
+        }
+        public class Spike : DynamicEntity
+        {
+            public Spike(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["DAMAGESPIKE"], depth, mass)
+            {
+                CenterOrigin = true;
+                Collider = new RadialCollider(60, new Vector2());
+                Velocity = initialVelocity;
+                MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
+                AngularVelocity = (float)(Shell.Rnd.NextDouble() - 0.5) * 0.05f;
             }
         }
         public class Wall : WorldEntity

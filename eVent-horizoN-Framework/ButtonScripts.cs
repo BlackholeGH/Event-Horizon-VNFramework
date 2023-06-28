@@ -830,14 +830,17 @@ namespace VNFramework
             }
             WorldEntity Pane = new WorldEntity("EXIT_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["EXITPANE"], 0.995f);
             Pane.CenterOrigin = true;
+            Pane.CameraImmune = true;
             Shell.UpdateQueue.Add(Pane);
             Shell.RenderQueue.Add(Pane);
             Button Yes = new Button("BUTTON_EXIT_YES", new Vector2(560, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITYESBUTTON"], 1f);
             Yes.ButtonPressFunction += new VoidDel(delegate () { Shell.ExitOut = true; });
+            Yes.CameraImmune = true;
             Shell.UpdateQueue.Add(Yes);
             Shell.RenderQueue.Add(Yes);
             Button No = new Button("BUTTON_EXIT_NO", new Vector2(700, 380), (TAtlasInfo)Shell.AtlasDirectory["QUITNOBUTTON"], 1f);
             No.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unquit"), null);
+            No.CameraImmune = true;
             Shell.UpdateQueue.Add(No);
             Shell.RenderQueue.Add(No);
         }
@@ -963,12 +966,14 @@ namespace VNFramework
         public static void OpenUSWMainMenu()
         {
             Shell.BackdropColour = Color.Black;
+            Shell.AutoCamera.CenterDefault();
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("USW_MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void OpenMainMenu()
         {
             Shell.BackdropColour = Color.Black;
+            Shell.AutoCamera.CenterDefault();
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }
@@ -1097,9 +1102,11 @@ namespace VNFramework
                 }
             }
             WorldEntity SettingsPane = new WorldEntity("PANE_SETTINGS", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSPANE"], 0.99f);
+            SettingsPane.CameraImmune = true;
             Shell.UpdateQueue.Add(SettingsPane);
             Shell.RenderQueue.Add(SettingsPane);
             Checkbox Fullscreen = new Checkbox("CHECKBOX_SETTINGS_FULLSCREEN", new Vector2(140, 200), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.QueryFullscreen());
+            Fullscreen.CameraImmune = true;
             Fullscreen.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     if (Shell.CaptureFullscreen.Toggle) { if (!Shell.QueryFullscreen()) { Shell.ToggleFullscreen(); } }
@@ -1109,17 +1116,21 @@ namespace VNFramework
             Shell.UpdateQueue.Add(Fullscreen);
             Shell.RenderQueue.Add(Fullscreen);
             TextEntity FSLabel = new TextEntity("LABEL_SETTINGS_FULLSCREEN", "Run in fullscreen", new Vector2(175, 185), 0.991f);
+            FSLabel.CameraImmune = true;
             FSLabel.TypeWrite = false;
             Shell.UpdateQueue.Add(FSLabel);
             Shell.RenderQueue.Add(FSLabel);
             TextEntity VLabel = new TextEntity("LABEL_SETTINGS_VOLUME", "Volume control", new Vector2(135, 235), 0.991f);
+            VLabel.CameraImmune = true;
             VLabel.TypeWrite = false;
             Shell.UpdateQueue.Add(VLabel);
             Shell.RenderQueue.Add(VLabel);
             WorldEntity VolumeBar = new WorldEntity("BAR_SETTINGS_VOLUME", new Vector2(135, 285), (TAtlasInfo)Shell.AtlasDirectory["SLIDERBAR"], 0.9905f);
+            VolumeBar.CameraImmune = true;
             Shell.UpdateQueue.Add(VolumeBar);
             Shell.RenderQueue.Add(VolumeBar);
             Slider Volume = new Slider("SLIDER_SETTINGS_VOLUME", new Vector2(140, 295), (TAtlasInfo)Shell.AtlasDirectory["SLIDERKNOB"], 0.991f, new Vector2(140, 295), new Vector2(630, 295), Shell.GlobalVolume);
+            Volume.CameraImmune = true;
             if (Shell.Mute)
             {
                 Volume.ForceState(0f);
@@ -1129,6 +1140,7 @@ namespace VNFramework
             Shell.UpdateQueue.Add(Volume);
             Shell.RenderQueue.Add(Volume);
             Checkbox Mute = new Checkbox("CHECKBOX_SETTINGS_MUTE", new Vector2(140, 355), (TAtlasInfo)Shell.AtlasDirectory["CHECKBOX"], 0.991f, Shell.Mute);
+            Mute.CameraImmune = true;
             Mute.ButtonPressFunction += new VoidDel(delegate ()
                 {
                     if (Shell.CaptureMute.Toggle) { Shell.Mute = true; }
@@ -1138,21 +1150,26 @@ namespace VNFramework
             Shell.UpdateQueue.Add(Mute);
             Shell.RenderQueue.Add(Mute);
             TextEntity MLabel = new TextEntity("LABEL_SETTINGS_MUTE", "Mute audio", new Vector2(175, 340), 0.991f);
+            MLabel.CameraImmune = true;
             MLabel.TypeWrite = false;
             Shell.UpdateQueue.Add(MLabel);
             Shell.RenderQueue.Add(MLabel);
             TextEntity TRateLabel = new TextEntity("LABEL_SETTINGS_TEXTRATE", "Text speed", new Vector2(135, 400), 0.991f);
+            TRateLabel.CameraImmune = true;
             TRateLabel.TypeWrite = false;
             Shell.UpdateQueue.Add(TRateLabel);
             Shell.RenderQueue.Add(TRateLabel);
             WorldEntity TextBar = new WorldEntity("BAR_SETTINGS_TEXTRATE", new Vector2(135, 450), (TAtlasInfo)Shell.AtlasDirectory["SLIDERBAR"], 0.9905f);
+            TextBar.CameraImmune = true;
             Shell.UpdateQueue.Add(TextBar);
             Shell.RenderQueue.Add(TextBar);
             Slider Textrate = new Slider("SLIDER_SETTINGS_TEXTRATE", new Vector2(140, 460), (TAtlasInfo)Shell.AtlasDirectory["SLIDERKNOB"], 0.991f, new Vector2(140, 460), new Vector2(630, 460), TextEntity.GetSliderValueFromTicks(TextEntity.TickWriteInterval));
+            Textrate.CameraImmune = true;
             Shell.CaptureTextrate = Textrate;
             Shell.UpdateQueue.Add(Textrate);
             Shell.RenderQueue.Add(Textrate);
             TextEntity DynamicTextrate = new TextEntity("DYNAMIC_SETTINGS_TEXTRATE_DISPLAY", TextEntity.TickWriteInterval + " milliseconds", new Vector2(350, 400), 0.991f);
+            DynamicTextrate.CameraImmune = true;
             DynamicTextrate.TypeWrite = false;
             Shell.CaptureRateDisplay = DynamicTextrate;
             Shell.UpdateQueue.Add(DynamicTextrate);
@@ -1163,14 +1180,17 @@ namespace VNFramework
                 if (Shell.CaptureSaveType.Toggle) { SaveLoadModule.ApplicableSaveType = "ScriptStem"; }
                 else { SaveLoadModule.ApplicableSaveType = "FullySerializedBinary"; }
             });
+            SSSave.CameraImmune = true;
             Shell.CaptureSaveType = SSSave;
             Shell.UpdateQueue.Add(SSSave);
             Shell.RenderQueue.Add(SSSave);
             TextEntity SLabel = new TextEntity("LABEL_SETTINGS_SAVES", "Enable simple saves", new Vector2(175, 505), 0.991f);
+            SLabel.CameraImmune = true;
             SLabel.TypeWrite = false;
             Shell.UpdateQueue.Add(SLabel);
             Shell.RenderQueue.Add(SLabel);
             TextEntity SLabel2 = new TextEntity("LABEL_SETTINGS_SAVES2", "[C:220-100-255-255]Simple saves ensure version compatibility and take up less space, but may not work with unsupported scripts.", new Vector2(660, 450), 0.991f);
+            SLabel2.CameraImmune = true;
             SLabel2.BufferLength = 500;
             SLabel2.TypeWrite = false;
             Shell.UpdateQueue.Add(SLabel2);
@@ -1178,6 +1198,7 @@ namespace VNFramework
             if (!Paused)
             {
                 Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+                Back.CameraImmune = true;
                 Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
                 Shell.UpdateQueue.Add(Back);
                 Shell.RenderQueue.Add(Back);
@@ -1185,11 +1206,13 @@ namespace VNFramework
             else
             {
                 Button Back = new Button("BACKBUTTON_SETTINGS", new Vector2(1110, 610), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 1f);
+                Back.CameraImmune = true;
                 Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSettings"), null);
                 Shell.UpdateQueue.Add(Back);
                 Shell.RenderQueue.Add(Back);
             }
             Button Restore = new Button("BUTTON_SETTINGS_RESTORE", new Vector2(280, 620), (TAtlasInfo)Shell.AtlasDirectory["RESTOREBUTTON"], 1f);
+            Restore.CameraImmune = true;
             Restore.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(Shell).GetMethod("DefaultSettings"), null);
             Shell.UpdateQueue.Add(Restore);
             Shell.RenderQueue.Add(Restore);

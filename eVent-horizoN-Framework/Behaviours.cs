@@ -9,7 +9,7 @@ using System.Collections;
 
 namespace VNFramework
 {
-    public static class Behaviours
+    public static partial class Behaviours
     {
         public interface IVNFBehaviour
         {
@@ -22,15 +22,15 @@ namespace VNFramework
             {
                 InputUpdated = false;
                 Shell.DefaultShell.Window.TextInput += HandleTextInputEvent;
-                Shell.UpKeyPress += Up;
-                Shell.DownKeyPress += Down;
+                Shell.DefaultShell.Window.KeyDown += Up;
+                Shell.DefaultShell.Window.KeyDown += Down;
             }
             public void Clear()
             {
                 try
                 {
-                    Shell.UpKeyPress -= Up;
-                    Shell.DownKeyPress -= Down;
+                    Shell.DefaultShell.Window.KeyDown -= Up;
+                    Shell.DefaultShell.Window.KeyDown -= Down;
                     Shell.DefaultShell.Window.TextInput -= HandleTextInputEvent;
                 }
                 catch (NullReferenceException) { }
@@ -62,28 +62,31 @@ namespace VNFramework
                 InputUpdated = true;
                 HeldStringChangedFlag = true;
             }
-            public void Up()
+            public void Up(object EventSender, InputKeyEventArgs e)
             {
-                if(ScrollIndex > 0)
+                if(ScrollIndex > 0 && e.Key == Microsoft.Xna.Framework.Input.Keys.Up)
                 {
                     ScrollIndex--;
                     ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
                     InputUpdated = true;
                 }
             }
-            public void Down()
+            public void Down(object EventSender, InputKeyEventArgs e)
             {
-                if (ScrollIndex < Scrollers.Count - 1)
+                if (e.Key == Microsoft.Xna.Framework.Input.Keys.Down)
                 {
-                    ScrollIndex++;
-                    ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
-                    InputUpdated = true;
-                }
-                else if(ScrollIndex == Scrollers.Count - 1)
-                {
-                    ScrollIndex++;
-                    ConstructHeldString = new StringBuilder();
-                    InputUpdated = true;
+                    if (ScrollIndex < Scrollers.Count - 1)
+                    {
+                        ScrollIndex++;
+                        ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
+                        InputUpdated = true;
+                    }
+                    else if (ScrollIndex == Scrollers.Count - 1)
+                    {
+                        ScrollIndex++;
+                        ConstructHeldString = new StringBuilder();
+                        InputUpdated = true;
+                    }
                 }
             }
             private int ScrollIndex = 0;

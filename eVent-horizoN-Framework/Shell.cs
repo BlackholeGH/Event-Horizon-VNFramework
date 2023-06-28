@@ -851,8 +851,6 @@ namespace VNFramework
 
         [field: NonSerialized]
         public static event VoidDel MouseLeftClick;
-        public static event VoidDel UpKeyPress;
-        public static event VoidDel DownKeyPress;
         protected MouseState LastMouseState;
         protected KeyboardState LastKeyState;
         public static Boolean ExitOut = false;
@@ -1005,8 +1003,6 @@ namespace VNFramework
                 if(!found) { GlobalWorldState = "CONTINUE"; }
             }      
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { UpKeyPress?.Invoke(); }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DownKeyPress?.Invoke(); }
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
             LastKeyState = kCurrent;
             if (!PauseUpdates)
@@ -1022,13 +1018,15 @@ namespace VNFramework
                 {
                     dynamicEntity.CheckAndResolveCollisions();
                 }
+                
                 /*
                 Double totalKE = 0d;
                 foreach (DynamicEntity dynamicEntity in dynamicEntities)
                 {
                     totalKE += Math.Pow(dynamicEntity.Velocity.Length(), 2) * dynamicEntity.Mass;
                 }
-                Console.WriteLine();
+                
+                //Console.WriteLine();
                 if (Math.Round(totalKE) != Math.Round(lastTotalKE) && lastTotalKE > 0 && totalKE > 0)
                 {
                     Console.WriteLine("Kinetic energy factor discrepancy! Went from " + lastTotalKE + " to " + totalKE + "! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
@@ -1036,8 +1034,8 @@ namespace VNFramework
                 }
                 else
                 {
-                    Console.WriteLine("No discrepancy! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
-                    Console.WriteLine();
+                    //Console.WriteLine("No discrepancy! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
+                    //Console.WriteLine();
                 }
                 lastTotalKE = totalKE;*/
             }

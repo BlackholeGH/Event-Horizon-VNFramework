@@ -161,9 +161,18 @@ Shell.RenderQueue
 }},
 FACTORY
 {{
-get=ButtonScripts.GetQuickButton("Launch IMemBots sim", 500);
+get=ButtonScripts.GetQuickButton("Launch IMEMBOTs sim", 500);
+Button.QuickMoveTo(new Vector2(80, 220))
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializeMainSim"), new object[] { 9, 1000 } );
+Button.CenterOrigin = false;
+Shell.UpdateQueue
+Shell.RenderQueue
+}},
+FACTORY
+{{
+get=ButtonScripts.GetQuickButton("Launch physics test", 500);
 Button.QuickMoveTo(new Vector2(80, 300))
-Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializePhysTest"), new object[] { new Point(4, 4) });
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializePhysTest"), new object[] { new Point(3, 3) });
 Button.CenterOrigin = false;
 Shell.UpdateQueue
 Shell.RenderQueue
