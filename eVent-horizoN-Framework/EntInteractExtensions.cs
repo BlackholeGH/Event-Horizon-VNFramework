@@ -749,7 +749,7 @@ namespace VNFramework
         void UpdatePaneCameraPos()
         {
             int YDown = (int)(((float)(Position.Y - MinHeight) / (float)(MaxHeight - MinHeight)) * (float)(TotalScrollHeight - ScrollFrameHeight));
-            _associatedPane.DefaultPaneCamera.QuickMoveTo(_associatedPane.DefaultPaneCamera.OffsetVector); //This should be updated to use camera FOV once that is implemented.
+            _associatedPane.DefaultPaneCamera.QuickMoveTo(new Vector2(Shell.Resolution.X / 2, Shell.Resolution.Y / 2 + YDown));
             _associatedPane.Update();
         }
         public override void Update()

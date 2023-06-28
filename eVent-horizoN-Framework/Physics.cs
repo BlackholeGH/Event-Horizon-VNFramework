@@ -18,8 +18,8 @@ namespace VNFramework
     {
         public class DragPhysicsBehaviour : IVNFBehaviour
         {
-            public static readonly Double DragFactor = 5d;
-            public static readonly Double MassFluidDensity = 0.0000001d;
+            public static readonly Double DragFactor = 4d;
+            public static readonly Double MassFluidDensity = 0.00003d;
             public DragPhysicsBehaviour()
             {
 
@@ -29,18 +29,26 @@ namespace VNFramework
                 if(worldEntity is DynamicEntity)
                 {
                     DynamicEntity dynamicEntity = (DynamicEntity)worldEntity;
+                    if(dynamicEntity.ImpulseKilledByActiveCollision) { return; }
                     Double dragMagnitude = (Math.Pow(dynamicEntity.Velocity.Length(), 2) * Math.Pow(dynamicEntity.Collider.GetMaximumExtent(), 2)) * MassFluidDensity * DragFactor;
-                    if(dragMagnitude > dynamicEntity.Velocity.Length()) { dragMagnitude = dynamicEntity.Velocity.Length() - 0.001d; }
+                    Double magnitudeLimit = dynamicEntity.Velocity.Length() * dynamicEntity.Mass;
+                    if(magnitudeLimit == 0) { magnitudeLimit = 1; }
+                    dragMagnitude = (Math.Atan(dragMagnitude / magnitudeLimit) / (Math.PI / 2)) * magnitudeLimit * 0.75;
+                    //if(dragMagnitude > dynamicEntity.Velocity.Length()) { dragMagnitude = dynamicEntity.Velocity.Length() - 0.001d; }
                     Vector2 dragForce = new Trace(new Vector2(), new Trace(dynamicEntity.Velocity).Flip().Bearing, dragMagnitude).AsAlignedVector;
                     dynamicEntity.ApplyForce(dragForce);
-                    //if (dragForce.Length() > 1) { Console.WriteLine("Applied drag force for " + worldEntity.Name + ": " + dragForce); }
+                    /*if (worldEntity.Name == "IMEMBOT_1")
+                    {
+                        Console.WriteLine(dynamicEntity.Collider.GetMaximumExtent());
+                        Console.WriteLine("Applied drag force for " + worldEntity.Name + ": " + dragForce);
+                    }*/
                 }
             }
             public void Clear() { }
         }
         public class DynamicWASDControlBehaviour : IVNFBehaviour
         {
-            public static Double Speed = 4d;
+            public static Double Speed = 8d;
             public DynamicWASDControlBehaviour()
             {
 
@@ -60,7 +68,6 @@ namespace VNFramework
                         Vector2 targetForwardTrace = new Trace(new Vector2(), dynamicEntity.RotationRads, Speed).AsAlignedVector;
                         //Console.WriteLine("Velocity at application " + dynamicEntity.Velocity);
                         //Console.WriteLine("targetForwardTrace " + targetForwardTrace);
-                        //Vector2 forwardDelta = targetForwardTrace - Trace.GetAlignedComponent(dynamicEntity.Velocity, targetForwardTrace);
                         Vector2 forwardDelta = targetForwardTrace - dynamicEntity.Velocity;
                         dynamicEntity.Accelerate(forwardDelta);
                         //Console.WriteLine("Forward delta " + forwardDelta);
@@ -103,14 +110,21 @@ namespace VNFramework
     {
         public double Radius { get; protected set; }
         public Vector2 CenterPoint { get; protected set; }
+        Boolean _translatedCenterPoint = false;
         public RadialCollider(double radius, Vector2 location)
         {
             Radius = radius;
             CenterPoint = location;
         }
+        public RadialCollider(double radius, Vector2 location, Boolean translatedCenterPoint)
+        {
+            Radius = radius;
+            CenterPoint = location;
+            _translatedCenterPoint = translatedCenterPoint;
+        }
         public Double GetMaximumExtent()
         {
-            return Radius + CenterPoint.Length();
+            return Radius + (_translatedCenterPoint ? 0 : CenterPoint.Length());
         }
         public ICollider Scale(Vector2 origin, Vector2 scale)
         {
@@ -124,7 +138,7 @@ namespace VNFramework
         }
         public ICollider Translate(Vector2 translation)
         {
-            return new RadialCollider(Radius, CenterPoint + translation);
+            return new RadialCollider(Radius, CenterPoint + translation, true);
         }
         public Boolean Collides(ICollider collider)
         {
@@ -185,6 +199,10 @@ namespace VNFramework
         }
         public void ResolveCollision(DynamicEntity selfAttach, WorldEntity remoteAttach)
         {
+            if(selfAttach.Name == "IMEMBOT_1")
+            {
+                int testpoint = 0;
+            }
             /*
             * Move out of intersection with remote collider. If both objects can move, then each does half the movement.
             */
@@ -235,7 +253,7 @@ namespace VNFramework
                 Console.WriteLine("Remote entity  " + remoteAttach.Name + " ke component: " + (Math.Pow(remoteScalarVelocity, 2) * remote.Mass));
                 Console.WriteLine("Remote entity  " + remoteAttach.Name + " velocity component: " + remoteScalarVelocity);
                 Console.WriteLine();
-                Console.WriteLine("Remote entity " + remote.Name + " total ke: " + (Math.Pow(remote.Velocity.Length(), 2) * selfAttach.Mass));
+                Console.WriteLine("Remote entity " + remote.Name + " total ke: " + (Math.Pow(remote.Velocity.Length(), 2) * remote.Mass));
                 Console.WriteLine("Local entity " + selfAttach.Name + " total ke: " + (Math.Pow(selfAttach.Velocity.Length(), 2) * selfAttach.Mass));*/
 
                 Double thisTargetSpeedAfterCollision = (((selfAttach.Mass - remote.Mass) / (selfAttach.Mass + remote.Mass)) * thisScalarVelocity) + (((remote.Mass * 2) / (selfAttach.Mass + remote.Mass)) * remoteScalarVelocity);
@@ -258,6 +276,12 @@ namespace VNFramework
 
                 remote.KillImpulse();
 
+                if (Shell.ActiveSounds.Count < 16 && DynamicEntity.EnableCollisionChimes)
+                {
+                    Double ke = (Math.Pow(remoteScalarVelocity, 2) * remote.Mass) + (Math.Pow(thisScalarVelocity, 2) * selfAttach.Mass);
+                    Shell.PlaySoundInstant("GLOCKEN", false, (float)(1 - ((4 * Math.Atan(ke / 10) / Math.PI))));
+                }
+
                 /*Console.WriteLine("Collision End!");
                 Console.WriteLine("Local entity " + selfAttach.Name + " ke component: " + (Math.Pow(reboundDelta.Length(), 2) * selfAttach.Mass));
                 Console.WriteLine("Local entity " + selfAttach.Name + " velocity component: " + thisTargetSpeedAfterCollision);
@@ -268,8 +292,8 @@ namespace VNFramework
             }
             else
             {
-                /*Console.WriteLine();
-                Console.WriteLine("Wall collision for " + selfAttach.Name + "! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);*/
+                //Console.WriteLine();
+                //Console.WriteLine("Wall collision for " + selfAttach.Name + "! At " + Shell.DefaultShell.LastUpdateGameTime.TotalGameTime);
                 /*
                  * Simply flip velocity component aligned with collision.
                  */
@@ -277,9 +301,17 @@ namespace VNFramework
                 Trace alignedVelocityAsTrace = new Trace(totalAlignedVelocity);
                 reboundDelta = alignedVelocityAsTrace.Flip().AsAlignedVector;
 
+                /* Console.WriteLine("Detected impingement: " + impingementOnCollider.AsAlignedVector);
+                Console.WriteLine("Rebound delta: " + reboundDelta); */
+
                 selfAttach.KillImpulse();
+
+                if (Shell.ActiveSounds.Count < 16 && DynamicEntity.EnableCollisionChimes)
+                {
+                    Double ke = (Math.Pow(totalAlignedVelocity.Length(), 2) * selfAttach.Mass);
+                    Shell.PlaySoundInstant("GLOCKEN", false, (float)(1 - ((4 * Math.Atan(ke / 10) / Math.PI))));
+                }
             }
-            //selfAttach.Accelerate(reboundDelta);
             selfAttach.ShuntVelocity(velocityDelta);
             //Flip acceleration if it is somehow already coming out the other side of the collider.
             if(Math.Abs(GraphicsTools.AngleDifference(new Trace(reboundDelta).Bearing, impingementOnCollider.Bearing)) > Math.PI / 2)
@@ -302,6 +334,17 @@ namespace VNFramework
     [Serializable]
     public class DynamicEntity : WorldEntity
     {
+        public static Boolean EnableCollisionChimes { get; set; }
+        private static float s_globalGravity = 0f;
+        public static float GlobalGravity
+        {
+            get { return s_globalGravity; }
+            set
+            {
+                s_globalGravity = value;
+                Shell.WriteLine("Global physics gravity was set to " + s_globalGravity.ToString() + ".");
+            }
+        }
         public static readonly float ColliderPushbackBuffer = 0.0f;
         private float _angularAcceleration = 0f;
         public float AngularAcceleration
@@ -376,9 +419,11 @@ namespace VNFramework
             ImpulseKilledByActiveCollision = false;
             _velocity += _acceleration;
             /*
-             * If under constant acceleration, then hitting a surface will cause an energy decrease, I believe due to the acceleration not being applied for the distance it travels on the frame it makes the collision.
+             * If under constant acceleration (or more accurately, if accelerating into a collision), then hitting a surface will cause an energy decrease;
+             * I believe due to the acceleration not being applied for the distance it travels on the frame it makes the collision.
              * If the Move() function is changed to occur before the acceleration application, then the effect is reversed and energy will be gained.
              * Not sure how to easily correct this without performing custom inference calculatons - regardless the effect is fairly slight for any individual collision
+             * UPDATE: Seems to be mostly solved now as a byproduct of the KillImpulse mechanism. Apply gravity to acceleration on accel reset so it can be killed by a collision and not applied on the rebound frame.
              */
             Move(_velocity);
             _angularVelocity += _angularAcceleration;
@@ -392,7 +437,7 @@ namespace VNFramework
                 Console.WriteLine("Kinetic energy factor was: " + Math.Pow(Velocity.Length(), 2) * Mass);
             }*/
             _acceleration.X = 0;
-            _acceleration.Y = 0;
+            _acceleration.Y = 0 + GlobalGravity;
             _angularAcceleration = 0f;
             Vector2 oldPos = Position;
             Vector2 oldAccel = Acceleration;
@@ -406,7 +451,11 @@ namespace VNFramework
         }
         public List<WorldEntity> AlreadyCollidedWithThisIteration { get; protected set; }
         public Boolean ImpulseKilledByActiveCollision { get; protected set; }
-        public void CheckAndResolveCollisions() //appears to be some sort of error with overlapping polygon colliders that causes an entity to be shunted out the other side of the polygon when interacting with a joint created by the clipping. Investigate/fix later.
+        /* appears to be some sort of error with overlapping polygon colliders that causes an entity to be shunted out the other side of the polygon when interacting with a joint created by the clipping. Investigate/fix later.
+         * UPDATE: May have actually been due to surface area resizing bug? Check to see if it reoccurs.
+         * UPDATE 2: Spotted again in relation to strange lag - potentially due to excessive collision checks on spawn-in?
+         */
+        public void CheckAndResolveCollisions()
         {
             if(Collider is null) { return; }
             //Console.WriteLine("StartCollide");
@@ -456,6 +505,7 @@ namespace VNFramework
         {
             _acceleration.X = 0f;
             _acceleration.Y = 0f;
+            ImpulseKilledByActiveCollision = true;
             /*Console.WriteLine("Impulse killed " + Acceleration.X + " " + Acceleration.Y);
             Console.WriteLine("Current velocity " + Velocity.X + " " + Velocity.Y);*/
         }

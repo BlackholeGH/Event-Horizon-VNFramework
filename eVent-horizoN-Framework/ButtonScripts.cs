@@ -509,17 +509,21 @@ namespace VNFramework
         {
             WorldEntity ConsoleBacking = new WorldEntity("CONSOLE_BACKING_UI", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEPANE"], 0.9989f);
             ConsoleBacking.OverlayUtility = true;
+            ConsoleBacking.CameraImmune = true;
             VerticalScrollPane ConsoleWindow = new VerticalScrollPane("CONSOLE_SCROLLPANE", new Vector2(1262, 35), (TAtlasInfo)Shell.AtlasDirectory["CONSOLESCROLLBAR"], 0.999f, new Point(1243, 265), Color.Black);
             ConsoleWindow.SetAsTextPane(Shell.PullInternalConsoleData, 100);
             ConsoleWindow.JumpTo(1f);
             ConsoleWindow.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
             ConsoleWindow.OverlayUtility = true;
+            ConsoleWindow.CameraImmune = true;
             TextInputField ConsoleField = new TextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
             ConsoleField.BufferLength = 1150;
             ConsoleField.OverlayUtility = true;
+            ConsoleField.CameraImmune = true;
             Button ConsoleButton = new Button("CONSOLE_ENTER_BUTTON", new Vector2(1212, 274), (TAtlasInfo)Shell.AtlasDirectory["CONSOLEENTERBUTTON"], 0.999f);
             ConsoleButton.OverlayUtility = true;
             ConsoleButton.CenterOrigin = false;
+            ConsoleButton.CameraImmune = true;
             ConsoleField.SubscribeToEvent(ConsoleButton, WorldEntity.EventNames.ButtonPressFunction, typeof(TextInputField).GetMethod("ManualSendEnterSignal"), null);
             ConsoleField.TextEnteredFunction += new VoidDel(delegate ()
             {

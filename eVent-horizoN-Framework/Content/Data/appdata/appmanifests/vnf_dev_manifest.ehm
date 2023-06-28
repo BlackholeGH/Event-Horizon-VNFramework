@@ -30,6 +30,7 @@ SOUND|"SOFIA_AM"|"Audio/SFX/Sofia_Am";
 SOUND|"SOFIA_SOFIA"|"Audio/SFX/Sofia_Sofia";
 SOUND|"SOFIA_HOH"|"Audio/SFX/Sofia_HOH";
 SOUND|"R_CYMBAL"|"Audio/SFX/Reverse_Cymbal";
+SOUND|"GLOCKEN"|"Audio/SFX/SSOGlockenC4";
 //Songs
 MUSIC|"NIGHTFLIER"|"Audio/Music/Nightflier_1";
 MUSIC|"SPOONS"|"Audio/Music/Incompetech_Spoons";

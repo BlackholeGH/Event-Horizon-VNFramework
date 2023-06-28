@@ -14,6 +14,8 @@ namespace VNFramework
         public static void InitializePhysTest(Point layout)
         {
             ButtonScripts.SpoonsTrip = true;
+            Shell.ConsoleWritesOverlay = true;
+            Shell.OneFadeout();
             ScriptProcessor.ClearNonUIEntities();
             Shell.LooseCamera = true;
             ScriptProcessor.AssertGameRunningWithoutScript = true;
@@ -65,6 +67,8 @@ namespace VNFramework
         public static void InitializeMainSim(int botCount, int spawnRadius)
         {
             ButtonScripts.SpoonsTrip = true;
+            Shell.ConsoleWritesOverlay = true;
+            Shell.OneFadeout();
             ScriptProcessor.ClearNonUIEntities();
             Shell.LooseCamera = true;
             ScriptProcessor.AssertGameRunningWithoutScript = true;
@@ -100,6 +104,7 @@ namespace VNFramework
                 Bot bot = new Bot("IMEMBOT_" + total, new Vector2((float)Math.Sin(total * (Math.PI / 4)), (float)Math.Cos(total * (Math.PI / 4))) * (float)(105 * Math.Ceiling((total-1) / 8d)), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 11), new Vector2());
                 bot.CenterOrigin = true;
                 bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                bot.MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 if (total == 1)
                 {
                     bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
@@ -126,11 +131,17 @@ namespace VNFramework
                 AnimationQueue.Add(Animation.PlayAllFrames(Atlas, 200, true));
                 Velocity = initialVelocity;
                 AutoRotateToVelocityBearing = true;
-                MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
+                //MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 //SocketID = PythonController.SocketInterface.AddNewSocketAsTask();
             }
             public override void Update()
             {
+                /*if(Name == "IMEMBOT_1")
+                {
+                    Console.WriteLine("Position: " + Position);
+                    Console.WriteLine("Velocity: " + Velocity);
+                    Console.WriteLine("Acceleration: " + Acceleration);
+                }*/
                 if (AutoRotateToVelocityBearing) { RotationRads = (float)new Trace(Velocity).Bearing; }
                 base.Update();
             }

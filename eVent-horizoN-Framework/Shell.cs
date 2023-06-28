@@ -346,8 +346,13 @@ namespace VNFramework
         {
             WriteLine(text, null);
         }
+        public static Boolean ConsoleWritesOverlay { get; set; }
         public static void WriteLine(String text, SortedDictionary<int, Color> colourArgs)
         {
+            if(ConsoleWritesOverlay)
+            {
+                RequestDisplaySystemText(text);
+            }
             String time = "(" + System.DateTime.Now.ToLongTimeString() + ")";
             if (s_hasConsole) { Console.WriteLine(time + " " + text); }
             text = text.Replace('[', '(').Replace(']', ')');
@@ -527,6 +532,7 @@ namespace VNFramework
         /// </summary>
         protected override void Initialize()
         {
+            ConsoleWritesOverlay = false;
             WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
@@ -610,14 +616,19 @@ namespace VNFramework
         }
         public static Boolean PlaySoundInstant(String sfxIndex)
         {
-            return PlaySoundInstant(sfxIndex, false);
+            return PlaySoundInstant(sfxIndex, false, 1f);
         }
         public static Boolean PlaySoundInstant(String sfxIndex, Boolean loop)
+        {
+            return PlaySoundInstant(sfxIndex, loop, 1f);
+        }
+        public static Boolean PlaySoundInstant(String sfxIndex, Boolean loop, float pitch)
         {
             if(Mute | !SFXDirectory.ContainsKey(sfxIndex.ToUpper())) { return false; }
             SoundEffectInstance LocalSound = ((SoundEffect)SFXDirectory[sfxIndex.ToUpper()]).CreateInstance();
             LocalSound.Volume = GlobalVolume;
             LocalSound.IsLooped = loop;
+            LocalSound.Pitch = pitch;
             LocalSound.Play();
             ActiveSounds.Add(LocalSound);
             return true;
@@ -935,6 +946,7 @@ namespace VNFramework
                     DeleteQueue.Add(_loadText);
                     LoadOperation.Dispose();
                     LoadOperation = null;
+                    UpdateCycleStarted = true;
                 }
                 MainUpdate(gameTime, kCurrent);
             }
@@ -943,6 +955,13 @@ namespace VNFramework
         public static Boolean ConsoleOpen { get; set; }
         public static Color BackdropColour { get; set; }
         public Boolean PauseUpdates { get; set; }
+        public Boolean UpdateCycleStarted { get; set; }
+        Queue<String> _systemTextQueue = new Queue<string>();
+        public static void RequestDisplaySystemText(String message)
+        {
+            if(!DefaultShell.UpdateCycleStarted || message == "") { return; }
+            DefaultShell._systemTextQueue.Enqueue(message);
+        }
         //Double lastTotalKE = 0d;
         protected void MainUpdate(GameTime gameTime, KeyboardState kCurrent)
         {
@@ -1004,7 +1023,21 @@ namespace VNFramework
             }      
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity + 0.02) * 100) / 100f; }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity - 0.02) * 100) / 100f; }
             LastKeyState = kCurrent;
+            int currentSystemMessageDisplayTotal = 0;
+            while(_systemTextQueue.Count > 0)
+            {
+                TextEntity messageText = new TextEntity("SYSTEM_MESSAGE_TEXT", "[C:255-255-0-255]" + _systemTextQueue.Dequeue().Replace("[", "(").Replace("]", ")").Replace("\n", " /n "), new Vector2(10, 5 + (currentSystemMessageDisplayTotal * (Default.MeasureString(" ").Y + 5))), 1f);
+                currentSystemMessageDisplayTotal++;
+                messageText.BufferLength = 5000;
+                messageText.CameraImmune = true;
+                messageText.TransientAnimation = true;
+                messageText.AnimationQueue.Add(Animation.Retrieve("FADEOUTLONG"));
+                UpdateQueue.Add(messageText);
+                RenderQueue.Add(messageText);
+            }
             if (!PauseUpdates)
             {
                 List<DynamicEntity> dynamicEntities = new List<DynamicEntity>();

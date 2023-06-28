@@ -13,9 +13,10 @@ namespace VNFramework
     {
         public interface IVNFBehaviour
         {
-            void UpdateFunctionality(WorldEntity BehaviourOwner);
-            void Clear();
+            public void UpdateFunctionality(WorldEntity BehaviourOwner);
+            public void Clear();
         }
+        [Serializable]
         public class TextInputBehaviour : IVNFBehaviour
         {
             public TextInputBehaviour()
@@ -112,6 +113,7 @@ namespace VNFramework
                 }
             }
         }
+        [Serializable]
         public class ScrollBarControlBehaviour : IVNFBehaviour
         {
             int LastMouseScroll;
@@ -186,6 +188,7 @@ namespace VNFramework
                 }
             }
         }
+        [Serializable]
         public class ConsoleReaderBehaviour : IVNFBehaviour
         {
             String ConsoleText = null;
