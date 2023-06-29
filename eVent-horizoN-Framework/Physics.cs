@@ -18,8 +18,7 @@ namespace VNFramework
     {
         public class DragPhysicsBehaviour : IVNFBehaviour
         {
-            public static readonly Double DragFactor = 4d;
-            public static readonly Double MassFluidDensity = 0.00003d;
+            public static readonly Double MassFluidDensity = 0.000002d;
             public DragPhysicsBehaviour()
             {
 
@@ -30,11 +29,11 @@ namespace VNFramework
                 {
                     DynamicEntity dynamicEntity = (DynamicEntity)worldEntity;
                     if(dynamicEntity.ImpulseKilledByActiveCollision) { return; }
-                    Double dragMagnitude = (Math.Pow(dynamicEntity.Velocity.Length(), 2) * Math.Pow(dynamicEntity.Collider.GetMaximumExtent(), 2)) * MassFluidDensity * DragFactor;
+                    Double dragMagnitude = (Math.Pow(dynamicEntity.Velocity.Length(), 2) * Math.Pow(dynamicEntity.Collider.GetMaximumExtent(), 2)) * MassFluidDensity;
                     Double magnitudeLimit = dynamicEntity.Velocity.Length() * dynamicEntity.Mass;
                     if(magnitudeLimit == 0) { magnitudeLimit = 1; }
-                    dragMagnitude = (Math.Atan(dragMagnitude / magnitudeLimit) / (Math.PI / 2)) * magnitudeLimit * 0.75;
-                    //if(dragMagnitude > dynamicEntity.Velocity.Length()) { dragMagnitude = dynamicEntity.Velocity.Length() - 0.001d; }
+                    //dragMagnitude = (Math.Atan(dragMagnitude / magnitudeLimit) / (Math.PI / 2)) * dragMagnitude * 0.75;
+                    if(dragMagnitude >= magnitudeLimit) { dragMagnitude = magnitudeLimit - 0.001d; }
                     Vector2 dragForce = new Trace(new Vector2(), new Trace(dynamicEntity.Velocity).Flip().Bearing, dragMagnitude).AsAlignedVector;
                     dynamicEntity.ApplyForce(dragForce);
                     /*if (worldEntity.Name == "IMEMBOT_1")
@@ -70,6 +69,7 @@ namespace VNFramework
                         //Console.WriteLine("targetForwardTrace " + targetForwardTrace);
                         Vector2 forwardDelta = targetForwardTrace - dynamicEntity.Velocity;
                         dynamicEntity.Accelerate(forwardDelta);
+                        //dynamicEntity.ApplyForce(targetForwardTrace);
                         //Console.WriteLine("Forward delta " + forwardDelta);
                     }
                     if (kState.IsKeyDown(Keys.S))
@@ -454,6 +454,7 @@ namespace VNFramework
         /* appears to be some sort of error with overlapping polygon colliders that causes an entity to be shunted out the other side of the polygon when interacting with a joint created by the clipping. Investigate/fix later.
          * UPDATE: May have actually been due to surface area resizing bug? Check to see if it reoccurs.
          * UPDATE 2: Spotted again in relation to strange lag - potentially due to excessive collision checks on spawn-in?
+         * FIXED: Drag calculation was wrong for low mass objects.
          */
         public void CheckAndResolveCollisions()
         {

@@ -463,7 +463,7 @@ namespace VNFramework
         {
             ManualDispose();
         }
-        public void ManualDispose()
+        public virtual void ManualDispose()
         {
             RemoveEventTriggers();
             UnsubscribeEvents();

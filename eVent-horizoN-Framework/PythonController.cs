@@ -28,7 +28,7 @@ namespace VNFramework
                     Console.WriteLine("Enter data to send: ");
                     String dat = Console.ReadLine();
                     byte[] toSend = Encoding.UTF8.GetBytes(dat);
-                    PythonController.SocketInterface.SendQuery(key, toSend);
+                    PythonController.SocketInterface.SendQuery(key, toSend, false);
                     Console.WriteLine("Data set. Hit enter to pull return if available.");
                     Console.ReadLine();
                     Console.WriteLine(Encoding.UTF8.GetString(PythonController.SocketInterface.GetQuery(key).Receive));
@@ -40,13 +40,48 @@ namespace VNFramework
         {
             ProcessStartInfo pyStart = new ProcessStartInfo();
             pyStart.FileName = s_pyExecutable;
-            pyStart.Arguments = pyScript;
+            pyStart.Arguments = "-u " + pyScript;
+            //pyStart.Arguments = pyScript;
             pyStart.UseShellExecute = false;
             pyStart.RedirectStandardOutput = true;
-            return Process.Start(pyStart);
+            Shell.WriteLine("Starting Python process at: " + pyScript);
+            Process outProcess = Process.Start(pyStart);
+            outProcess.OutputDataReceived += (object sender, DataReceivedEventArgs e) =>
+            {
+                Shell.WriteLine("Python script " + pyScript.Remove(0, pyScript.LastIndexOf('\\') + 1) + ": " + e.Data);
+                if(e.Data == "SOCKETS_OPEN_AND_READY")
+                {
+                    SocketInterface.SocketsOpenedFlag = true;
+                }
+                if (e.Data == "SYSTEM_SOCKET_ASSIGNED")
+                {
+                    IterativeMemBoTs.SystemSocketAssigned = true;
+                }
+            };
+            outProcess.BeginOutputReadLine();
+            return outProcess;
         }
         public static class SocketInterface
         {
+            private static Boolean s_socketsOpenedFlag = false;
+            private static object s_socketLock = new object();
+            public static Boolean SocketsOpenedFlag
+            {
+                get
+                {
+                    lock (s_socketLock)
+                    {
+                        return s_socketsOpenedFlag;
+                    }
+                }
+                set
+                {
+                    lock (s_socketLock)
+                    {
+                        s_socketsOpenedFlag = value;
+                    }
+                }
+            }
             public struct PySocketQuery
             {
                 public byte[] Send;
@@ -70,6 +105,18 @@ namespace VNFramework
                     return new List<ulong>(s_socketSockets.Keys);
                 }
             }
+            public static void AcknowledgeReceive(ulong key)
+            {
+                lock(s_queries)
+                {
+                    if(s_queries.ContainsKey(key))
+                    {
+                        PySocketQuery current = s_queries[key];
+                        current.LastReceive = false;
+                        s_queries[key] = current;
+                    }
+                }
+            }
             public static PySocketQuery GetQuery(ulong key)
             {
                 PySocketQuery output;
@@ -79,12 +126,13 @@ namespace VNFramework
                 }
                 return output;
             }
-            public static void SendQuery(ulong key, byte[] data)
+            public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue)
             {
+                if (allowEnqueue) { Shunt(); }
                 if (data.Length > 1024) { return; }
                 else
                 {
-                    if (s_dataSendQueue[key].Count > 0)
+                    if (s_dataSendQueue[key].Count > 0 && allowEnqueue)
                     {
                         s_dataSendQueue[key].Enqueue(data);
                     }
@@ -97,7 +145,7 @@ namespace VNFramework
                         }
                         if (query.LastSend)
                         {
-                            s_dataSendQueue[key].Enqueue(data);
+                            if (allowEnqueue) { s_dataSendQueue[key].Enqueue(data); }
                         }
                         else
                         {
@@ -153,23 +201,37 @@ namespace VNFramework
                     await mySocket.ConnectAsync(ipEndPoint);
                     while (mySocket.Connected)
                     {
-                        lock (s_queries)
+                        try
                         {
-                            myQuery = s_queries[myKey];
-                        }
-                        if (myQuery.LastSend)
-                        {
-                            send = myQuery.Send;
-                            await mySocket.SendAsync(send, SocketFlags.None);
-                            int receiveCode = await mySocket.ReceiveAsync(buffer, SocketFlags.None);
-                            myQuery.LastSend = false;
-                            myQuery.LastReceive = true;
-                            myQuery.Send = new byte[1024];
-                            myQuery.Receive = buffer;
                             lock (s_queries)
                             {
-                                s_queries[myKey] = myQuery;
+                                myQuery = s_queries[myKey];
                             }
+                            if (myQuery.LastSend)
+                            {
+                                send = myQuery.Send;
+                                await mySocket.SendAsync(send, SocketFlags.None);
+                                int receiveCode = await mySocket.ReceiveAsync(buffer, SocketFlags.None);
+                                myQuery.LastSend = false;
+                                myQuery.LastReceive = true;
+                                myQuery.Send = new byte[1024];
+                                myQuery.Receive = buffer;
+                                lock (s_queries)
+                                {
+                                    s_queries[myKey] = myQuery;
+                                }
+                            }
+                            else
+                            {
+                                await Task.Delay(10);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Socket " + myKey + " faulted!");
+                            Console.WriteLine(ex.ToString());
+                            mySocket.Close();
+                            mySocket.Dispose();
                         }
                     }
                 });
@@ -178,7 +240,21 @@ namespace VNFramework
                 s_socketTasks.Add(thisKey, socketIOTask);
                 s_dataSendQueue.Add(thisKey, new Queue<byte[]>());
                 socketIOTask.Start();
+                Shell.WriteLine("Socket connection successfully opened as ID " + thisKey + ".");
                 return thisKey;
+            }
+            public static void CloseSocket(ulong socketID)
+            {
+                s_socketSockets[socketID].Close();
+                s_socketSockets.Remove(socketID);
+                s_socketTasks[socketID].Dispose();
+                s_socketTasks.Remove(socketID);
+                s_queries.Remove(socketID);
+                s_dataSendQueue.Remove(socketID);
+            }
+            public static void CloseAllSockets()
+            {
+                foreach (ulong id in s_socketSockets.Keys) { CloseSocket(id); }
             }
         }
     }
