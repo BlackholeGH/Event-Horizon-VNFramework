@@ -13,7 +13,7 @@ namespace VNFramework
     {
         public static void Test()
         {
-            PythonController.StartPythonProcess("C:\\Users\\Blackhole\\PycharmProjects\\Brains\\venv\\socketmanager.py");
+            PythonController.StartPythonProcess("C:\\Users\\Blackhole\\AppData\\Local\\Programs\\Python\\Python311\\python.exe");
             Console.WriteLine("Python process started. Press enter to continue.");
             Console.ReadLine();
             ulong key = PythonController.SocketInterface.AddNewSocketAsTask();
@@ -35,7 +35,7 @@ namespace VNFramework
                 }
             }
         }
-        private static readonly string s_pyExecutable = "C:\\Users\\Blackhole\\PycharmProjects\\Brains\\venv\\Scripts\\python.exe";
+        private static readonly string s_pyExecutable = "C:\\Users\\Blackhole\\AppData\\Local\\Programs\\Python\\Python311\\python.exe";
         public static Process StartPythonProcess(string pyScript)
         {
             ProcessStartInfo pyStart = new ProcessStartInfo();

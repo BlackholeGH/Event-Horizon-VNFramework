@@ -46,7 +46,6 @@ namespace VNFramework
             Shell.LooseCamera = true;
             ScriptProcessor.AssertGameRunningWithoutScript = true;
             Shell.BackdropColour = Color.Aquamarine;
-            //PythonController.StartPythonProcess("C:\\Users\\Blackhole\\PycharmProjects\\Brains\\venv\\socketmanager.py");
             int totalWall = 0;
             for(int i = 0; i < 5; i++)
             {
@@ -143,7 +142,7 @@ namespace VNFramework
                 Shell.UpdateQueue.Add(spike);
                 Shell.RenderQueue.Add(spike);
             }
-            Process pyProcess = PythonController.StartPythonProcess("C:\\Users\\Blackhole\\PycharmProjects\\Brains\\venv\\socketmanager.py");
+            Process pyProcess = PythonController.StartPythonProcess("IMemBoTs\\Python\\socketmanager.py");
             Shell.WriteLine("Python process started. Waiting for socket listener to report...");
             while(true)
             {
