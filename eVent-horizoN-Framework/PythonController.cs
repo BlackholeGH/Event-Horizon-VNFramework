@@ -245,12 +245,24 @@ namespace VNFramework
             }
             public static void CloseSocket(ulong socketID)
             {
-                s_socketSockets[socketID].Close();
-                s_socketSockets.Remove(socketID);
-                s_socketTasks[socketID].Dispose();
-                s_socketTasks.Remove(socketID);
-                s_queries.Remove(socketID);
-                s_dataSendQueue.Remove(socketID);
+                if (s_socketSockets.ContainsKey(socketID))
+                {
+                    s_socketSockets[socketID].Close();
+                    s_socketSockets.Remove(socketID);
+                }
+                if (s_queries.ContainsKey(socketID))
+                {
+                    s_queries.Remove(socketID);
+                }
+                if (s_dataSendQueue.ContainsKey(socketID))
+                {
+                    s_dataSendQueue.Remove(socketID);
+                }
+                if (s_socketTasks.ContainsKey(socketID))
+                {
+                    s_socketTasks[socketID].Dispose();
+                    s_socketTasks.Remove(socketID);
+                }
             }
             public static void CloseAllSockets()
             {

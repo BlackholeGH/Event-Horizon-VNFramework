@@ -131,7 +131,12 @@ ButtonScripts.OpenMainMenu
 }},
 "B" }
 declare_script "MAIN_MENU_CONSTRUCTOR":
-{ "C|TIME:0", "R|SPOONSTRIP|=:TRUE|D|#ALL", "R|SPOONSTRIP|=:TRUE|M|#NULL", "T||" },
+{ "C|TIME:0", "R|SPOONSTRIP|=:TRUE|D|#ALL", "R|SPOONSTRIP|=:TRUE|M|#NULL", "T||",
+RUN
+{{
+assign=Shell.ConsoleWritesOverlay,false
+}}
+},
 { "C|TIME:0", "R|SPOONSTRIP|=:TRUE|M|BHAMBIENT|TRUE",
 "R|SPOONSTRIP|=:TRUE|FACTORY
 {{

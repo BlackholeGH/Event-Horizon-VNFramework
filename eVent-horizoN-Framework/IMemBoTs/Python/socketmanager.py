@@ -24,7 +24,7 @@ class SocketManager:
                 self.ioHandlers[sockID].handleInput(doubles)
             else:
                 print(f"Closing connection to {sockID}")
-                sel.unregister(sock)
+                self.sel.unregister(sock)
                 sock.close()
                 self.ioHandlers.pop(sockID)
                 self.toDispatch.pop(sockID)

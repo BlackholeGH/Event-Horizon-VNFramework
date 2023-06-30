@@ -98,13 +98,13 @@ namespace VNFramework
             }
             public override void ManualDispose()
             {
-                if(!(_processToClose is null))
+                CloseAllSockets();
+                if (!(_processToClose is null))
                 {
                     _processToClose.Close();
                     _processToClose.Dispose();
                     _processToClose = null;
                 }
-                CloseAllSockets();
                 base.ManualDispose();
             }
         }

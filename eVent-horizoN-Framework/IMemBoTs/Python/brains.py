@@ -37,7 +37,7 @@ class SystemHandler(IOHandler):
 
 class Brain(IOHandler):
     def __init__(self, socketID):
-        super(Brain, self).__init__(ocketID)
+        super(Brain, self).__init__(socketID)
         self.model = self._setup_model()
     def _setup_model(self):
         return None
