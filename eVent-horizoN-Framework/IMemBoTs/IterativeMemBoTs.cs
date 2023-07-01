@@ -81,7 +81,7 @@ namespace VNFramework
                     {
                         bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
                         bot.AutoRotateToVelocityBearing = false;
-                        bot.Stickers.Add(Shell.AutoCamera);
+                        bot.MyStickers.Add(Shell.AutoCamera);
                         Shell.AutoCamera.QuickMoveTo(bot.Position);
                     }
                     Shell.UpdateQueue.Add(bot);
@@ -178,7 +178,7 @@ namespace VNFramework
                 {
                     bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
                     bot.AutoRotateToVelocityBearing = false;
-                    bot.Stickers.Add(Shell.AutoCamera);
+                    bot.MyStickers.Add(Shell.AutoCamera);
                     Shell.AutoCamera.QuickMoveTo(bot.Position);
                 }
                 Shell.UpdateQueue.Add(bot);
@@ -192,6 +192,36 @@ namespace VNFramework
                 get; private set;
             }
             public Boolean AutoRotateToVelocityBearing { get; set; }
+            protected void SetupTraces()
+            {
+                /*GraphicsTools.Trace testTrace = new GraphicsTools.Trace(new Vector2(), new Vector2(100, -100));
+                testTrace.DrawColour = Color.Yellow;
+                testTrace.AlignToEntity = false;
+                testTrace.CalculateVertices(Shell.PubGD);
+                MyVertexRenderables.Add(testTrace);*/
+
+                GraphicsTools.Trace forwardSense = new GraphicsTools.Trace(new Vector2(), 0, 500);
+                forwardSense.DrawColour = Color.Yellow;
+                forwardSense.AlignToEntity = true;
+                forwardSense.CalculateVertices(Shell.PubGD);
+                MyVertexRenderables.Add(forwardSense);
+                _senseTraces.Add(forwardSense);
+
+                GraphicsTools.Trace rightSense = new GraphicsTools.Trace(new Vector2(), Math.PI / 4, 500);
+                rightSense.DrawColour = Color.Yellow;
+                rightSense.AlignToEntity = true;
+                rightSense.CalculateVertices(Shell.PubGD);
+                MyVertexRenderables.Add(rightSense);
+                _senseTraces.Add(rightSense);
+
+                GraphicsTools.Trace leftSense = new GraphicsTools.Trace(new Vector2(), -Math.PI / 4, 500);
+                leftSense.DrawColour = Color.Yellow;
+                leftSense.AlignToEntity = true;
+                leftSense.CalculateVertices(Shell.PubGD);
+                MyVertexRenderables.Add(leftSense);
+                _senseTraces.Add(leftSense);
+            }
+            private List<GraphicsTools.Trace> _senseTraces = new List<GraphicsTools.Trace>();
             public Bot(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["BOT"], depth, mass)
             {
                 SocketID = AddNewSocketAsTask();
@@ -201,6 +231,8 @@ namespace VNFramework
                 AnimationQueue.Add(Animation.PlayAllFrames(Atlas, 200, true));
                 Velocity = initialVelocity;
                 AutoRotateToVelocityBearing = false;
+
+                SetupTraces();
             }
             private double[] _controlCodes = new double[128];
             public double[] ControlCodes
@@ -243,6 +275,29 @@ namespace VNFramework
             public override void Update()
             {
                 if (AutoRotateToVelocityBearing) { RotationRads = (float)new VNFramework.GraphicsTools.Trace(Velocity).Bearing; }
+                for(int i = 0; i < _senseTraces.Count; i++)
+                {
+                    GraphicsTools.Trace thisTrace = _senseTraces[i];
+                    GraphicsTools.Trace sensingTrace = thisTrace.Scale(new Vector2(), Size).Rotate(new Vector2(), RotationRads).Translate(Position);
+                    Boolean detect = false;
+                    foreach(WorldEntity worldEntity in Shell.UpdateQueue)
+                    {
+                        if(worldEntity == this) { continue; }
+                        if(worldEntity.Collider != null && new GraphicsTools.Trace(Position, worldEntity.Position).Length <= worldEntity.Collider.GetMaximumExtent() + sensingTrace.Length)
+                        {
+                            if(worldEntity.Collider.Intersects(sensingTrace))
+                            {
+                                detect = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (detect) { _senseTraces[i].DrawColour = Color.Red; }
+                    else
+                    {
+                        _senseTraces[i].DrawColour = Color.Yellow;
+                    }
+                }
                 _senseCodes[0] = 132425234534;
                 DispatchCodesToSocket(_senseCodes);
                 double[] receive = GetCodesFromSocket();

@@ -456,8 +456,9 @@ namespace VNFramework
                 Hitbox = new Rectangle(new Point((int)location.X, (int)location.Y), Atlas.FrameSize());
             }
             AnimationQueue = new List<Animation>();
-            Stickers = new List<WorldEntity>();
+            MyStickers = new List<WorldEntity>();
             MyBehaviours = new List<Behaviours.IVNFBehaviour>();
+            MyVertexRenderables = new List<VertexRenderable>();
         }
         ~WorldEntity()
         {
@@ -478,6 +479,7 @@ namespace VNFramework
                 behaviour.Clear();
             }
             MyBehaviours = new List<Behaviours.IVNFBehaviour>();
+            MyVertexRenderables = new List<VertexRenderable>();
         }
         public ulong EntityID
         {
@@ -544,7 +546,7 @@ namespace VNFramework
                 }
             }
         }
-        public List<WorldEntity> Stickers { get; set; }
+        public List<WorldEntity> MyStickers { get; set; }
         public void Move(Vector2 vector)
         {
             Position += vector;
@@ -553,9 +555,9 @@ namespace VNFramework
                 _stateHash["NORTHSOUTH"] = new object[] { vector.Y, vector.Y != 0 ? 2 : 0 };
                 _stateHash["EASTWEST"] = new object[] { vector.X, vector.X != 0 ? 2 : 0 };
             }
-            if (Stickers != null && Stickers.Count > 0)
+            if (MyStickers != null && MyStickers.Count > 0)
             {
-                foreach(WorldEntity sticker in Stickers)
+                foreach(WorldEntity sticker in MyStickers)
                 {
                     sticker.Move(vector);
                 }
@@ -568,9 +570,9 @@ namespace VNFramework
             {
                 _stateHash["ROTATION"] = new object[] { rotation, rotation != 0 ? 2 : 0 };
             }
-            if (Stickers != null && Stickers.Count > 0)
+            if (MyStickers != null && MyStickers.Count > 0)
             {
-                foreach (WorldEntity sticker in Stickers)
+                foreach (WorldEntity sticker in MyStickers)
                 {
                     sticker.Rotate(rotation);
                 }
@@ -608,9 +610,9 @@ namespace VNFramework
                 else { Size = new Vector2(Size.X, Size.Y + scale.Y); }
             }
             //Shell.WriteLine(pName + ": Scale now set to: " + _scale.X + ", " + _scale.Y);
-            if (Stickers != null && Stickers.Count > 0)
+            if (MyStickers != null && MyStickers.Count > 0)
             {
-                foreach (WorldEntity sticker in Stickers)
+                foreach (WorldEntity sticker in MyStickers)
                 {
                     sticker.Scale(scale);
                 }
@@ -626,9 +628,9 @@ namespace VNFramework
                 _stateHash["BLUE"] = new object[] { colourShift.B, colourShift.B != 0 ? 2 : 0 };
                 _stateHash["ALPHA"] = new object[] { colourShift.A, colourShift.A != 0 ? 2 : 0 };
             }
-            if (Stickers != null && Stickers.Count > 0)
+            if (MyStickers != null && MyStickers.Count > 0)
             {
-                foreach (WorldEntity sticker in Stickers)
+                foreach (WorldEntity sticker in MyStickers)
                 {
                     sticker.Colour(colourShift);
                 }
@@ -743,6 +745,7 @@ namespace VNFramework
                 else if (!TrueHorizontalFlip && !TrueVerticalFlip && LocalSpriteEffect != SpriteEffects.None) { LocalSpriteEffect = SpriteEffects.None; }
             }
         }
+        public List<GraphicsTools.VertexRenderable> MyVertexRenderables { get; set; }
         protected SpriteEffects LocalSpriteEffect = SpriteEffects.None;
         public virtual void Draw(SpriteBatch spriteBatch)
         {
