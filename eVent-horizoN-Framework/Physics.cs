@@ -97,6 +97,8 @@ namespace VNFramework
     {
         public GraphicsTools.Trace GetImpingementOn(ICollider collider);
         public Boolean Collides(ICollider collider);
+        public Boolean Intersects(Trace trace);
+        public Vector2? GetFirstIntersection(Trace trace);
         public double GetMaximumExtent();
         public ICollider Scale(Vector2 origin, Vector2 scale);
         public ICollider Rotate(Vector2 origin, double rotation);
@@ -164,6 +166,56 @@ namespace VNFramework
             Trace thatFurthestImpingement = new Trace(radialCollider.CenterPoint, thatToThis.Bearing, radialCollider.Radius);
             return new Trace(thatFurthestImpingement.Terminus, thisFurthestImpingement.Terminus);
         }
+        public Vector2[] GetIntersections(Trace trace)
+        {
+            Boolean invert = false;
+            if(trace.Slope == Double.PositiveInfinity || trace.Slope == Double.NegativeInfinity)
+            {
+                invert = true;
+                trace = new Trace(new Vector2(trace.Origin.Y, trace.Origin.X), new Vector2(trace.Terminus.Y, trace.Terminus.X));
+            }
+            //(m2+1)x2+2(mc−mq−p)x+(q2−r2+p2−2cq+c2)=0.
+            Double a = Math.Pow(trace.Slope, 2) + 1;
+            Double b = 2 * ((trace.Slope * trace.YIntercept) - (trace.Slope * CenterPoint.Y) - CenterPoint.X);
+            Double c = Math.Pow(CenterPoint.Y, 2) - Math.Pow(Radius, 2) + Math.Pow(CenterPoint.X, 2) - (2 * trace.YIntercept * CenterPoint.Y) + Math.Pow(trace.YIntercept, 2);
+            Double x1 = (-b + Math.Sqrt((2 * b) - (4 * a * c))) / (2 * a);
+            Double x2 = (-b - Math.Sqrt((2 * b) - (4 * a * c))) / (2 * a);
+            Double y1 = (trace.Slope * x1) + trace.YIntercept;
+            Double y2 = (trace.Slope * x2) + trace.YIntercept;
+            Vector2 first = new Vector2((float)x1, (float)y1);
+            Vector2 second = new Vector2((float)x2, (float)y2);
+            List<Vector2> validOut = new List<Vector2>();
+            if (first.X <= trace.Max.X && first.X >= trace.Min.X && first.Y <= trace.Max.Y && first.Y >= trace.Min.Y)
+            {
+                validOut.Add(invert ? new Vector2(first.Y, first.X) : first);
+            }
+            if (second.X <= trace.Max.X && second.X >= trace.Min.X && second.Y <= trace.Max.Y && second.Y >= trace.Min.Y)
+            {
+                validOut.Add(invert ? new Vector2(second.Y, second.X) : second);
+            }
+            return validOut.ToArray();
+        }
+        public Vector2? GetFirstIntersection(Trace trace)
+        {
+            Vector2[] intersections = GetIntersections(trace);
+            if(intersections.Length > 0)
+            {
+                if(intersections.Length == 1) { return intersections[0]; }
+                else
+                {
+                    return (intersections[0] - trace.Origin).Length() <= (intersections[1] - trace.Origin).Length() ? intersections[0] : intersections[1];
+                }
+            }
+            return null;
+        }
+        public Boolean Intersects(Trace trace)
+        {
+            if (trace.GetClosestTraceFrom(CenterPoint, 1000000).Length < Radius)
+            {
+                return true;
+            }
+            else { return false; }
+        }
         private Boolean Intersects(Polygon polygon)
         {
             if(polygon.Contains(CenterPoint)) { return true; }
@@ -173,7 +225,6 @@ namespace VNFramework
                 {
                     if (trace.GetClosestTraceFrom(CenterPoint, 1000000).Length < Radius)
                     {
-                        Trace test = trace.GetClosestTraceFrom(CenterPoint, 1000000);
                         return true;
                     }
                 }

@@ -168,7 +168,7 @@ FACTORY
 {{
 get=ButtonScripts.GetQuickButton("Launch IMEMBOTs sim", 500);
 Button.QuickMoveTo(new Vector2(80, 220))
-Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializeMainSim"), new object[] { 9, 1000 } );
+Button.SubscribeToEvent(WorldEntity\+EventNames.ButtonPressFunction, typeof(IterativeMemBots).GetMethod("InitializeMainSim"), new object[] { 2, 1000 } );
 Button.CenterOrigin = false;
 Shell.UpdateQueue
 Shell.RenderQueue

@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Reflection;
+using static VNFramework.GraphicsTools;
 
 namespace VNFramework
 {
@@ -1166,6 +1167,11 @@ namespace VNFramework
                         {
                             if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
                             else { worldEntity.Draw(ShellSpriteBatch); }
+                            foreach(VertexRenderable ivr in worldEntity.MyVertexRenderables)
+                            {
+                                if (worldEntity.CustomCamera != null) { ivr.DrawVertices(GraphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
+                                else { ivr.DrawVertices(GraphicsDevice, ivr.AlignToEntity ? worldEntity : null); }
+                            }
                         }
                     }
                 }
@@ -1177,6 +1183,11 @@ namespace VNFramework
                         {
                             if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
                             else { worldEntity.Draw(ShellSpriteBatch, AutoCamera); }
+                            foreach (VertexRenderable ivr in worldEntity.MyVertexRenderables)
+                            {
+                                if (worldEntity.CustomCamera != null) { ivr.DrawVertices(GraphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
+                                else { ivr.DrawVertices(GraphicsDevice, AutoCamera, ivr.AlignToEntity ? worldEntity : null); }
+                            }
                         }
                     }
                 }

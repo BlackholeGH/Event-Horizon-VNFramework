@@ -171,7 +171,7 @@ namespace VNFramework
         {
             foreach (WorldEntity dropDownEntity in MyDropEntities)
             {
-                if (Stickers != null && Stickers.Contains(dropDownEntity)) { Stickers.Remove(dropDownEntity); }
+                if (MyStickers != null && MyStickers.Contains(dropDownEntity)) { MyStickers.Remove(dropDownEntity); }
                 if (Shell.UpdateQueue.Contains(dropDownEntity)) { Shell.UpdateQueue.Remove(dropDownEntity); }
                 if (Shell.RenderQueue.Contains(dropDownEntity)) { Shell.RenderQueue.Remove(dropDownEntity); }
             }
@@ -204,7 +204,7 @@ namespace VNFramework
                 button.CenterOrigin = false;
                 button.Enabled = _droppedDown;
                 MyDropEntities.Add(button);
-                Stickers.Add(button);
+                MyStickers.Add(button);
                 Shell.UpdateQueue.Add(button);
                 cumulativeY += (Atlas.Atlas.Bounds.Height / 2) + 10;
                 _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(cumulativeY - (Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));

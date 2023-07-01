@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.CodeDom;
+using System.Windows.Forms.VisualStyles;
 
 namespace VNFramework
 {
@@ -21,6 +22,84 @@ namespace VNFramework
     /// </summary>
     public static class GraphicsTools
     {
+        public abstract class VertexRenderable
+        {
+            protected (Matrix, Matrix, Matrix) GetDrawTransforms()
+            {
+                return GetDrawTransforms(new Camera(""), null);
+            }
+            protected (Matrix, Matrix, Matrix) GetDrawTransforms(Camera camera)
+            {
+                return GetDrawTransforms(camera, null);
+            }
+            protected (Matrix, Matrix, Matrix) GetDrawTransforms(WorldEntity alignTo)
+            {
+                return GetDrawTransforms(new Camera(""), alignTo);
+            }
+            protected virtual (Matrix, Matrix, Matrix) GetDrawTransforms(Camera camera, WorldEntity alignTo)
+            {
+                if (alignTo is null)
+                {
+                    Matrix world = Matrix.CreateTranslation(0, 0, 0);
+                    Vector2 idealPosition = camera.Position * new Vector2(1, -1);
+                    Matrix view = Matrix.CreateLookAt(new Vector3(idealPosition, 1), new Vector3(idealPosition, 0), new Vector3(0, 1, 0));
+                    Matrix projection = Matrix.CreateOrthographic(Shell.Resolution.X / camera.ZoomFactor.X, Shell.Resolution.Y / camera.ZoomFactor.Y, 0.1f, 100f);
+                    return (world, view, projection);
+                }
+                else
+                {
+                    Matrix world = Matrix.CreateTranslation(0, 0, 0);
+                    //Rotation is all weird because the Y-axis is inverted. This works but can maybe be simplified...
+                    Vector3 rot = new Vector3((float)Math.Sin(alignTo.RotationRads + Math.PI), (float)-Math.Cos(alignTo.RotationRads + Math.PI), 0);
+                    Matrix doRot = Matrix.CreateRotationZ(alignTo.RotationRads + (float)Math.PI);
+                    Vector2 idealPosition = Vector2.Transform((camera.Position - alignTo.Position) * new Vector2(-1, 1), doRot);
+                    Matrix view = Matrix.CreateLookAt(new Vector3(idealPosition, 1), new Vector3(idealPosition, 0), rot);
+                    Matrix projection = Matrix.CreateOrthographic(Shell.Resolution.X / (camera.ZoomFactor.X * alignTo.Size.X), Shell.Resolution.Y / (camera.ZoomFactor.Y * alignTo.Size.Y), 0.1f, 100f);
+                    return (world, view, projection);
+                }
+            }
+            public abstract void CalculateVertices(GraphicsDevice gd);
+            public IVertexType[] VertexArray
+            {
+                get;
+                protected set;
+            }
+            public virtual void DrawVertices(GraphicsDevice device, Camera camera, WorldEntity alignTo)
+            {
+                (Matrix, Matrix, Matrix) drawMatrices;
+                if(camera is null)
+                {
+                    drawMatrices = GetDrawTransforms(alignTo);
+                }
+                else
+                {
+                    drawMatrices = GetDrawTransforms(camera, alignTo);
+                }
+                BasicEffect drawEffect = DrawEffect;
+                drawEffect.VertexColorEnabled = true;
+                drawEffect.World = drawMatrices.Item1;
+                drawEffect.View = drawMatrices.Item2;
+                drawEffect.Projection = drawMatrices.Item3;
+                foreach(EffectPass pass in drawEffect.CurrentTechnique.Passes)
+                {
+                    pass.Apply();
+                    Type generic = Type.MakeGenericMethodParameter(0);
+                    MethodInfo me = typeof(GraphicsDevice).GetMethod("DrawUserPrimitives", new [] { typeof(PrimitiveType), generic.MakeArrayType(), typeof(int), typeof(int) });
+                    Type genType = VertexArray[0].GetType();
+                    var arrayParam = Array.CreateInstance(genType, VertexArray.Length);
+                    VertexArray.CopyTo(arrayParam, 0);
+                    me.MakeGenericMethod(genType).Invoke(device, new object[] { PrimitiveType, arrayParam, 0, VertexArray.Length / VerticesPerPrimitive });
+                }
+            }
+            public virtual void DrawVertices(GraphicsDevice device, WorldEntity alignTo)
+            {
+                DrawVertices(device, null, alignTo);
+            }
+            public Boolean AlignToEntity { get; set; }
+            public abstract BasicEffect DrawEffect { get; }
+            public abstract PrimitiveType PrimitiveType { get; }
+            public abstract int VerticesPerPrimitive { get; }
+        }
         public static Double Mod2PI(Double radians)
         {
             while (radians >= Math.PI * 2) { radians -= Math.PI * 2; }
@@ -117,6 +196,25 @@ namespace VNFramework
                 }
                 return (intersections.ToArray(), intersectionTraces.ToArray(), intersectionIndices.ToArray());
             }
+            public Vector2? GetFirstIntersection(Trace trace)
+            {
+                Vector2 closest = new Vector2();
+                int i = 0;
+                Vector2[] intersections = GetTraceIntersections(trace).Item1;
+                if (intersections.Length == 0) { return null; }
+                else
+                {
+                    foreach (Vector2 intersect in intersections)
+                    {
+
+                        if (i == 0 || (intersect - trace.Origin).Length() < (closest - trace.Origin).Length())
+                        {
+                            closest = intersect;
+                        }
+                    }
+                    return closest;
+                }
+            }
             public Boolean Contains(Vector2 coord)
             {
                 Trace sightline = new Trace(coord, new Vector2(1000000, coord.Y));
@@ -131,13 +229,13 @@ namespace VNFramework
             {
                 InstanceFromVectors(new Vector2[] { new Vector2(rectangle.Left, rectangle.Top), new Vector2(rectangle.Right, rectangle.Top), new Vector2(rectangle.Right, rectangle.Bottom), new Vector2(rectangle.Left, rectangle.Bottom) }, normalizingOrigin, distanceBoundsOrigin);
             }
-            public Polygon(Vector2[] indices)
+            public Polygon(Vector2[] vertices)
             {
-                InstanceFromVectors(indices, new Vector2(), new Vector2());
+                InstanceFromVectors(vertices, new Vector2(), new Vector2());
             }
-            public Polygon(Vector2[] indices, Vector2 normalizingOrigin, Vector2 distanceBoundsOrigin)
+            public Polygon(Vector2[] vertices, Vector2 normalizingOrigin, Vector2 distanceBoundsOrigin)
             {
-                InstanceFromVectors(indices, normalizingOrigin, distanceBoundsOrigin);
+                InstanceFromVectors(vertices, normalizingOrigin, distanceBoundsOrigin);
             }
             public Boolean EdgesIntersect(Polygon polygon)
             {
@@ -150,6 +248,15 @@ namespace VNFramework
                     }
                 }
                 return false;
+            }
+            public Boolean Intersects(Trace trace)
+            {
+                var intersections = GetTraceIntersections(trace);
+                if (intersections.Item1.Length > 0)
+                {
+                    return true;
+                }
+                else { return false; }
             }
             public Boolean Collides(ICollider collider)
             {
@@ -209,7 +316,7 @@ namespace VNFramework
         /// <summary>
         /// Represents a directed line with a beginning and end point, for calculating intersections
         /// </summary>
-        public class Trace
+        public class Trace : VertexRenderable
         {
             public Vector2 Origin
             {
@@ -429,6 +536,14 @@ namespace VNFramework
             {
                 return GetIntersection(trace) != null;
             }
+            public Boolean Intersects(ICollider collider)
+            {
+                return collider.Intersects(this);
+            }
+            public Vector2? GetFirstIntersection(ICollider collider)
+            {
+                return collider.GetFirstIntersection(this);
+            }
             public Trace GetClosestTraceFrom(Vector2 coordinate, Double distanceLimit)
             {
                 double bearing1 = Bearing + (Math.PI / 2);
@@ -533,6 +648,74 @@ namespace VNFramework
             public Boolean IntersectsTexture(WorldEntity worldEntity, int traceDivisions)
             {
                 return GetFirstTextureIntersection(worldEntity, traceDivisions) != null;
+            }
+            private BasicEffect _drawEffect = null;
+            public override BasicEffect DrawEffect
+            {
+                get { return _drawEffect; }
+            }
+            public override PrimitiveType PrimitiveType
+            {
+                get
+                {
+                    return PrimitiveType.LineList;
+                }
+            }
+            public override int VerticesPerPrimitive
+            {
+                get
+                {
+                    return 2;
+                }
+            }
+            public override void CalculateVertices(GraphicsDevice gd)
+            {
+                _drawEffect = new BasicEffect(gd);
+                VertexArray = new IVertexType[2];
+                VertexPositionColor vPosCol = new VertexPositionColor();
+                vPosCol.Color = DrawColour;
+                vPosCol.Position = new Vector3(Origin * new Vector2(1, -1), 0);
+                VertexArray[0] = vPosCol;
+                vPosCol = new VertexPositionColor();
+                vPosCol.Color = DrawColour;
+                vPosCol.Position = new Vector3(Terminus * new Vector2(1, -1), 0);
+                VertexArray[1] = vPosCol;
+            }
+            private Color _drawColour = Color.Black;
+            public Color DrawColour
+            {
+                get
+                {
+                    return _drawColour;
+                }
+                set
+                {
+                    _drawColour = value;
+                    if (VertexArray != null)
+                    {
+                        for (int i = 0; i < VertexArray.Length; i++)
+                        {
+                            VertexPositionColor vpc = (VertexPositionColor)VertexArray[i];
+                            vpc.Color = _drawColour;
+                            VertexArray[i] = vpc;
+                        }
+                    }
+                }
+            }
+            public Trace Scale(Vector2 origin, Vector2 scale)
+            {
+                return new Trace(((Origin - origin) * scale) + origin, ((Terminus - origin) * scale) + origin);
+            }
+            public Trace Rotate(Vector2 origin, Double angle)
+            {
+                Vector2 normOrigin = Origin - origin;
+                Vector2 normTerminus = Terminus - origin;
+                Matrix rot = Matrix.CreateRotationZ((float)angle);
+                return new Trace((Vector2.Transform(normOrigin, rot)) + origin, (Vector2.Transform(normTerminus, rot)) + origin);
+            }
+            public Trace Translate(Vector2 translation)
+            {
+                return new Trace(Origin + translation, Terminus + translation);
             }
         }
     }
