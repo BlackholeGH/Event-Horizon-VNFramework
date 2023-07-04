@@ -16,6 +16,7 @@ namespace VNFramework
 {
     public static partial class Behaviours
     {
+        [Serializable]
         public class DragPhysicsBehaviour : IVNFBehaviour
         {
             public static readonly Double MassFluidDensity = 0.000002d;
@@ -45,6 +46,7 @@ namespace VNFramework
             }
             public void Clear() { }
         }
+        [Serializable]
         public class DynamicWASDControlBehaviour : IVNFBehaviour
         {
             public static Double Speed = 8d;
@@ -108,6 +110,7 @@ namespace VNFramework
     /// <summary>
     /// A radial collider object with a point center.
     /// </summary>
+    [Serializable]
     public class RadialCollider : ICollider
     {
         public double Radius { get; protected set; }
@@ -178,20 +181,26 @@ namespace VNFramework
             Double a = Math.Pow(trace.Slope, 2) + 1;
             Double b = 2 * ((trace.Slope * trace.YIntercept) - (trace.Slope * CenterPoint.Y) - CenterPoint.X);
             Double c = Math.Pow(CenterPoint.Y, 2) - Math.Pow(Radius, 2) + Math.Pow(CenterPoint.X, 2) - (2 * trace.YIntercept * CenterPoint.Y) + Math.Pow(trace.YIntercept, 2);
-            Double x1 = (-b + Math.Sqrt((2 * b) - (4 * a * c))) / (2 * a);
-            Double x2 = (-b - Math.Sqrt((2 * b) - (4 * a * c))) / (2 * a);
-            Double y1 = (trace.Slope * x1) + trace.YIntercept;
-            Double y2 = (trace.Slope * x2) + trace.YIntercept;
-            Vector2 first = new Vector2((float)x1, (float)y1);
-            Vector2 second = new Vector2((float)x2, (float)y2);
             List<Vector2> validOut = new List<Vector2>();
-            if (first.X <= trace.Max.X && first.X >= trace.Min.X && first.Y <= trace.Max.Y && first.Y >= trace.Min.Y)
+            Double x1 = (-b + Math.Sqrt(Math.Pow(b, 2) - (4 * a * c))) / (2 * a);
+            if (!Double.IsNaN(x1))
             {
-                validOut.Add(invert ? new Vector2(first.Y, first.X) : first);
+                Double y1 = (trace.Slope * x1) + trace.YIntercept;
+                Vector2 first = new Vector2((float)x1, (float)y1);
+                if (first.X <= trace.Max.X && first.X >= trace.Min.X && first.Y <= trace.Max.Y && first.Y >= trace.Min.Y)
+                {
+                    validOut.Add(invert ? new Vector2(first.Y, first.X) : first);
+                }
             }
-            if (second.X <= trace.Max.X && second.X >= trace.Min.X && second.Y <= trace.Max.Y && second.Y >= trace.Min.Y)
+            Double x2 = (-b - Math.Sqrt(Math.Pow(b, 2) - (4 * a * c))) / (2 * a);
+            if (!Double.IsNaN(x2))
             {
-                validOut.Add(invert ? new Vector2(second.Y, second.X) : second);
+                Double y2 = (trace.Slope * x2) + trace.YIntercept;
+                Vector2 second = new Vector2((float)x2, (float)y2);
+                if (second.X <= trace.Max.X && second.X >= trace.Min.X && second.Y <= trace.Max.Y && second.Y >= trace.Min.Y)
+                {
+                    validOut.Add(invert ? new Vector2(second.Y, second.X) : second);
+                }
             }
             return validOut.ToArray();
         }

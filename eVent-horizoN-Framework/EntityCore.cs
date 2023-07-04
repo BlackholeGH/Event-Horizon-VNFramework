@@ -36,6 +36,19 @@ namespace VNFramework
                 else if (!_overlayUtility && Shell.NonSerializables.Contains(this)) { Shell.NonSerializables.Remove(this); }
             }
         }
+        private Boolean _isUIElement = false;
+        public Boolean IsUIElement
+        {
+            get
+            {
+                return _isUIElement;
+            }
+            set
+            {
+                _isUIElement = value;
+                if (_isUIElement) { CameraImmune = true; }
+            }
+        }
         public static ulong IDIterator = 0;
         private ulong _entityID;
         [field: NonSerialized]
@@ -60,6 +73,13 @@ namespace VNFramework
         {
             get { return _rotation; }
             protected set { _rotation = value; }
+        }
+        public GraphicsTools.Trace ForwardTrace
+        {
+            get
+            {
+                return new GraphicsTools.Trace(new Vector2(), RotationRads, 1);
+            }
         }
         private Vector2 _size = new Vector2(1, 1);
         public Vector2 Size {
@@ -791,9 +811,42 @@ namespace VNFramework
         {
             QuickMoveTo(worldEntity.Position);
         }
-        public void CenterDefault()
+        String _autoSnapToOnResetEntityName = "";
+        public String AutoSnapToOnResetEntityName
         {
-            QuickMoveTo((Shell.Resolution / 2));
+            get
+            {
+                return _autoSnapToOnResetEntityName;
+            }
+            set
+            {
+                _autoSnapToOnResetEntityName = value;
+            }
+        }
+        Vector2 _recenterPosition = (Shell.Resolution / 2);
+        public Vector2 RecenterPosition
+        {
+            get
+            {
+                return _recenterPosition;
+            }
+            set
+            {
+                _recenterPosition = value;
+            }
+        }
+        public void RecenterCamera()
+        {
+            if (_autoSnapToOnResetEntityName.Length > 0)
+            {
+                WorldEntity snapEntity = Shell.GetEntityByName(AutoSnapToOnResetEntityName);
+                if(snapEntity != null)
+                {
+                    SnapTo(snapEntity);
+                    return;
+                }
+            }
+            QuickMoveTo(_recenterPosition);
         }
         public void Zoom(float zoomDelta)
         {

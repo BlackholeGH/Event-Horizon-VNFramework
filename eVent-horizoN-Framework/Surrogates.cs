@@ -42,12 +42,43 @@ namespace VNFramework
                 WorldEntity.EventSubRegister E = (WorldEntity.EventSubRegister)obj;
                 String Name = (String)info.GetValue(("MethodName"), typeof(String));
                 if (Name != null) {
-                    E.EventHandler = (MethodInfo)EntityFactory.ReturnMemberOrFuncValue(Name, null, null);
+                    object o = EntityFactory.ReturnMemberOrFuncValue(Name, null, null);
+                    if(o is object[])
+                    {
+                        o = ((object[])o)[0];
+                    }
+                    E.EventHandler = (MethodInfo)o;
                 }
                 E.EventName = (WorldEntity.EventNames)info.GetValue("EventName", typeof(WorldEntity.EventNames));
                 E.PublisherEntName = (String)info.GetValue("PublisherEntName", typeof(String));
                 E.MethodArgs = (object[])info.GetValue("MethodArgs", typeof(object[]));
                 obj = E;
+                return obj;
+            }
+        }
+        public sealed class BasicEffectSS : ISerializationSurrogate
+        {
+            public void GetObjectData(System.Object obj,
+                                      SerializationInfo info, StreamingContext context)
+            {
+                BasicEffect basicEffect = (BasicEffect)obj;
+                info.AddValue("VertexColorEnabled", basicEffect.VertexColorEnabled);
+                info.AddValue("TextureEnabled", basicEffect.TextureEnabled);
+                info.AddValue("World", basicEffect.World);
+                info.AddValue("View", basicEffect.View);
+                info.AddValue("Projection", basicEffect.Projection);
+            }
+            public System.Object SetObjectData(System.Object obj,
+                                               SerializationInfo info, StreamingContext context,
+                                               ISurrogateSelector selector)
+            {
+                BasicEffect basicEffect = new BasicEffect(Shell.PubGD);
+                basicEffect.VertexColorEnabled = (bool)info.GetValue("VertexColorEnabled", typeof(bool));
+                basicEffect.TextureEnabled = (bool)info.GetValue("TextureEnabled", typeof(bool));
+                basicEffect.World = (Matrix)info.GetValue("World", typeof(Matrix));
+                basicEffect.View = (Matrix)info.GetValue("View", typeof(Matrix));
+                basicEffect.Projection = (Matrix)info.GetValue("Projection", typeof(Matrix));
+                obj = basicEffect;
                 return obj;
             }
         }

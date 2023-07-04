@@ -42,5 +42,45 @@ namespace VNFramework
                 return Results;
             }
         }
+        /*public static void OpenMatMutMenu()
+        {
+            if (SpoonsTrip)
+            {
+                MediaPlayer.Stop();
+                WorldEntity Black = new WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
+                Black.TransientAnimation = true;
+                Black.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
+                Shell.UpdateQueue.Add(Black);
+                Shell.RenderQueue.Add(Black);
+                SpoonsTrip = false;
+            }
+            Shell.GlobalWorldState = "MAIN MENU OPENED";
+            WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["MATMUTBG"], 0);
+            Shell.UpdateQueue.Add(MainMenuBackdrop);
+            Shell.RenderQueue.Add(MainMenuBackdrop);
+            Button Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f, delegate () { ShowSettings(); });
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f, delegate () { Quit(); });
+            Button.CenterOrigin = false;
+            Shell.UpdateQueue.Add(Button);
+            Shell.RenderQueue.Add(Button);
+            TextEntity MatmutTitle = new TextEntity("MatmutTitle", "[C:0-255-0-255]Matmut CyberEx Securimax Prime", new Vector2(640f - Shell.Default.MeasureString("Matmut CyberEx Securimax Prime").X / 2f, 50), 0.8f);
+            MatmutTitle.TypeWrite = false;
+            Shell.UpdateQueue.Add(MatmutTitle);
+            Shell.RenderQueue.Add(MatmutTitle);
+            DropMenu TestDM = new DropMenu("TEST_DROPMENU", new Vector2(100, 150), 0.9f, 500, "Security Level", new String[] { "Basic (Free) Protection", "Medium Protection", "High Protection", "Extreme Meme Protection" }, false, new VoidDel(delegate () { }));
+            TestDM.CenterOrigin = false;
+            Shell.UpdateQueue.Add(TestDM);
+            Shell.RenderQueue.Add(TestDM);
+            TAtlasInfo TutorialButton = new TAtlasInfo();
+            TutorialButton.Atlas = ButtonScripts.CreateDynamicCustomButton("Launch educational experience", 500);
+            TutorialButton.DivDimensions = new Point(2, 1);
+            Button CommenceTutorial = new Button("BUTTON_MAKE_TUTORIAL", new Vector2(700, 150), TutorialButton, 0.55f, new VoidDel(delegate() { StartTutorial(); }));
+            CommenceTutorial.CenterOrigin = false;
+            Shell.UpdateQueue.Add(CommenceTutorial);
+            Shell.RenderQueue.Add(CommenceTutorial);
+        }*/
     }
 }

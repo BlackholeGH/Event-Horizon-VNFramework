@@ -12,6 +12,7 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using static VNFramework.GraphicsTools;
 
 namespace VNFramework
 {
@@ -171,17 +172,14 @@ namespace VNFramework
         static public Texture2D GenerateSaveThumb()
         {
             String[] ExcludeEnts = new String[] { "PAUSE_PANE", "BUTTON_PAUSE_RETURN", "BUTTON_PAUSE_SAVE", "BUTTON_PAUSE_SETTINGS", "BUTTON_PAUSE_MAINMENU", "BUTTON_PAUSE_QUIT" };
-            RenderTarget2D ThumbPane = new RenderTarget2D(Shell.PubGD, 1280, 720, false,
+            RenderTarget2D ThumbPane = new RenderTarget2D(Shell.PubGD, (int)Shell.Resolution.X, (int)Shell.Resolution.Y, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
             Shell.PubGD.SetRenderTarget(ThumbPane);
             Shell.PubGD.Clear(Color.Transparent);
             SpriteBatch spriteBatch = new SpriteBatch(Shell.PubGD);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            foreach (WorldEntity E in Shell.RenderQueue)
-            {
-                if (E.Drawable && !ExcludeEnts.Contains(E.Name)) { E.Draw(spriteBatch); }
-            }
+            Shell.DoRenderOperation(Shell.PubGD, spriteBatch, ExcludeEnts);
             spriteBatch.End();
             RenderTarget2D RealThumb = new RenderTarget2D(Shell.PubGD, 320, 180, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
@@ -274,12 +272,20 @@ namespace VNFramework
             }
             else if(Type == "FullySerializedBinary")
             {
-                if(ScriptProcessor.PastStates.Count == 0)
+                RecallableState? State = null;
+                if (ScriptProcessor.SnifferSearch() != null)
                 {
-                    Shell.WriteLine("Could not generate save file: No valid RecallableState stored.");
-                    return null;
+                    if (ScriptProcessor.PastStates.Count == 0)
+                    {
+                        Shell.WriteLine("Could not generate save file: No valid RecallableState stored.");
+                        return null;
+                    }
+                    State = (RecallableState?)ScriptProcessor.PastStates.Peek();
                 }
-                RecallableState? State = (RecallableState?)ScriptProcessor.PastStates.Peek();
+                else if(ScriptProcessor.ActiveGame())
+                {
+                    State = Shell.SerializeState();
+                }
                 if(State is null)
                 {
                     Stack StatesClone = (Stack)ScriptProcessor.PastStates.Clone();
@@ -288,7 +294,7 @@ namespace VNFramework
                     {
                         if(StatesClone.Count == 0)
                         {
-                            Shell.WriteLine("Could not generate save file: No valid RecallableState stored.");
+                            Shell.WriteLine("Could not generate save file: No valid RecallableState stored, or the game was not active.");
                             return null;
                         }
                         State = (RecallableState?)StatesClone.Pop();

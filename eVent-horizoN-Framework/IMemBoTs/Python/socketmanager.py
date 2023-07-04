@@ -3,6 +3,7 @@ import socket
 import selectors
 import types
 import array
+import traceback
 
 import brains
 
@@ -14,25 +15,38 @@ print("Running socket manager.")
 class SocketManager:
 
     def service_connection(self, key, mask):
-        sock = key.fileobj
-        sockID = key.data
-        if mask & selectors.EVENT_READ:
-            recv_data = sock.recv(1024)
-            if recv_data:
-                #print(f"Received! {sockID}")
-                doubles = array.array('d', recv_data)
-                self.ioHandlers[sockID].handleInput(doubles)
-            else:
-                print(f"Closing connection to {sockID}")
-                self.sel.unregister(sock)
-                sock.close()
-                self.ioHandlers.pop(sockID)
-                self.toDispatch.pop(sockID)
-        if mask & selectors.EVENT_WRITE:
-            if(self.toDispatch.keys().__contains__(sockID)):
-                #print(f"Send on {sockID}: {self.toDispatch[sockID]}")
-                sent = sock.send(bytes(self.toDispatch[sockID]))
-                self.toDispatch.pop(sockID)
+        try:
+            sock = key.fileobj
+            sockID = key.data
+            if mask & selectors.EVENT_READ:
+                recv_data = sock.recv(1024)
+                if recv_data:
+                    if sockID == 0:
+                        print(f"Received! {sockID}")
+                    doubles = array.array('d', recv_data)
+                    handler = self.ioHandlers[sockID]
+                    if isinstance(handler, brains.SystemHandler):
+                        handler.handle_input(doubles, self.ioHandlers)
+                    else:
+                        #print(f"Requesting to handle input: {sockID}")
+                        handler.handle_input(doubles)
+                else:
+                    print(f"Closing connection to {sockID}")
+                    self.sel.unregister(sock)
+                    sock.close()
+                    self.ioHandlers.pop(sockID)
+                    if(self.toDispatch.keys().__contains__(sockID)):
+                        self.toDispatch.pop(sockID)
+            if mask & selectors.EVENT_WRITE:
+                if(self.toDispatch.keys().__contains__(sockID)):
+                    #print(f"Send on {sockID}: {self.toDispatch[sockID]}")
+                    #print(str(self.toDispatch[sockID]))
+                    sent = sock.send(bytes(self.toDispatch[sockID]))
+                    self.toDispatch.pop(sockID)
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print(f"Exception caught while servicing connection ID {sockID}.\n{exc_type}: ({exc_value}) {traceback.extract_tb(exc_traceback)}")
+            print(self.toDispatch.keys())
 
     def accept_wrapper(self, sock):
         conn, addr = sock.accept()
@@ -44,7 +58,7 @@ class SocketManager:
             self.ioHandlers[self.nextConnectionID] = brains.SystemHandler(self.nextConnectionID)
             print("SYSTEM_SOCKET_ASSIGNED")
         else:
-            self.ioHandlers[self.nextConnectionID] = brains.IOHandler(self.nextConnectionID)
+            self.ioHandlers[self.nextConnectionID] = brains.SimpleFeedForwardDense(self.nextConnectionID)
         print(f"Registered connection as: {self.nextConnectionID}")
         self.nextConnectionID = self.nextConnectionID + 1
 
@@ -58,7 +72,7 @@ class SocketManager:
                     else:
                         self.service_connection(key, mask)
                 for ioHandlerKey in self.ioHandlers.keys():
-                    output = self.ioHandlers[ioHandlerKey].getOutput()
+                    output = self.ioHandlers[ioHandlerKey].get_output()
                     if output != None:
                         self.toDispatch[ioHandlerKey] = output
                     self.ioHandlers[ioHandlerKey].nextOutput = None

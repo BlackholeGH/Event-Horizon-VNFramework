@@ -450,7 +450,7 @@ namespace VNFramework
             TextEntity SText = new TextEntity("SCROLL_TEXT", "", new Vector2(20, 15), 1);
             SText.TypeWrite = false;
             SText.BufferLength = (int)ButtonDimensions.X - 40;
-            SText.Text = "[C:70-70-70-255]" + Text;
+            SText.Text = "[C:" + EdgeColour.R + "-" + EdgeColour.G + "-" + EdgeColour.B + "-255]" + Text;
             if (ButtonDimensions.Y == -1)
             {
                 ButtonDimensions.Y = SText.VerticalLength(true) + 20;
@@ -476,7 +476,7 @@ namespace VNFramework
             spriteBatch.Draw(MiddlePane, new Rectangle(5, 5, (int)ButtonDimensions.X, (int)ButtonDimensions.Y), Color.White);
             spriteBatch.Draw(MiddlePane, new Rectangle((int)ButtonDimensions.X + 15, 5, (int)ButtonDimensions.X, (int)ButtonDimensions.Y), Color.White);
             SText.Draw(spriteBatch);
-            SText.Text = "[C:138-0-255-255]" + Text;
+            SText.Text = "[C:" + ActiveColour.R + "-" + ActiveColour.G + "-" + ActiveColour.B + "-255]" + Text;
             SText.Move(new Vector2(ButtonDimensions.X + 10, 0));
             SText.Draw(spriteBatch);
             spriteBatch.End();
@@ -592,62 +592,58 @@ namespace VNFramework
         {
             HideUI(false);
         }
-        public static void HideUI(Boolean IncludeHideButton)
+        public static void HideUI(Boolean includeHideButton)
         {
             UIHideEnabled = true;
             //ScriptProcessor.AllowScriptShift = false;
             Shell.AllowEnter = false;
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E.OverlayUtility) { continue; }
-                if (E.Name == "UIBOX" || E.Name == "NAMELABELBACKING")
+                if (worldEntity.OverlayUtility) { continue; }
+                else if (worldEntity.IsUIElement)
                 {
-                    E.Drawable = false;
-                    E.SuppressClickable = true;
-                }
-                if (E is TextEntity) { E.Drawable = false; }
-                if (E is Button && (E.Name != "BUTTON_HIDE_UI" || IncludeHideButton))
-                {
-                    ((Button)E).Enabled = false;
-                    E.Drawable = false;
-                }
-                if (E is ScrollBar)
-                {
-                    ((ScrollBar)E).Enabled = false;
-                    E.Drawable = false;
-                }
-                if (E is VerticalScrollPane)
-                {
-                    ((VerticalScrollPane)E).Enabled = false;
-                    E.Drawable = false;
+                    if (!(worldEntity is Button && worldEntity.Name == "BUTTON_HIDE_UI") || includeHideButton)
+                    {
+                        worldEntity.Drawable = false;
+                        worldEntity.SuppressClickable = true;
+                    }
+                    if (worldEntity is Button && (worldEntity.Name != "BUTTON_HIDE_UI" || includeHideButton))
+                    {
+                        ((Button)worldEntity).Enabled = false;
+                    }
+                    if (worldEntity is ScrollBar)
+                    {
+                        ((ScrollBar)worldEntity).Enabled = false;
+                    }
+                    if (worldEntity is VerticalScrollPane)
+                    {
+                        ((VerticalScrollPane)worldEntity).Enabled = false;
+                    }
                 }
             }
         }
         public static void UnHideUI()
         {
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E.Name == "UIBOX" || E.Name == "NAMELABELBACKING")
+                if (worldEntity.IsUIElement)
                 {
-                    E.Drawable = true;
-                    E.SuppressClickable = false;
+                    worldEntity.Drawable = true;
+                    worldEntity.SuppressClickable = false;
+                    if (worldEntity is Button)
+                    {
+                        ((Button)worldEntity).Enabled = true;
+                    }
+                    if (worldEntity is ScrollBar)
+                    {
+                        ((ScrollBar)worldEntity).Enabled = true;
+                    }
+                    if (worldEntity is VerticalScrollPane)
+                    {
+                        ((VerticalScrollPane)worldEntity).Enabled = true;
+                        worldEntity.Drawable = true;
+                    }
                 }
-                if (E is Button)
-                {
-                    ((Button)E).Enabled = true;
-                    E.Drawable = true;
-                }
-                if (E is ScrollBar)
-                {
-                    ((ScrollBar)E).Enabled = true;
-                    E.Drawable = true;
-                }
-                if (E is VerticalScrollPane)
-                {
-                    ((VerticalScrollPane)E).Enabled = true;
-                    E.Drawable = true;
-                }
-                if (E is TextEntity) { E.Drawable = true; }
             }
             Shell.AllowEnter = true;
             //ScriptProcessor.AllowScriptShift = true;
@@ -725,30 +721,30 @@ namespace VNFramework
         {
             CloseNavScreen(false);
         }
-        public static void CloseNavScreen(Boolean HideCButtons)
+        public static void CloseNavScreen(Boolean hideCButtons)
         {
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E.OverlayUtility) { continue; }
-                if (E.Name == "UIBOX" || E.Name == "NAMELABELBACKING")
+                if (worldEntity.OverlayUtility) { continue; }
+                if (worldEntity.IsUIElement)
                 {
-                    E.Drawable = true;
-                    E.SuppressClickable = false;
+                    worldEntity.Drawable = true;
+                    worldEntity.SuppressClickable = false;
                 }
-                if (E is Button && E.Drawable && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button) {
-                    if (!HideCButtons || !E.Name.Contains("BUTTON_CUSTOM_"))
+                if (worldEntity is Button && worldEntity.Drawable && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button) {
+                    if (!hideCButtons || !worldEntity.Name.Contains("BUTTON_CUSTOM_"))
                     {
-                        ((Button)E).Enabled = true;
-                        E.Drawable = true;
+                        ((Button)worldEntity).Enabled = true;
+                        worldEntity.Drawable = true;
                     }
                 }
-                if (E is ScrollBar)
+                if (worldEntity is ScrollBar)
                 {
-                    ((ScrollBar)E).Enabled = true;
-                    E.Drawable = true;
+                    ((ScrollBar)worldEntity).Enabled = true;
+                    worldEntity.Drawable = true;
                 }
-                if (E is TextEntity) { E.Drawable = true; }
+                if (worldEntity is TextEntity) { worldEntity.Drawable = true; }
             }
             ScriptProcessor.AllowScriptShift = true;
             Shell.AllowEnter = true;
@@ -901,46 +897,6 @@ namespace VNFramework
                 });
             }
         }
-        /*public static void OpenMatMutMenu()
-        {
-            if (SpoonsTrip)
-            {
-                MediaPlayer.Stop();
-                WorldEntity Black = new WorldEntity("BLACK", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["BLACK"], 0.9601f);
-                Black.TransientAnimation = true;
-                Black.AnimationQueue.Add(Animation.Retrieve("FADEOUTRAPID"));
-                Shell.UpdateQueue.Add(Black);
-                Shell.RenderQueue.Add(Black);
-                SpoonsTrip = false;
-            }
-            Shell.GlobalWorldState = "MAIN MENU OPENED";
-            WorldEntity MainMenuBackdrop = new WorldEntity("BACKDROP_MAIN", new Vector2(), (TAtlasInfo)Shell.AtlasDirectory["MATMUTBG"], 0);
-            Shell.UpdateQueue.Add(MainMenuBackdrop);
-            Shell.RenderQueue.Add(MainMenuBackdrop);
-            Button Button = new Button("BUTTON_MAIN_SETTINGS", new Vector2(944, 500), (TAtlasInfo)Shell.AtlasDirectory["SETTINGSBUTTON"], 0.5f, delegate () { ShowSettings(); });
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            Button = new Button("BUTTON_MAIN_QUIT", new Vector2(1010, 635), (TAtlasInfo)Shell.AtlasDirectory["QUITBUTTON"], 0.5f, delegate () { Quit(); });
-            Button.CenterOrigin = false;
-            Shell.UpdateQueue.Add(Button);
-            Shell.RenderQueue.Add(Button);
-            TextEntity MatmutTitle = new TextEntity("MatmutTitle", "[C:0-255-0-255]Matmut CyberEx Securimax Prime", new Vector2(640f - Shell.Default.MeasureString("Matmut CyberEx Securimax Prime").X / 2f, 50), 0.8f);
-            MatmutTitle.TypeWrite = false;
-            Shell.UpdateQueue.Add(MatmutTitle);
-            Shell.RenderQueue.Add(MatmutTitle);
-            DropMenu TestDM = new DropMenu("TEST_DROPMENU", new Vector2(100, 150), 0.9f, 500, "Security Level", new String[] { "Basic (Free) Protection", "Medium Protection", "High Protection", "Extreme Meme Protection" }, false, new VoidDel(delegate () { }));
-            TestDM.CenterOrigin = false;
-            Shell.UpdateQueue.Add(TestDM);
-            Shell.RenderQueue.Add(TestDM);
-            TAtlasInfo TutorialButton = new TAtlasInfo();
-            TutorialButton.Atlas = ButtonScripts.CreateDynamicCustomButton("Launch educational experience", 500);
-            TutorialButton.DivDimensions = new Point(2, 1);
-            Button CommenceTutorial = new Button("BUTTON_MAKE_TUTORIAL", new Vector2(700, 150), TutorialButton, 0.55f, new VoidDel(delegate() { StartTutorial(); }));
-            CommenceTutorial.CenterOrigin = false;
-            Shell.UpdateQueue.Add(CommenceTutorial);
-            Shell.RenderQueue.Add(CommenceTutorial);
-        }*/
         public static void StartTutorial()
         {
             MediaPlayer.Stop();
@@ -970,14 +926,16 @@ namespace VNFramework
         public static void OpenUSWMainMenu()
         {
             Shell.BackdropColour = Color.Black;
-            Shell.AutoCamera.CenterDefault();
+            Shell.AutoCamera.RecenterPosition = Shell.Resolution / 2;
+            Shell.AutoCamera.RecenterCamera();
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("USW_MAIN_MENU_CONSTRUCTOR", false); });
         }
         public static void OpenMainMenu()
         {
             Shell.BackdropColour = Color.Black;
-            Shell.AutoCamera.CenterDefault();
+            Shell.AutoCamera.RecenterPosition = Shell.Resolution / 2;
+            Shell.AutoCamera.RecenterCamera();
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }
@@ -1276,10 +1234,12 @@ namespace VNFramework
                 }
             }
             WorldEntity SaveWrittenPane = new WorldEntity("PANE_SAVEWRITTEN", new Vector2(640, 300), (TAtlasInfo)Shell.AtlasDirectory["SAVEWRITTENPANE"], 0.99f);
+            SaveWrittenPane.CameraImmune = true;
             SaveWrittenPane.CenterOrigin = true;
             Shell.UpdateQueue.Add(SaveWrittenPane);
             Shell.RenderQueue.Add(SaveWrittenPane);
             Button Back = new Button("BUTTON_SAVE_BACK", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["BACKBUTTON"], 0.991f);
+            Back.CameraImmune = true;
             Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSave"), null);
             Shell.UpdateQueue.Add(Back);
             Shell.RenderQueue.Add(Back);
@@ -1294,25 +1254,30 @@ namespace VNFramework
             }
             Texture2D SaveThumb = SaveLoadModule.GenerateSaveThumb();
             WorldEntity SavePane = new WorldEntity("PANE_SAVE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["SAVEPANE"], 0.99f);
+            SavePane.CameraImmune = true;
             SavePane.CenterOrigin = true;
             Shell.UpdateQueue.Add(SavePane);
             Shell.RenderQueue.Add(SavePane);
             TAtlasInfo ThisThumb = (TAtlasInfo)Shell.AtlasDirectory["THUMBBLANK"];
             ThisThumb.Atlas = SaveThumb;
             WorldEntity Thumb = new WorldEntity("THUMB_SAVE", new Vector2(480, 233), ThisThumb, 0.991f);
+            Thumb.CameraImmune = true;
             Shell.UpdateQueue.Add(Thumb);
             Shell.RenderQueue.Add(Thumb);
             DateTime Now = DateTime.Now;
             String Time = Now.ToShortDateString() + " " + Now.ToShortTimeString();
             TextEntity TimeText = new TextEntity("TIMETEXT_NEWSAVE", Time, new Vector2(640, 323) - new Vector2(Shell.Default.MeasureString(Time).X / 2f, -110), 0.991f);
+            TimeText.CameraImmune = true;
             TimeText.TypeWrite = false;
             Shell.UpdateQueue.Add(TimeText);
             Shell.RenderQueue.Add(TimeText);
             Button Yes = new Button("BUTTON_SAVE_YES", new Vector2(530, 530), (TAtlasInfo)Shell.AtlasDirectory["YESBUTTON"], 0.991f);
+            Yes.CameraImmune = true;
             Yes.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("SaveActual"), new object[] { SaveThumb });
             Shell.UpdateQueue.Add(Yes);
             Shell.RenderQueue.Add(Yes);
             Button No = new Button("BUTTON_SAVE_NO", new Vector2(750, 530), (TAtlasInfo)Shell.AtlasDirectory["NOBUTTON"], 0.991f);
+            No.CameraImmune = true;
             No.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("UnSave"), null);
             Shell.UpdateQueue.Add(No);
             Shell.RenderQueue.Add(No);
@@ -1359,6 +1324,7 @@ namespace VNFramework
                 WorldEntity Add = new WorldEntity("UIBOX", new Vector2(100, 470), (TAtlasInfo)Shell.AtlasDirectory["UIBOX"], 0.9f);
                 Add.ColourValue = new Color(200, 200, 200, 255);
                 Add.SubscribeToEvent(WorldEntity.EventNames.EntityClickFunction, typeof(ButtonScripts).GetMethod("UIBoxClick"), null);
+                Add.IsUIElement = true;
                 Shell.UpdateQueue.Add(Add);
                 Shell.RenderQueue.Add(Add);
             }
@@ -1366,6 +1332,7 @@ namespace VNFramework
             {
                 Button Archive = new Button("BUTTON_ARCHIVE", new Vector2(70, 510), (TAtlasInfo)Shell.AtlasDirectory["ARCHIVEBUTTON"], 0.95f);
                 Archive.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("OpenArchive"), null);
+                Archive.IsUIElement = true;
                 Shell.UpdateQueue.Add(Archive);
                 Shell.RenderQueue.Add(Archive);
             }
@@ -1373,6 +1340,7 @@ namespace VNFramework
             {
                 Button Skip = new Button("BUTTON_SKIP", new Vector2(70, 557), (TAtlasInfo)Shell.AtlasDirectory["SKIPBUTTON"], 0.95f);
                 Skip.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Skip"), null);
+                Skip.IsUIElement = true;
                 Shell.UpdateQueue.Add(Skip);
                 Shell.RenderQueue.Add(Skip);
             }
@@ -1380,6 +1348,7 @@ namespace VNFramework
             {
                 Button PauseB = new Button("BUTTON_PAUSEMENU", new Vector2(70, 604), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUBUTTON"], 0.95f);
                 PauseB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Pause"), null);
+                PauseB.IsUIElement = true;
                 Shell.UpdateQueue.Add(PauseB);
                 Shell.RenderQueue.Add(PauseB);
             }
@@ -1387,6 +1356,7 @@ namespace VNFramework
             {
                 Button Return = new Button("BUTTON_ROLLBACK", new Vector2(70, 651), (TAtlasInfo)Shell.AtlasDirectory["RETURNBUTTON"], 0.95f);
                 Return.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ScriptRollback"), null);
+                Return.IsUIElement = true;
                 Shell.UpdateQueue.Add(Return);
                 Shell.RenderQueue.Add(Return);
             }
@@ -1395,6 +1365,7 @@ namespace VNFramework
                 Checkbox HideUI = new Checkbox("BUTTON_HIDE_UI", new Vector2(1205, 650), (TAtlasInfo)Shell.AtlasDirectory["EYECHECKBOX"], 0.95f, false);
                 HideUI.CenterOrigin = false;
                 HideUI.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("RefreshUIHideState"), null);
+                HideUI.IsUIElement = true;
                 Shell.UpdateQueue.Add(HideUI);
                 Shell.RenderQueue.Add(HideUI);
             }

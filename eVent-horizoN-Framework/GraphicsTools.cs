@@ -22,6 +22,7 @@ namespace VNFramework
     /// </summary>
     public static class GraphicsTools
     {
+        [Serializable]
         public abstract class VertexRenderable
         {
             protected (Matrix, Matrix, Matrix) GetDrawTransforms()
@@ -122,6 +123,7 @@ namespace VNFramework
         /// <summary>
         /// Defines geometric polygons as a series of directed lines. Polygons are constructed clockwise; the righthand side of a line should be the shape interior.
         /// </summary>
+        [Serializable]
         public class Polygon : ICollider, IEnumerable<Trace>
         {
             List<Trace> _lineTraces = new List<Trace>();
@@ -316,6 +318,7 @@ namespace VNFramework
         /// <summary>
         /// Represents a directed line with a beginning and end point, for calculating intersections
         /// </summary>
+        [Serializable]
         public class Trace : VertexRenderable
         {
             public Vector2 Origin
@@ -332,54 +335,109 @@ namespace VNFramework
                     return _terminus;
                 }
             }
+            object _max = null;
             public Vector2 Max
             {
                 get
                 {
-                    return new Vector2(Math.Max(_origin.X, _terminus.X), Math.Max(_origin.Y, _terminus.Y));
+                    if(_max == null)
+                    {
+                        _max = new Vector2(Math.Max(_origin.X, _terminus.X), Math.Max(_origin.Y, _terminus.Y));
+                    }
+                    return (Vector2)_max;
                 }
             }
+            object _min = null;
             public Vector2 Min
             {
                 get
                 {
-                    return new Vector2(Math.Min(_origin.X, _terminus.X), Math.Min(_origin.Y, _terminus.Y));
+                    if(_min == null)
+                    {
+                        _min = new Vector2(Math.Min(_origin.X, _terminus.X), Math.Min(_origin.Y, _terminus.Y));
+                    }
+                    return (Vector2)_min;
                 }
             }
+            object _length = null;
             public Double Length
             {
                 get
                 {
-                    return Math.Sqrt(Math.Pow(Math.Abs(_terminus.X - _origin.X), 2) + Math.Pow(Math.Abs(_terminus.Y - _origin.Y), 2));
+                    if( _length == null)
+                    {
+                        _length = Math.Sqrt(Math.Pow(Math.Abs(_terminus.X - _origin.X), 2) + Math.Pow(Math.Abs(_terminus.Y - _origin.Y), 2));
+                    }
+                    return (Double)_length;
                 }
             }
+            object _alignedVector;
             public Vector2 AsAlignedVector
             {
                 get
                 {
-                    return new Vector2(_terminus.X - _origin.X, _terminus.Y - _origin.Y);
+                    if( _alignedVector == null )
+                    {
+                        _alignedVector = new Vector2(_terminus.X - _origin.X, _terminus.Y - _origin.Y);
+                    }
+                    return (Vector2)_alignedVector;
                 }
             }
+            object _bearing = null;
             public Double Bearing
             {
                 get
                 {
-                    double y = _terminus.Y - _origin.Y;
-                    double x = _terminus.X - _origin.X;
-                    double bearing = 0;
-                    if (x > 0)
+                    if (_bearing == null)
                     {
-                        bearing = Math.Acos(-y / Length);
+                        double y = _terminus.Y - _origin.Y;
+                        double x = _terminus.X - _origin.X;
+                        double bearing = 0;
+                        if (x > 0)
+                        {
+                            bearing = Math.Acos(-y / Length);
+                        }
+                        else if (x < 0)
+                        {
+                            bearing = Math.Acos(y / Length) + Math.PI;
+                        }
+                        else if (x == 0)
+                        {
+                            bearing = y > 0 ? Math.PI : 0;
+                        }
+                        _bearing = bearing;
                     }
-                    else if (x < 0)
+                    return (Double)_bearing;
+                }
+            }
+            object _slope = null;
+            public Double Slope
+            {
+                get
+                {
+                    if (_slope == null)
                     {
-                        bearing = Math.Acos(y / Length) + Math.PI;
+                        double dy = _terminus.Y - _origin.Y;
+                        double dx = _terminus.X - _origin.X;
+                        _slope = dy / dx;
                     }
-                    else if (x == 0)
+                    return (Double)_slope;
+                }
+            }
+            object _yIntercept = null;
+            public Double YIntercept
+            {
+                get
+                {
+                    if (_yIntercept == null)
                     {
-                        bearing = y > 0 ? Math.PI : 0;
+                        if (Slope != Double.NaN && Slope != Double.PositiveInfinity && Slope != Double.NegativeInfinity)
+                        {
+                            _yIntercept = _origin.Y - (_origin.X * Slope);
+                        }
+                        else { _yIntercept = Double.NaN; }
                     }
-                    return bearing;
+                    return (Double)_yIntercept;
                 }
             }
             public static Trace operator * (Trace a, Double b)
@@ -420,26 +478,6 @@ namespace VNFramework
                 Double normalizedBearing = toCoord.Bearing - Bearing;
                 if (normalizedBearing < 0) { normalizedBearing += (Math.PI * 2); }
                 return normalizedBearing < Math.PI;
-            }
-            public Double Slope
-            {
-                get
-                {
-                    double dy = _terminus.Y - _origin.Y;
-                    double dx = _terminus.X - _origin.X;
-                    return dy / dx;
-                }
-            }
-            public Double YIntercept
-            {
-                get
-                {
-                    if (Slope != Double.NaN && Slope != Double.PositiveInfinity && Slope != Double.NegativeInfinity)
-                    {
-                        return _origin.Y - (_origin.X * Slope);
-                    }
-                    else { return Double.NaN; }
-                }
             }
             public Trace Flip()
             {

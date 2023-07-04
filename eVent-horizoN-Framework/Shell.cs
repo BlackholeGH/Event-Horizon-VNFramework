@@ -117,6 +117,7 @@ namespace VNFramework
             Surrogates.ColorSS css = new Surrogates.ColorSS();
             Surrogates.SpriteFontSS sfss = new Surrogates.SpriteFontSS();
             Surrogates.EventSRSS esrss = new Surrogates.EventSRSS();
+            Surrogates.BasicEffectSS bess = new Surrogates.BasicEffectSS();
             surrogateSelector.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), v2ss);
             surrogateSelector.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), pss);
             surrogateSelector.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), rss);
@@ -124,6 +125,7 @@ namespace VNFramework
             surrogateSelector.AddSurrogate(typeof(Color), new StreamingContext(StreamingContextStates.All), css);
             surrogateSelector.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), sfss);
             surrogateSelector.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), esrss);
+            surrogateSelector.AddSurrogate(typeof(BasicEffect), new StreamingContext(StreamingContextStates.All), bess);
             serFormatter.SurrogateSelector = surrogateSelector;
             try
             {
@@ -184,6 +186,7 @@ namespace VNFramework
             Surrogates.ColorSS css = new Surrogates.ColorSS();
             Surrogates.SpriteFontSS sfss = new Surrogates.SpriteFontSS();
             Surrogates.EventSRSS esrss = new Surrogates.EventSRSS();
+            Surrogates.BasicEffectSS bess = new Surrogates.BasicEffectSS();
             surrogateSelector.AddSurrogate(typeof(Vector2), new StreamingContext(StreamingContextStates.All), v2ss);
             surrogateSelector.AddSurrogate(typeof(Point), new StreamingContext(StreamingContextStates.All), pss);
             surrogateSelector.AddSurrogate(typeof(Rectangle), new StreamingContext(StreamingContextStates.All), rss);
@@ -192,6 +195,7 @@ namespace VNFramework
             surrogateSelector.AddSurrogate(typeof(SpriteFont), new StreamingContext(StreamingContextStates.All), sfss);
             surrogateSelector.AddSurrogate(typeof(MethodInfo), new StreamingContext(StreamingContextStates.All), esrss);
             surrogateSelector.AddSurrogate(typeof(WorldEntity.EventSubRegister), new StreamingContext(StreamingContextStates.All), esrss);
+            surrogateSelector.AddSurrogate(typeof(BasicEffect), new StreamingContext(StreamingContextStates.All), bess);
             serFormatter.SurrogateSelector = surrogateSelector;
             foreach (byte[] byteR in recallableState.SerializedEnts)
             {
@@ -508,7 +512,7 @@ namespace VNFramework
                     WindowSize = s_resolution;
                     s_graphics.ApplyChanges();
                 }
-                if (AutoCamera != null) { AutoCamera.CenterDefault(); }
+                if (AutoCamera != null) { AutoCamera.RecenterCamera(); }
             }
         }
         public static Shell DefaultShell { get; set; }
@@ -537,6 +541,7 @@ namespace VNFramework
             WriteLine("[SHELL INITIALIZED AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             WriteLine("Blackhole's eVent horizoN Framework");
             WriteLine("Version: " + FrameworkVersion);
+            ActiveProcesses = new List<System.Diagnostics.Process>();
             s_graphics.HardwareModeSwitch = false;
             BackdropColour = Color.Black;
             Resolution = new Vector2(640, 480);
@@ -617,11 +622,11 @@ namespace VNFramework
         }
         public static Boolean PlaySoundInstant(String sfxIndex)
         {
-            return PlaySoundInstant(sfxIndex, false, 1f);
+            return PlaySoundInstant(sfxIndex, false, 0f);
         }
         public static Boolean PlaySoundInstant(String sfxIndex, Boolean loop)
         {
-            return PlaySoundInstant(sfxIndex, loop, 1f);
+            return PlaySoundInstant(sfxIndex, loop, 0f);
         }
         public static Boolean PlaySoundInstant(String sfxIndex, Boolean loop, float pitch)
         {
@@ -856,6 +861,11 @@ namespace VNFramework
         /// </summary>
         protected override void UnloadContent()
         {
+            foreach(System.Diagnostics.Process process in ActiveProcesses)
+            {
+                process.Kill();
+                process.Close();
+            }
             WriteLine("Client closing...");
             WriteLine("[SHELL EXITING AT " + System.DateTime.Now.ToLongTimeString() + " " + System.DateTime.Now.ToShortDateString() + "]");
             SaveLoadModule.WriteFinals();
@@ -957,6 +967,7 @@ namespace VNFramework
         public static Color BackdropColour { get; set; }
         public Boolean PauseUpdates { get; set; }
         public Boolean UpdateCycleStarted { get; set; }
+        public static List<System.Diagnostics.Process> ActiveProcesses { get; set; }
         Queue<String> _systemTextQueue = new Queue<string>();
         public static void RequestDisplaySystemText(String message)
         {
@@ -996,7 +1007,7 @@ namespace VNFramework
             {
                 if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R))
                 {
-                    AutoCamera.CenterDefault();
+                    AutoCamera.RecenterCamera();
                     AutoCamera.ResetZoom();
                 }
                 AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
@@ -1004,6 +1015,7 @@ namespace VNFramework
             }
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
             {
+                PythonController.SocketInterface.CloseAllSockets();
                 Exit();
             }
             if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen) || DoNextShifter) && AllowEnter)
@@ -1086,6 +1098,16 @@ namespace VNFramework
                 runVoid();
             }
             RunQueue = new List<VoidDel>();
+            for(int i = 0; i < ActiveProcesses.Count; i++)
+            {
+                System.Diagnostics.Process process = ActiveProcesses[i];
+                if (process.HasExited)
+                {
+                    process.Close();
+                    ActiveProcesses.RemoveAt(i);
+                    i--;
+                }
+            }
             if(s_fadeoutAmount != -100)
             {
                 if(MediaPlayer.Volume > 0)
@@ -1142,6 +1164,41 @@ namespace VNFramework
         }
 
         public static Boolean HoldRender = false;
+        public static void DoRenderOperation(GraphicsDevice graphicsDevice, SpriteBatch spriteBatch, String[] excludeEnts)
+        {
+            if (AutoCamera == null)
+            {
+                foreach (WorldEntity worldEntity in RenderQueue)
+                {
+                    if (worldEntity.Drawable && !excludeEnts.Contains(worldEntity.Name))
+                    {
+                        if (worldEntity.CustomCamera != null) { worldEntity.Draw(spriteBatch, worldEntity.CustomCamera); }
+                        else { worldEntity.Draw(spriteBatch); }
+                        foreach (VertexRenderable ivr in worldEntity.MyVertexRenderables)
+                        {
+                            if (worldEntity.CustomCamera != null) { ivr.DrawVertices(graphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
+                            else { ivr.DrawVertices(graphicsDevice, ivr.AlignToEntity ? worldEntity : null); }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (WorldEntity worldEntity in RenderQueue)
+                {
+                    if (worldEntity.Drawable && !excludeEnts.Contains(worldEntity.Name))
+                    {
+                        if (worldEntity.CustomCamera != null) { worldEntity.Draw(spriteBatch, worldEntity.CustomCamera); }
+                        else { worldEntity.Draw(spriteBatch, AutoCamera); }
+                        foreach (VertexRenderable ivr in worldEntity.MyVertexRenderables)
+                        {
+                            if (worldEntity.CustomCamera != null) { ivr.DrawVertices(graphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
+                            else { ivr.DrawVertices(graphicsDevice, AutoCamera, ivr.AlignToEntity ? worldEntity : null); }
+                        }
+                    }
+                }
+            }
+        }
         /// <summary>
         /// This is called when the game should draw itself.
         /// </summary>
@@ -1159,38 +1216,7 @@ namespace VNFramework
             ShellSpriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
             if (!HoldRender)
             {
-                if (AutoCamera == null)
-                {
-                    foreach (WorldEntity worldEntity in RenderQueue)
-                    {
-                        if (worldEntity.Drawable)
-                        {
-                            if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
-                            else { worldEntity.Draw(ShellSpriteBatch); }
-                            foreach(VertexRenderable ivr in worldEntity.MyVertexRenderables)
-                            {
-                                if (worldEntity.CustomCamera != null) { ivr.DrawVertices(GraphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
-                                else { ivr.DrawVertices(GraphicsDevice, ivr.AlignToEntity ? worldEntity : null); }
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (WorldEntity worldEntity in RenderQueue)
-                    {
-                        if (worldEntity.Drawable)
-                        {
-                            if (worldEntity.CustomCamera != null) { worldEntity.Draw(ShellSpriteBatch, worldEntity.CustomCamera); }
-                            else { worldEntity.Draw(ShellSpriteBatch, AutoCamera); }
-                            foreach (VertexRenderable ivr in worldEntity.MyVertexRenderables)
-                            {
-                                if (worldEntity.CustomCamera != null) { ivr.DrawVertices(GraphicsDevice, worldEntity.CustomCamera, ivr.AlignToEntity ? worldEntity : null); }
-                                else { ivr.DrawVertices(GraphicsDevice, AutoCamera, ivr.AlignToEntity ? worldEntity : null); }
-                            }
-                        }
-                    }
-                }
+                DoRenderOperation(GraphicsDevice, ShellSpriteBatch, new string[0]);
             }
             ShellSpriteBatch.End();
             GraphicsDevice.SetRenderTarget(null);
