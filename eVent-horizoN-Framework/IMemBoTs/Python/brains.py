@@ -1,5 +1,7 @@
 import array
 import random
+import sys
+import math
 
 import numpy as np
 import keras
@@ -16,6 +18,48 @@ memorybox_sequence_length = 16
 attention_heads = 2
 movement_neurons = 2
 
+def do_one_crossbreed(brain_one, brain_two, proportion_one_to_two):
+    if(not isinstance(brain_two, type(brain_one))):
+        return None
+    else:
+        brain_child = type(brain_one)(-1)
+        model_one_weights = brain_one.model.get_weights()
+        model_two_weights = brain_two.model.get_weights()
+        child_weights = brain_child.model.get_weights()
+        layerindex = 0
+        for layer in child_weights:
+            for index, weight in np.ndenumerate(layer):
+                if random.random() <= proportion_one_to_two:
+                    layer[index] = model_one_weights[layerindex][index]
+                else:
+                    layer[index] = model_two_weights[layerindex][index]
+            layerindex += 1
+        brain_child.model.set_weights(child_weights)
+        return brain_child
+
+def interbreed_by_fitness(brains):
+    canonical_brain_type = type(brains[0])
+    active_socket_ids = []
+    for brain in brains:
+        active_socket_ids.append(brain.socketID)
+        if not isinstance(brain, canonical_brain_type):
+            return None
+    sorted_brains = sorted(brains, key=lambda brain: brain.fitness, reverse=True)
+    surviving_brains = sorted_brains[0:math.floor(len(sorted_brains) / 2)]
+    for brain in sorted_brains:
+        rank = sorted_brains.index(brain) + 1
+        spouse_index = math.floor(random.triangular(0, len(sorted_brains), 0))
+        spouse = sorted_brains[spouse_index]
+        child = do_one_crossbreed(brain, spouse, 1 / (rank / (spouse_index + 1)))
+        surviving_brains.append(child)
+    while len(surviving_brains) < len(sorted_brains):
+        surviving_brains.append(canonical_brain_type(-1))
+    index = 0
+    for new_generation_brain in surviving_brains:
+        new_generation_brain.socketID = active_socket_ids[index]
+        index += 1
+    return surviving_brains
+
 class IOHandler:
     def __init__(self, socketID):
         self.socketID = socketID
@@ -25,8 +69,10 @@ class IOHandler:
         return self.nextOutput
 
 class SystemHandler(IOHandler):
-    simcode = str(0)
+    simcode = str(1)
     runsim = False
+    do_interbreed = False
+    apply_next_generation = False
     def __init__(self, socketID):
         super(SystemHandler, self).__init__(socketID)
     def handle_input(self, doubles, iohandlerlist):
@@ -53,6 +99,12 @@ class SystemHandler(IOHandler):
                     SystemHandler.runsim = (doubles[i + 1] == 1)
                     print(f"Simulation running? Set to {str(SystemHandler.runsim)}")
                     i = i + 1
+                case float(5): #do_interbreed
+                    print(f"Interbreed event requested! Generating next generation based on current fitness values.")
+                    do_interbreed = True
+                case float(6): #do_interbreed
+                    print(f"Generation advance requested! Reinitializing socket handlers with child generation neural models.")
+                    apply_next_generation = True
             i+=1
 
         self.nextOutput = array.array('d', [float(0)] * 128)
@@ -63,19 +115,32 @@ class Brain(IOHandler):
     def __init__(self, socketID):
         super(Brain, self).__init__(socketID)
         self.model = self._setup_model()
+        self.fitness = 0
     def _setup_model(self):
         return None
+    def process_system_codes(self, codes):
+        i = 1
+        while i < len(codes):
+            match codes[i]:
+                case float(1): #Set fitness value
+                    self.fitness = codes[i + 1]
+                    i += 1
+            i += 1
+
     def save_weights(self):
         self.model.save(f"PyModelWeights/Simulation_{str(SystemHandler.simcode)}/brain_{self.socketID}", overwrite=True)
     def load_weights(self, simcode, socketID):
         self.model = tf.keras.models.load_model(f"PyModelWeights/Simulation_{str(simcode)}/brain_{socketID}")
     def handle_input(self, doubles):
-        if SystemHandler.runsim:
-            #print(f"Handling input starting with {str(doubles[0])}")
-            infer = np.array(self.model(np.array([doubles[0:8]]))).tolist()[0]
-            self.nextOutput = array.array('d', infer)
+        if doubles[0] == sys.float_info.max:
+            self.process_system_codes(doubles)
         else:
-            self.nextOutput = array.array('d', [float(0)] * 128)
+            if SystemHandler.runsim:
+                #print(f"Handling input starting with {str(doubles[0])}")
+                infer = np.array(self.model(np.array([doubles[0:8]]))).tolist()[0]
+                self.nextOutput = array.array('d', infer)
+            else:
+                self.nextOutput = array.array('d', [float(0)] * 128)
 
 class SimpleFeedForwardDense(Brain):
     def __init__(self, socketID):

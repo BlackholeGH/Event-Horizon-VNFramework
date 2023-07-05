@@ -253,9 +253,9 @@ namespace VNFramework
                     }
                     break;
                 case EventNames.TextEnteredFunction:
-                    if (eventPublisher is TextInputField)
+                    if (eventPublisher is ITextInputReceiver)
                     {
-                        TextInputField textfield = (TextInputField)eventPublisher;
+                        ITextInputReceiver textfield = (ITextInputReceiver)eventPublisher;
                         if (subscribe) { textfield.TextEnteredFunction += handler; }
                         else { textfield.TextEnteredFunction -= handler; }
                     }
@@ -440,7 +440,7 @@ namespace VNFramework
                     addCoord += new Point(1, 0);
                 }
                 Vector2 publicCorner = new Vector2(Hitbox.X, Hitbox.Y);
-                Vector2 localCoord = vector - publicCorner;
+                Vector2 localCoord = (vector - publicCorner) / Size;
                 Vector2 atlasConformity = new Vector2(((float)Atlas.SourceRect.Width / Atlas.DivDimensions.X) * AtlasCoordinates.X, ((float)Atlas.SourceRect.Height / Atlas.DivDimensions.Y) * AtlasCoordinates.Y);
                 localCoord += atlasConformity;
                 Color comparitor = orderedAtlas[(int)localCoord.X, (int)localCoord.Y];
@@ -1128,9 +1128,16 @@ namespace VNFramework
         {
             get
             {
-                Rectangle hitbox = new Rectangle(VNFUtils.ConvertVector(Position), new Point(_bufferLength, VerticalLength(true)));
-                base.Hitbox = hitbox;
-                return hitbox;
+                if (!DrawAtlasComponent)
+                {
+                    Rectangle hitbox = new Rectangle(VNFUtils.ConvertVector(Position), new Point(_bufferLength, VerticalLength(true)));
+                    base.Hitbox = hitbox;
+                    return hitbox;
+                }
+                else
+                {
+                    return base.Hitbox;
+                }
             }
         }
         private int _newlineIndent = 0;
@@ -1566,6 +1573,7 @@ namespace VNFramework
         }
         public TextEntity(String name, String textIn, Vector2 location, float depth) : base(name, location, null, depth)
         {
+            DrawAtlasComponent = false;
             _bufferLength = 1000;
             _textChunkR = PreprocessText(textIn, _bufferLength, false, NewlineIndent);
             if(TypeWrite) { _progressiveChunks = RevealXChars(_textChunkR, 0); }
@@ -1682,6 +1690,26 @@ namespace VNFramework
                 }
             }
         }
+        public Boolean DrawAtlasComponent
+        {
+            get; set;
+        }
+        public void AssignTextureAtlas(TAtlasInfo? atlas)
+        {
+            if(atlas != null)
+            {
+                Atlas = (TAtlasInfo)atlas;
+                _drawAtlasTextDifferential = 0.00001f;
+                DrawAtlasComponent = true;
+            }
+            else
+            {
+                Atlas = new TAtlasInfo();
+                _drawAtlasTextDifferential = 0f;
+                DrawAtlasComponent = false;
+            }
+        }
+        private float _drawAtlasTextDifferential = 0f;
         public override void Draw(SpriteBatch spriteBatch)
         {
             if(DrawAsStatic)
@@ -1692,6 +1720,7 @@ namespace VNFramework
             {
                 DrawDynamic(spriteBatch, (Vector2?)null);
             }
+            if(DrawAtlasComponent) { base.Draw(spriteBatch); }
         }
         public override void Draw(SpriteBatch spriteBatch, Camera camera)
         {
@@ -1703,6 +1732,7 @@ namespace VNFramework
             {
                 DrawDynamic(spriteBatch, camera);
             }
+            if (DrawAtlasComponent) { base.Draw(spriteBatch, camera); }
         }
         public void DrawDynamic(SpriteBatch spriteBatch, Vector2? manualNormalizer)
         {
@@ -1711,7 +1741,7 @@ namespace VNFramework
                 foreach (TextChunk textChunk in _textChunkR)
                 {
                     if(textChunk.RainbowMode) { textChunk.Rainbow(); }
-                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                 }
             }
             else
@@ -1719,7 +1749,7 @@ namespace VNFramework
                 foreach (TextChunk textChunk in _progressiveChunks)
                 {
                     if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth);
+                    spriteBatch.DrawString(textChunk.Font, textChunk.Text, new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + (manualNormalizer ?? Position - Origin), textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), 1f, SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                 }
             }
         }
@@ -1733,7 +1763,7 @@ namespace VNFramework
                     foreach (TextChunk textChunk in _textChunkR)
                     {
                         if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                     }
                 }
                 else
@@ -1741,7 +1771,7 @@ namespace VNFramework
                     foreach (TextChunk textChunk in _progressiveChunks)
                     {
                         if (textChunk.RainbowMode) { textChunk.Rainbow(); }
-                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth);
+                        spriteBatch.DrawString(textChunk.Font, textChunk.Text, (new Vector2(textChunk.DrawLocation.X, textChunk.DrawLocation.Y) + Position - Origin + camera.OffsetVector) * camera.ZoomFactor, textChunk.Colour * (ColourValue.A / 255f), 0f, new Vector2(0, 0), camera.ZoomFactor.X, SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                     }
                 }
             }
@@ -1754,7 +1784,7 @@ namespace VNFramework
                 {
                     for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size), VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, Size)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size), VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, Size)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                     }
                 }
             }
@@ -1767,7 +1797,7 @@ namespace VNFramework
                 {
                     for (int y = 0; y < _staticTextures.GetLength(1); y++)
                     {
-                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(Size)), camera.ZoomFactor)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth);
+                        spriteBatch.Draw(_staticTextures[x, y], new Rectangle(VNFUtils.PointMultiply((new Point((int)Position.X, (int)Position.Y) - VNFUtils.ConvertVector(Origin) + VNFUtils.PointMultiply(new Point(x * 1000, y * 1000), Size) + VNFUtils.ConvertVector(camera.OffsetVector)), camera.ZoomFactor), VNFUtils.PointMultiply(VNFUtils.PointMultiply(_staticTextures[x, y].Bounds.Size, VNFUtils.ConvertVector(Size)), camera.ZoomFactor)), _staticTextures[x, y].Bounds, Color.White, 0f, new Vector2(), SpriteEffects.None, LayerDepth + _drawAtlasTextDifferential);
                     }
                 }
             }

@@ -115,6 +115,35 @@ namespace VNFramework
             }
             PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
         }
+        public static void SendUpdateSimcodeCommand(object arg)
+        {
+            int simcode = 0;
+            if (arg is MonitoringTextInputField)
+            {
+                try
+                {
+                    simcode = Int32.Parse(((MonitoringTextInputField)arg).LastSentText);
+                }
+                catch(Exception e)
+                {
+                    return;
+                }
+            }
+            else if (arg is int)
+            {
+                simcode = (int)arg;
+            }
+            Double[] codes = new double[] { 1, (double)simcode };
+            Byte[] data = new byte[1024];
+            int startIndex = 0;
+            foreach (double d in codes)
+            {
+                byte[] thisDouble = BitConverter.GetBytes(d);
+                thisDouble.CopyTo(data, startIndex);
+                startIndex += 8;
+            }
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+        }
         public static void InitMembotsUI()
         {
             if (Shell.GetEntityByName("IMEMBOTS_UIBOX") == null)
@@ -138,6 +167,25 @@ namespace VNFramework
                 startLabel.BufferLength = 120;
                 Shell.UpdateQueue.Add(startLabel);
                 Shell.RenderQueue.Add(startLabel);
+            }
+            if (Shell.GetEntityByName("IMEMBOTS_SIMIDFIELDLABEL") == null)
+            {
+                TextEntity simFieldLabel = new TextEntity("IMEMBOTS_SIMIDFIELDLABEL", "[F:SYSFONT]ID of current simulation (must be a positive integer):", new Vector2(180, 560), 0.95f);
+                simFieldLabel.IsUIElement = true;
+                simFieldLabel.BufferLength = 240;
+                Shell.UpdateQueue.Add(simFieldLabel);
+                Shell.RenderQueue.Add(simFieldLabel);
+            }
+            if (Shell.GetEntityByName("IMEMBOTS_SIMIDFIELD") == null)
+            {
+                ToggleableTextInputField toggleTextInput = new ToggleableTextInputField("IMEMBOTS_SIMIDFIELD", "1", new Vector2(180, 620), 0.95f);
+                toggleTextInput.AssignTextureAtlas((TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_HIGHLIGHTTOGGLE"]);
+                toggleTextInput.Scale(new Vector2(100 / 30, -0.25f));
+                toggleTextInput.IsUIElement = true;
+                toggleTextInput.BufferLength = 120;
+                toggleTextInput.SubscribeToEvent(WorldEntity.EventNames.TextEnteredFunction, typeof(IterativeMemBoTs).GetMethod("SendUpdateSimcodeCommand"), new object[] { toggleTextInput });
+                Shell.UpdateQueue.Add(toggleTextInput);
+                Shell.RenderQueue.Add(toggleTextInput);
             }
             if (Shell.GetEntityByName("IMEMBOTS_STARTSTOPBUTTON") == null)
             {
@@ -384,20 +432,40 @@ namespace VNFramework
             }
             public float SelfMovementForceMultiplier { get; set; }
             public float SelfRotationRate { get; set; }
+            public void SendSystemCodes(double[] codesToSend)
+            {
+                _lastSystemCodes = codesToSend;
+            }
+            double[] _lastSystemCodes = null;
+            public static readonly int SenseFrequency = 4;
+            int _senseClock = Shell.Rnd.Next(0, SenseFrequency);
             public override void Update()
             {
                 if (AutoRotateToVelocityBearing) { RotationRads = (float)new VNFramework.GraphicsTools.Trace(Velocity).Bearing; }
 
-                _senseCodes = SenseEnvironment();
+                _senseClock = (_senseClock + 1) % SenseFrequency;
 
-                DispatchCodesToSocket(_senseCodes);
+                if (_senseClock == 0) { _senseCodes = SenseEnvironment(); }
 
-                double[] receive = GetCodesFromSocket();
-                if(receive.Length > 0)
+                if (_lastSystemCodes == null)
                 {
-                    _controlCodes = receive;
-                    //Shell.WriteLine("Receieved on socket " + SocketID + ": " + receive[0]);
+                    DispatchCodesToSocket(_senseCodes);
+                    double[] receive = GetCodesFromSocket();
+                    if (receive.Length > 0)
+                    {
+                        _controlCodes = receive;
+                    }
                 }
+                else
+                {
+                    DispatchCodesToSocket(_lastSystemCodes);
+                    double[] receive = GetCodesFromSocket();
+                    if (receive.Length > 0 && receive[0] == Double.MaxValue)
+                    {
+                        _lastSystemCodes = null;
+                    }
+                }
+
                 ApplyForce(ForwardTrace.AsAlignedVector * (float)_controlCodes[0] * SelfMovementForceMultiplier);
                 Rotate((float)_controlCodes[1] * SelfRotationRate);
                 base.Update();

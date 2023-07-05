@@ -778,15 +778,48 @@ namespace VNFramework
     public interface ITextInputReceiver
     {
         void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour);
+        public event VoidDel TextEnteredFunction;
+        public Boolean Enabled { get; set; }
     }
-    public class TextInputField : TextEntity, ITextInputReceiver
+    public class MonitoringTextInputField : TextEntity, ITextInputReceiver
     {
-        private Behaviours.TextInputBehaviour myTextInput;
-        public TextInputField(String name, String initialText, Vector2 location, float depth) : base(name, "[F:SYSFONT]" + initialText, location, depth)
+        protected Behaviours.TextInputBehaviour myTextInput { get; set; }
+        public MonitoringTextInputField(String name, String initialText, Vector2 location, float depth) : base(name, initialText, location, depth)
         {
             TypeWrite = false;
-            myTextInput = new Behaviours.TextInputBehaviour();
+            TextRenderParamString = "[F:SYSFONT]";
+            Text = TextRenderParamString + initialText;
+            myTextInput = new Behaviours.TextInputBehaviour(false, initialText);
+            TIREnabled += () => { myTextInput.UpdateEnabled(this); };
             MyBehaviours.Add(myTextInput);
+            Enabled = true;
+        }
+        public event VoidDel TIREnabled;
+        Boolean _enabled = false;
+        public virtual Boolean Enabled
+        {
+            get
+            {
+                return _enabled;
+            }
+            set
+            {
+                _enabled = value;
+                TIREnabled.Invoke();
+                if(_enabled)
+                {
+                    Shell.UsingKeyboardInputs = this;
+                }
+                else if(Shell.UsingKeyboardInputs == this)
+                {
+                    Shell.UsingKeyboardInputs = null;
+                }
+            }
+        }
+        public override void ManualDispose()
+        {
+            if(Shell.UsingKeyboardInputs == this) { Shell.UsingKeyboardInputs = null; }
+            base.ManualDispose();
         }
         private String _lastSentText = "";
         public String LastSentText
@@ -794,14 +827,15 @@ namespace VNFramework
             get { return _lastSentText; }
             protected set { _lastSentText = value; }
         }
-        public void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour)
+        public String TextRenderParamString { get; set; }
+        public virtual void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour)
         {
             StringBuilder initText = new StringBuilder(myTextInputBehaviour.HeldString.Replace('[', '(').Replace(']', ')'));
             while(Shell.SysFont.MeasureString(initText).X > BufferLength)
             {
                 initText.Remove(0, 1);
             }
-            Text = "[F:SYSFONT]" + initText;
+            Text = TextRenderParamString + initText;
             if(myTextInputBehaviour.HeldStringChangedFlag)
             {
                 myTextInputBehaviour.HeldStringChangedFlag = false;
@@ -809,11 +843,72 @@ namespace VNFramework
                 TextEnteredFunction?.Invoke();
             }
         }
-        public void ManualSendEnterSignal()
+        public virtual void ManualSendEnterSignal()
         {
-            myTextInput.TextEntryTrigger();
+            myTextInput.TextEntryTriggerOnEnterPress();
         }
         [field: NonSerialized]
         public event VoidDel TextEnteredFunction;
+    }
+    public class ToggleableTextInputField : MonitoringTextInputField
+    {
+        public ToggleableTextInputField(String name, String initialText, Vector2 location, float depth) : base(name, initialText, location, depth)
+        {
+            DrawAtlasComponent = true;
+            TypeWrite = false;
+            TextRenderParamString = "[F:SYSFONT,L:5-5]";
+            Text = TextRenderParamString + initialText;
+            myTextInput.TriggerWithoutEnterPress = true;
+            Enabled = false;
+        }
+        public override void AddEventTriggers()
+        {
+            base.AddEventTriggers();
+            Shell.MouseLeftClick += ToggleCheckTextInputTrigger;
+        }
+        public override void RemoveEventTriggers()
+        {
+            base.RemoveEventTriggers();
+            Shell.MouseLeftClick -= ToggleCheckTextInputTrigger;
+        }
+        public override void ClickTrigger()
+        {
+            ToggleCheckTextInputTrigger();
+            base.ClickTrigger();
+        }
+        protected virtual void ToggleCheckTextInputTrigger()
+        {
+            if (MouseInBounds() && !Enabled && !Shell.ConsoleOpen)
+            {
+                Enabled = true;
+            }
+            else if (Enabled)
+            {
+                Enabled = false;
+            }
+        }
+        public override Boolean Enabled
+        {
+            get
+            {
+                return base.Enabled;
+            }
+            set
+            {
+                base.Enabled = value;
+                if (value)
+                {
+                    AtlasCoordinates = new Point(1, AtlasCoordinates.Y);
+                }
+                else
+                {
+                    AtlasCoordinates = new Point(0, AtlasCoordinates.Y);
+                }
+            }
+        }
+        public override void ManualSendEnterSignal()
+        {
+            myTextInput.TextEntryTriggerOnAny();
+        }
     }
 }

@@ -60,7 +60,7 @@ namespace VNFramework
             }
             public void UpdateFunctionality(WorldEntity worldEntity)
             {
-                if (worldEntity is DynamicEntity)
+                if (worldEntity is DynamicEntity && !(Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != worldEntity))
                 {
                     DynamicEntity dynamicEntity = (DynamicEntity)worldEntity;
                     KeyboardState kState = Keyboard.GetState();
@@ -177,10 +177,11 @@ namespace VNFramework
                 invert = true;
                 trace = new Trace(new Vector2(trace.Origin.Y, trace.Origin.X), new Vector2(trace.Terminus.Y, trace.Terminus.X));
             }
+            Vector2 centerPoint = invert ? new Vector2(CenterPoint.Y, CenterPoint.X) : CenterPoint;
             //(m2+1)x2+2(mc−mq−p)x+(q2−r2+p2−2cq+c2)=0.
             Double a = Math.Pow(trace.Slope, 2) + 1;
-            Double b = 2 * ((trace.Slope * trace.YIntercept) - (trace.Slope * CenterPoint.Y) - CenterPoint.X);
-            Double c = Math.Pow(CenterPoint.Y, 2) - Math.Pow(Radius, 2) + Math.Pow(CenterPoint.X, 2) - (2 * trace.YIntercept * CenterPoint.Y) + Math.Pow(trace.YIntercept, 2);
+            Double b = 2 * ((trace.Slope * trace.YIntercept) - (trace.Slope * centerPoint.Y) - centerPoint.X);
+            Double c = Math.Pow(centerPoint.Y, 2) - Math.Pow(Radius, 2) + Math.Pow(centerPoint.X, 2) - (2 * trace.YIntercept * centerPoint.Y) + Math.Pow(trace.YIntercept, 2);
             List<Vector2> validOut = new List<Vector2>();
             Double x1 = (-b + Math.Sqrt(Math.Pow(b, 2) - (4 * a * c))) / (2 * a);
             if (!Double.IsNaN(x1))

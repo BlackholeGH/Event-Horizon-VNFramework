@@ -19,12 +19,34 @@ namespace VNFramework
         [Serializable]
         public class TextInputBehaviour : IVNFBehaviour
         {
-            public TextInputBehaviour()
+            private Boolean _triggerWithoutEnterPress = false;
+            public Boolean TriggerWithoutEnterPress
+            {
+                get
+                {
+                    return _triggerWithoutEnterPress;
+                }
+                set
+                {
+                    _triggerWithoutEnterPress = value;
+                    if(_triggerWithoutEnterPress && Scrollers.Count == 0)
+                    {
+                        Scrollers.Add(HeldString);
+                    }
+                }
+            }
+            public TextInputBehaviour(bool triggerWithoutEnterPress, String initialText)
             {
                 InputUpdated = false;
+                ConstructHeldString.Append(initialText);
                 Shell.DefaultShell.Window.TextInput += HandleTextInputEvent;
                 Shell.DefaultShell.Window.KeyDown += Up;
                 Shell.DefaultShell.Window.KeyDown += Down;
+                TriggerWithoutEnterPress = triggerWithoutEnterPress;
+                if(TriggerWithoutEnterPress)
+                {
+                    Scrollers.Add(initialText);
+                }
             }
             public void Clear()
             {
@@ -38,7 +60,8 @@ namespace VNFramework
             }
             void HandleTextInputEvent(object EventSender, TextInputEventArgs e)
             {
-                if(e.Key != Keys.Enter && e.Key != Keys.Back && e.Key != Keys.Escape)
+                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
+                if (e.Key != Keys.Enter && e.Key != Keys.Back && e.Key != Keys.Escape && e.Key != Keys.OemTilde)
                 {
                     if(e.Character != '\0') { ConstructHeldString.Append(e.Character.ToString()[0]); }
                     InputUpdated = true;
@@ -48,12 +71,24 @@ namespace VNFramework
                     ConstructHeldString.Remove(ConstructHeldString.Length - 1, 1);
                     InputUpdated = true;
                 }
+                if(TriggerWithoutEnterPress && InputUpdated)
+                {
+                    TextEntryTriggerOnAny();
+                }
                 else if(e.Key == Keys.Enter)
                 {
-                    TextEntryTrigger();
+                    TextEntryTriggerOnEnterPress();
                 }
             }
-            public void TextEntryTrigger()
+            public void TextEntryTriggerOnAny()
+            {
+                pLastHeldString = HeldString;
+                //Scrollers.RemoveRange(ScrollIndex, Scrollers.Count - ScrollIndex);
+                Scrollers.Add(HeldString);
+                ScrollIndex = Scrollers.Count - 1;
+                HeldStringChangedFlag = true;
+            }
+            public void TextEntryTriggerOnEnterPress()
             {
                 pLastHeldString = HeldString;
                 //Scrollers.RemoveRange(ScrollIndex, Scrollers.Count - ScrollIndex);
@@ -65,15 +100,22 @@ namespace VNFramework
             }
             public void Up(object EventSender, InputKeyEventArgs e)
             {
-                if(ScrollIndex > 0 && e.Key == Microsoft.Xna.Framework.Input.Keys.Up)
+                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
+                if (ScrollIndex > 0 && e.Key == Microsoft.Xna.Framework.Input.Keys.Up)
                 {
                     ScrollIndex--;
                     ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
                     InputUpdated = true;
+                    if (TriggerWithoutEnterPress)
+                    {
+                        pLastHeldString = HeldString;
+                        HeldStringChangedFlag = true;
+                    }
                 }
             }
             public void Down(object EventSender, InputKeyEventArgs e)
             {
+                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
                 if (e.Key == Microsoft.Xna.Framework.Input.Keys.Down)
                 {
                     if (ScrollIndex < Scrollers.Count - 1)
@@ -81,8 +123,13 @@ namespace VNFramework
                         ScrollIndex++;
                         ConstructHeldString = new StringBuilder(Scrollers[ScrollIndex]);
                         InputUpdated = true;
+                        if (TriggerWithoutEnterPress)
+                        {
+                            pLastHeldString = HeldString;
+                            HeldStringChangedFlag = true;
+                        }
                     }
-                    else if (ScrollIndex == Scrollers.Count - 1)
+                    else if (ScrollIndex == Scrollers.Count - 1 && !TriggerWithoutEnterPress)
                     {
                         ScrollIndex++;
                         ConstructHeldString = new StringBuilder();
@@ -104,11 +151,18 @@ namespace VNFramework
                 }
             }
             public String LastHeldString { get { return pLastHeldString; } }
-            public void UpdateFunctionality(WorldEntity BehaviourOwner)
+            private Boolean _enabled = false;
+            public void UpdateEnabled(ITextInputReceiver textInputReceiver)
             {
-                if(BehaviourOwner is ITextInputReceiver && InputUpdated)
+                if (_enabled != textInputReceiver.Enabled) { _enabled = textInputReceiver.Enabled; }
+            }
+            WorldEntity _myLastOwner = null;
+            public void UpdateFunctionality(WorldEntity behaviourOwner)
+            {
+                if(_myLastOwner != behaviourOwner) { _myLastOwner = behaviourOwner; }
+                if(behaviourOwner is ITextInputReceiver && InputUpdated)
                 {
-                    ((ITextInputReceiver)BehaviourOwner).DoTextInputActionable(this);
+                    ((ITextInputReceiver)behaviourOwner).DoTextInputActionable(this);
                     InputUpdated = false;
                 }
             }

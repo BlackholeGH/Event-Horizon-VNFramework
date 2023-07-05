@@ -36,7 +36,7 @@ namespace VNFramework
     /// <summary>
     /// The Shell class is instanced on game load and is responsible for managing the application backend, including loading data, displaying graphics and audio, the update loop for entities, and performing save/load operations.
     /// </summary>
-    public class Shell : Game
+    public partial class Shell : Game
     {
         public static String FrameworkVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString() + " (" + System.Reflection.Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>().InformationalVersion + ")";
         public static Random Rnd = new Random();
@@ -251,170 +251,6 @@ namespace VNFramework
             ButtonScripts.UnHideUI();
         }
         public static VoidDel GlobalVoid = null;
-        private static object s_cWriteLockObj = new object();
-        public static String PullInternalConsoleData
-        {
-            get
-            {
-                StringBuilder outputBuilder = new StringBuilder();
-                for (int i = InternalLog.Count > 101 ? InternalLog.Count - 101 : 0; i < InternalLog.Count; i++)
-                {
-                    outputBuilder.Append("[I]");
-                    foreach (object o in InternalLog[i])
-                    {
-                        if (o is Color)
-                        {
-                            Color textColour = (Color)o;
-                            if (textColour == Color.White)
-                            {
-                                outputBuilder.Append("[F:SYSFONT]");
-                            }
-                            else
-                            {
-                                outputBuilder.Append(String.Format("[F:SYSFONT,C:{0}-{1}-{2}-{3}]", textColour.R, textColour.G, textColour.B, textColour.A));
-                            }
-                        }
-                        else if (o is String)
-                        {
-                            outputBuilder.Append((String)o);
-                        }
-                    }
-                    outputBuilder.Append("[N]");
-                }
-                outputBuilder.Remove(outputBuilder.Length - 3, 3);
-                return outputBuilder.ToString();
-            }
-        }
-        static String s_lastManualConsoleInput = "";
-        public static String LastManualConsoleInput
-        {
-            get { return s_lastManualConsoleInput; }
-        }
-        public static void HandleConsoleInput(String input)
-        {
-            s_lastManualConsoleInput = input;
-            SortedDictionary<int, Color> colours = new SortedDictionary<int, Color>();
-            colours.Add(0, Color.LightGreen);
-            WriteLine(input, colours);
-            String[] commands = input.Split(' ');
-            try
-            {
-                switch (commands[0].ToUpper())
-                {
-                    //Run ScriptProcessor commands as a forced script shift (by default, shift conditions are unchanged).
-                    case "INSERT":
-                        ScriptProcessor.ScriptSniffer foundSniffer = ScriptProcessor.SnifferSearch();
-                        if (foundSniffer != null)
-                        {
-                            foundSniffer.ForceInsertScriptElement((input.Remove(0, input.IndexOf(' ') + 1)).Split(' '), false);
-                        }
-                        else { WriteLine("Cannot insert new script shift as a script is not running."); }
-                        break;
-                    //Activate a single script element.
-                    case "ACTIVATE":
-                        ScriptProcessor.ActivateScriptElement(input.Remove(0, input.IndexOf(' ') + 1));
-                        break;
-                    //Freshly load a new script.
-                    case "LOAD":
-                        WriteLine("Attempting to load script " + commands[1].ToUpper() + ".");
-                        RunQueue.Add(new VoidDel(() => ButtonScripts.StartScript(commands[1].ToUpper(), true)));
-                        break;
-                    //Executes a function statement per the EntityFactory's inbuilt function parser.
-                    case "DO":
-                        RunQueue.Add(EntityFactory.AssembleVoidDelegate("do=" + input.Remove(0, input.IndexOf(' ') + 1)));
-                        break;
-                    //Executes a method specifier (instance return) per the EntityFactory's inbuilt function parser.
-                    case "RUN":
-                        RunQueue.Add(EntityFactory.AssembleVoidDelegate(input.Remove(0, input.IndexOf(' ') + 1)));
-                        break;
-                    //Fork to a new script from your current state. Equivalent to "do B|[Script name]".
-                    case "FORK":
-                        ScriptProcessor.ActivateScriptElement("B|" + commands[1].ToUpper());
-                        break;
-                    //Close the program.
-                    case "QUIT":
-                        WriteLine("Closing the VNF client...");
-                        ExitOut = true;
-                        break;
-                    default:
-                        WriteLine("Unrecognized command.");
-                        break;
-                }
-            }
-            catch (Exception e)
-            {
-                WriteLine(e.GetType().Name + ": " + e.Message);
-            }
-        }
-        public static event Action<String> ConsoleWrittenTo;
-        public static void WriteLine(String text)
-        {
-            WriteLine(text, null);
-        }
-        public static Boolean ConsoleWritesOverlay { get; set; }
-        public static void WriteLine(String text, SortedDictionary<int, Color> colourArgs)
-        {
-            if(ConsoleWritesOverlay)
-            {
-                RequestDisplaySystemText(text);
-            }
-            String time = "(" + System.DateTime.Now.ToLongTimeString() + ")";
-            if (s_hasConsole) { Console.WriteLine(time + " " + text); }
-            text = text.Replace('[', '(').Replace(']', ')');
-            ArrayList store = new ArrayList();
-            store.Add(Color.Yellow);
-            store.Add(time + " ");
-            if (colourArgs != null)
-            {
-                Color rollingColour = Color.White;
-                int lastI = 0;
-                foreach (int i in colourArgs.Keys)
-                {
-                    if (i - lastI > 0)
-                    {
-                        String Seg = text.Substring(lastI, i - lastI);
-                        store.Add(rollingColour);
-                        store.Add(Seg);
-                    }
-                    rollingColour = colourArgs[i];
-                    lastI = i;
-                }
-                if (lastI < text.Length)
-                {
-                    store.Add(rollingColour);
-                    store.Add(text.Remove(0, lastI));
-                }
-            }
-            else
-            {
-                store.Add(Color.White);
-                store.Add(text);
-            }
-            object[] thisEntry = store.ToArray();
-            InternalLog.Add(thisEntry);
-            ConsoleWrittenTo?.Invoke(text);
-            try
-            {
-                Monitor.Enter(s_cWriteLockObj);
-                _lastLogLine = text;
-            }
-            finally { Monitor.Exit(s_cWriteLockObj); }
-        }
-        private static String _lastLogLine = "";
-        public static String LastLogLine
-        {
-            get
-            {
-                String outString = "";
-                try
-                {
-                    Monitor.Enter(s_cWriteLockObj);
-                    outString = _lastLogLine;
-                }
-                finally { Monitor.Exit(s_cWriteLockObj); }
-                return outString;
-            }
-        }
         public static Boolean QueryFullscreen()
         {
             return s_graphics.IsFullScreen;
@@ -512,7 +348,11 @@ namespace VNFramework
                     WindowSize = s_resolution;
                     s_graphics.ApplyChanges();
                 }
-                if (AutoCamera != null) { AutoCamera.RecenterCamera(); }
+                if (AutoCamera != null)
+                {
+                    AutoCamera.RecenterPosition = s_resolution / 2;
+                    AutoCamera.RecenterCamera();
+                }
             }
         }
         public static Shell DefaultShell { get; set; }
@@ -549,6 +389,7 @@ namespace VNFramework
             SaveLoadModule.InitializeAppFolders();
             LooseCamera = true;
             AutoCamera = new Camera("Default Shell Autocamera");
+            UsingKeyboardInputs = null;
             Mute = false;
             GlobalVolume = 0.6f;
             PauseUpdates = false;
@@ -963,6 +804,7 @@ namespace VNFramework
             }
             base.Update(gameTime);
         }
+        public static WorldEntity UsingKeyboardInputs { get; set; }
         public static Boolean ConsoleOpen { get; set; }
         public static Color BackdropColour { get; set; }
         public Boolean PauseUpdates { get; set; }
@@ -975,6 +817,7 @@ namespace VNFramework
             DefaultShell._systemTextQueue.Enqueue(message);
         }
         //Double lastTotalKE = 0d;
+        WorldEntity _preConsoleUsingKeyboard = null;
         protected void MainUpdate(GameTime gameTime, KeyboardState kCurrent)
         {
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
@@ -990,27 +833,29 @@ namespace VNFramework
             {
                 if (!ConsoleOpen)
                 {
+                    _preConsoleUsingKeyboard = UsingKeyboardInputs;
                     ButtonScripts.OpenAndConstructConsole();
                     ConsoleOpen = true;
                 }
                 else
                 {
                     ButtonScripts.CloseConsole();
+                    UsingKeyboardInputs = _preConsoleUsingKeyboard;
                     ConsoleOpen = false;
                 }
             }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && ScriptProcessor.ActiveGame())
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && UsingKeyboardInputs is null && ScriptProcessor.ActiveGame())
             {
                 ButtonScripts.RefreshUIHideState();
             }
             if (AutoCamera != null && LooseCamera)
             {
-                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R))
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && UsingKeyboardInputs is null)
                 {
                     AutoCamera.RecenterCamera();
                     AutoCamera.ResetZoom();
                 }
-                AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F);
+                AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && UsingKeyboardInputs is null;
                 if(!UpdateQueue.Contains(AutoCamera)) { UpdateQueue.Add(AutoCamera); }
             }
             if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
@@ -1018,7 +863,7 @@ namespace VNFramework
                 PythonController.SocketInterface.CloseAllSockets();
                 Exit();
             }
-            if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen) || DoNextShifter) && AllowEnter)
+            if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen && UsingKeyboardInputs is null) || DoNextShifter) && AllowEnter)
             {
                 DoNextShifter = false;
                 Boolean found = false;
@@ -1036,8 +881,8 @@ namespace VNFramework
             }      
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
             if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down)) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity + 0.02) * 100) / 100f; }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up)) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity - 0.02) * 100) / 100f; }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity + 0.02) * 100) / 100f; }
+            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity - 0.02) * 100) / 100f; }
             LastKeyState = kCurrent;
             int currentSystemMessageDisplayTotal = 0;
             while(_systemTextQueue.Count > 0)

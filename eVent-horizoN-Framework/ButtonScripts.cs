@@ -516,7 +516,7 @@ namespace VNFramework
             ConsoleWindow.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
             ConsoleWindow.OverlayUtility = true;
             ConsoleWindow.CameraImmune = true;
-            TextInputField ConsoleField = new TextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
+            MonitoringTextInputField ConsoleField = new MonitoringTextInputField("CONSOLE_TEXTINPUT", "", new Vector2(30, 277), 0.999f);
             ConsoleField.BufferLength = 1150;
             ConsoleField.OverlayUtility = true;
             ConsoleField.CameraImmune = true;
@@ -524,7 +524,7 @@ namespace VNFramework
             ConsoleButton.OverlayUtility = true;
             ConsoleButton.CenterOrigin = false;
             ConsoleButton.CameraImmune = true;
-            ConsoleField.SubscribeToEvent(ConsoleButton, WorldEntity.EventNames.ButtonPressFunction, typeof(TextInputField).GetMethod("ManualSendEnterSignal"), null);
+            ConsoleField.SubscribeToEvent(ConsoleButton, WorldEntity.EventNames.ButtonPressFunction, typeof(MonitoringTextInputField).GetMethod("ManualSendEnterSignal"), null);
             ConsoleField.TextEnteredFunction += new VoidDel(delegate ()
             {
                 Shell.HandleConsoleInput(ConsoleField.LastSentText);
@@ -547,7 +547,7 @@ namespace VNFramework
                     Shell.DeleteQueue.Add(E);
                 }
                 else if (E is Button && E.Name == "CONSOLE_ENTER_BUTTON" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is TextInputField && E.Name == "CONSOLE_TEXTINPUT" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
+                else if (E is MonitoringTextInputField && E.Name == "CONSOLE_TEXTINPUT" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
                 else if (E.Name == "CONSOLE_BACKING_UI" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
             }
         }
@@ -611,6 +611,10 @@ namespace VNFramework
                     {
                         ((Button)worldEntity).Enabled = false;
                     }
+                    if (worldEntity is ITextInputReceiver)
+                    {
+                        ((ITextInputReceiver)worldEntity).Enabled = false;
+                    }
                     if (worldEntity is ScrollBar)
                     {
                         ((ScrollBar)worldEntity).Enabled = false;
@@ -633,6 +637,10 @@ namespace VNFramework
                     if (worldEntity is Button)
                     {
                         ((Button)worldEntity).Enabled = true;
+                    }
+                    if (worldEntity is ITextInputReceiver && !(worldEntity is ToggleableTextInputField))
+                    {
+                        ((ITextInputReceiver)worldEntity).Enabled = true;
                     }
                     if (worldEntity is ScrollBar)
                     {
@@ -739,6 +747,10 @@ namespace VNFramework
                         worldEntity.Drawable = true;
                     }
                 }
+                if (worldEntity is ITextInputReceiver && !(worldEntity is ToggleableTextInputField))
+                {
+                    ((ITextInputReceiver)worldEntity).Enabled = true;
+                }
                 if (worldEntity is ScrollBar)
                 {
                     ((ScrollBar)worldEntity).Enabled = true;
@@ -758,13 +770,14 @@ namespace VNFramework
             Paused = true;
             ScriptProcessor.AllowScriptShift = false;
             Shell.AllowEnter = false;
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E.OverlayUtility) { continue; }
+                if (worldEntity.OverlayUtility) { continue; }
                 //if (E is TextEntity) { E.Drawable = false; }
-                if (E is Button) { ((Button)E).Enabled = false; }
-                if (E is ScrollBar) { ((ScrollBar)E).Enabled = false; }
-                if (E is VerticalScrollPane) { ((VerticalScrollPane)E).Enabled = false; }
+                if (worldEntity is Button) { ((Button)worldEntity).Enabled = false; }
+                if (worldEntity is ITextInputReceiver) { ((ITextInputReceiver)worldEntity).Enabled = false; }
+                if (worldEntity is ScrollBar) { ((ScrollBar)worldEntity).Enabled = false; }
+                if (worldEntity is VerticalScrollPane) { ((VerticalScrollPane)worldEntity).Enabled = false; }
             }
             WorldEntity Pane = new WorldEntity("PAUSE_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUPANE"], 0.97f);
             Pane.CenterOrigin = true;

@@ -21,12 +21,23 @@ class SocketManager:
             if mask & selectors.EVENT_READ:
                 recv_data = sock.recv(1024)
                 if recv_data:
-                    if sockID == 0:
-                        print(f"Received! {sockID}")
                     doubles = array.array('d', recv_data)
                     handler = self.ioHandlers[sockID]
                     if isinstance(handler, brains.SystemHandler):
                         handler.handle_input(doubles, self.ioHandlers)
+                        if brains.SystemHandler.do_interbreed:
+                            brain_handlers = []
+                            for handler_scan in self.ioHandlers.values:
+                                if isinstance(handler_scan, brains.Brain):
+                                    brain_handlers.append(handler_scan)
+                            self.next_generation = brains.interbreed_by_fitness(brain_handlers)
+                            brains.SystemHandler.do_interbreed = False
+                        if brains.SystemHandler.apply_next_generation:
+                            new_list = [handler].extend(self.next_generation)
+                            self.ioHandlers = dict()
+                            for next_handler in new_list:
+                                self.ioHandlers[next_handler.socketID] = next_handler
+                            brains.SystemHandler.apply_next_generation = False
                     else:
                         #print(f"Requesting to handle input: {sockID}")
                         handler.handle_input(doubles)
@@ -85,6 +96,7 @@ class SocketManager:
         self.nextConnectionID = 0
         self.toDispatch = dict()
         self.ioHandlers = dict()
+        self.next_generation = []
         self.sel = selectors.DefaultSelector()
         self.serSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serSocket.bind((HOST, PORT))
