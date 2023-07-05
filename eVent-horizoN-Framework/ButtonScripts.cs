@@ -434,58 +434,58 @@ namespace VNFramework
             Shell.PubGD.SetRenderTarget(null);
             return (Texture2D)Output;
         }
-        public static Texture2D CreateDynamicTextCheckbox(String Text, float Width)
+        public static Texture2D CreateDynamicTextCheckbox(String text, float width)
         {
-            Texture2D A = CreateDynamicCustomButton(Text, Width);
-            Texture2D B = CreateCustomButton(Text, new Vector2(Width, -1), new Color(138, 0, 255, 255), new Color(255, 255, 255, 255), new Color(70, 70, 70, 255));
+            Texture2D A = CreateDynamicCustomButton(text, width);
+            Texture2D B = CreateCustomButton(text, new Vector2(width, -1), new Vector2(15, 15), new Color(138, 0, 255, 255), new Color(70, 70, 70, 255), new Color(255, 255, 255, 200));
             Texture2D Out = VNFUtils.CombineTextures(Shell.DefaultShell, new Point(A.Width, A.Height + B.Height), A, A.Bounds, new Vector2(), new Vector2(1, 1), B, B.Bounds, new Vector2(0, A.Height), new Vector2(1, 1));
             return Out;
         }
         public static Texture2D CreateDynamicCustomButton(String Text, float Width)
         {
-            return CreateCustomButton(Text, new Vector2(Width, -1), new Color(138, 0, 255, 255), new Color(129, 129, 129, 255), new Color(70, 70, 70, 255));
+            return CreateCustomButton(Text, new Vector2(Width, -1), new Vector2(15, 15), new Color(138, 0, 255, 255), new Color(70, 70, 70, 255), new Color(129, 129, 129, 200));
         }
-        public static Texture2D CreateCustomButton(String Text, Vector2 ButtonDimensions, Color ActiveColour, Color BackgroundColour, Color EdgeColour)
+        public static Texture2D CreateCustomButton(String text, Vector2 buttonDimensions, Vector2 buttonTextBuffer, Color highlightColour, Color unhighlightColour, Color backgroundColour)
         {
-            TextEntity SText = new TextEntity("SCROLL_TEXT", "", new Vector2(20, 15), 1);
-            SText.TypeWrite = false;
-            SText.BufferLength = (int)ButtonDimensions.X - 40;
-            SText.Text = "[C:" + EdgeColour.R + "-" + EdgeColour.G + "-" + EdgeColour.B + "-255]" + Text;
-            if (ButtonDimensions.Y == -1)
+            TextEntity customText = new TextEntity("CUSTOM_BUTTON_TEXT", "", buttonTextBuffer, 1);
+            customText.TypeWrite = false;
+            customText.BufferLength = (int)(buttonDimensions.X + 10 - (buttonTextBuffer.X * 2));
+            customText.Text = "[C:" + unhighlightColour.R + "-" + unhighlightColour.G + "-" + unhighlightColour.B + "-255]" + text;
+            if (buttonDimensions.Y == -1)
             {
-                ButtonDimensions.Y = SText.VerticalLength(true) + 20;
+                buttonDimensions.Y = customText.VerticalLength(true) + 20;
             }
-            RenderTarget2D MiddlePane = new RenderTarget2D(Shell.PubGD, (int)ButtonDimensions.X, (int)ButtonDimensions.Y, false,
+            RenderTarget2D centerPane = new RenderTarget2D(Shell.PubGD, (int)buttonDimensions.X, (int)buttonDimensions.Y, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
-            Shell.PubGD.SetRenderTarget(MiddlePane);
-            Shell.PubGD.Clear(BackgroundColour);
-            RenderTarget2D PurplePane = new RenderTarget2D(Shell.PubGD, (int)ButtonDimensions.X + 10, (int)ButtonDimensions.Y + 10, false,
+            Shell.PubGD.SetRenderTarget(centerPane);
+            Shell.PubGD.Clear(new Color((int)backgroundColour.R, (int)backgroundColour.G, (int)backgroundColour.B, 255));
+            RenderTarget2D highlightPane = new RenderTarget2D(Shell.PubGD, (int)buttonDimensions.X + 10, (int)buttonDimensions.Y + 10, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
-            Shell.PubGD.SetRenderTarget(PurplePane);
-            Shell.PubGD.Clear(ActiveColour);
-            RenderTarget2D Output = new RenderTarget2D(Shell.PubGD, (int)(ButtonDimensions.X + 10)*2, (int)ButtonDimensions.Y + 10, false,
+            Shell.PubGD.SetRenderTarget(highlightPane);
+            Shell.PubGD.Clear(highlightColour);
+            RenderTarget2D Output = new RenderTarget2D(Shell.PubGD, (int)(buttonDimensions.X + 10)*2, (int)buttonDimensions.Y + 10, false,
                 Shell.PubGD.PresentationParameters.BackBufferFormat,
                 DepthFormat.Depth24);
             Shell.PubGD.SetRenderTarget(Output);
-            Shell.PubGD.Clear(EdgeColour);
+            Shell.PubGD.Clear(unhighlightColour);
             SpriteBatch spriteBatch = new SpriteBatch(Shell.PubGD);
             spriteBatch.Begin(SpriteSortMode.FrontToBack, BlendState.AlphaBlend, SamplerState.PointClamp, null, null, null, null);
-            spriteBatch.Draw(PurplePane, new Rectangle((int)ButtonDimensions.X + 10, 0, (int)ButtonDimensions.X + 10, (int)ButtonDimensions.Y + 10), Color.White);
-            spriteBatch.Draw(MiddlePane, new Rectangle(5, 5, (int)ButtonDimensions.X, (int)ButtonDimensions.Y), Color.White);
-            spriteBatch.Draw(MiddlePane, new Rectangle((int)ButtonDimensions.X + 15, 5, (int)ButtonDimensions.X, (int)ButtonDimensions.Y), Color.White);
-            SText.Draw(spriteBatch);
-            SText.Text = "[C:" + ActiveColour.R + "-" + ActiveColour.G + "-" + ActiveColour.B + "-255]" + Text;
-            SText.Move(new Vector2(ButtonDimensions.X + 10, 0));
-            SText.Draw(spriteBatch);
+            spriteBatch.Draw(highlightPane, new Rectangle((int)buttonDimensions.X + 10, 0, (int)buttonDimensions.X + 10, (int)buttonDimensions.Y + 10), Color.White);
+            spriteBatch.Draw(centerPane, new Rectangle(5, 5, (int)buttonDimensions.X, (int)buttonDimensions.Y), Color.White);
+            spriteBatch.Draw(centerPane, new Rectangle((int)buttonDimensions.X + 15, 5, (int)buttonDimensions.X, (int)buttonDimensions.Y), Color.White);
+            customText.Draw(spriteBatch);
+            customText.Text = "[C:" + highlightColour.R + "-" + highlightColour.G + "-" + highlightColour.B + "-255]" + text;
+            customText.Move(new Vector2(buttonDimensions.X + 10, 0));
+            customText.Draw(spriteBatch);
             spriteBatch.End();
             Shell.PubGD.SetRenderTarget(null);
             Texture2D Out = VNFUtils.GetFromRT(Output);
             Color[] OutModify = new Color[Out.Width * Out.Height];
             Out.GetData<Color>(OutModify);
-            Color Prev = BackgroundColour;
-            Color New = new Color((int)BackgroundColour.R, (int)BackgroundColour.G, (int)BackgroundColour.B, (int)200);
+            Color Prev = backgroundColour;
+            Color New = new Color((int)backgroundColour.R, (int)backgroundColour.G, (int)backgroundColour.B, (int)backgroundColour.A);
             for (int i = 0; i < OutModify.Length; i++)
             {
                 if(OutModify[i] == Prev) { OutModify[i] = New; }
@@ -939,6 +939,7 @@ namespace VNFramework
         public static void OpenUSWMainMenu()
         {
             Shell.BackdropColour = Color.Black;
+            Shell.AutoCamera.AutoSnapToOnResetEntityName = "";
             Shell.AutoCamera.RecenterPosition = Shell.Resolution / 2;
             Shell.AutoCamera.RecenterCamera();
             ScriptProcessor.AssertGameRunningWithoutScript = false;
@@ -947,6 +948,7 @@ namespace VNFramework
         public static void OpenMainMenu()
         {
             Shell.BackdropColour = Color.Black;
+            Shell.AutoCamera.AutoSnapToOnResetEntityName = "";
             Shell.AutoCamera.RecenterPosition = Shell.Resolution / 2;
             Shell.AutoCamera.RecenterCamera();
             ScriptProcessor.AssertGameRunningWithoutScript = false;

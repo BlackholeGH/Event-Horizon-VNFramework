@@ -24,10 +24,10 @@ class SocketManager:
                     doubles = array.array('d', recv_data)
                     handler = self.ioHandlers[sockID]
                     if isinstance(handler, brains.SystemHandler):
-                        handler.handle_input(doubles, self.ioHandlers)
+                        handler.handle_input(doubles, self.ioHandlers.values())
                         if brains.SystemHandler.do_interbreed:
                             brain_handlers = []
-                            for handler_scan in self.ioHandlers.values:
+                            for handler_scan in self.ioHandlers.values():
                                 if isinstance(handler_scan, brains.Brain):
                                     brain_handlers.append(handler_scan)
                             self.next_generation = brains.interbreed_by_fitness(brain_handlers)

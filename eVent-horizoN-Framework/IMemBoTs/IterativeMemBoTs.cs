@@ -11,6 +11,7 @@ using static VNFramework.IterativeMemBoTs;
 using static VNFramework.PythonController.SocketInterface;
 using static VNFramework.PythonController;
 using SharpFont;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace VNFramework
 {
@@ -93,7 +94,7 @@ namespace VNFramework
                 }
             }
         }
-        public static void SendSimStartStopSocketCommand(object arg)
+        public static void SendSimStartStopSocCommand(object arg)
         {
             Boolean runsim = false;
             if(arg is Checkbox)
@@ -115,7 +116,7 @@ namespace VNFramework
             }
             PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
         }
-        public static void SendUpdateSimcodeCommand(object arg)
+        public static void SendUpdateSimcodeSocCommand(object arg)
         {
             int simcode = 0;
             if (arg is MonitoringTextInputField)
@@ -144,6 +145,57 @@ namespace VNFramework
             }
             PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
         }
+        public static void SendSaveWeightsToSocCommand()
+        {
+            Double[] codes = new double[] { 2 };
+            Byte[] data = new byte[1024];
+            int startIndex = 0;
+            foreach (double d in codes)
+            {
+                byte[] thisDouble = BitConverter.GetBytes(d);
+                thisDouble.CopyTo(data, startIndex);
+                startIndex += 8;
+            }
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+        }
+        public static void SetWeightLoadTargetFromController(MonitoringTextInputField textInputReceiver)
+        {
+            try
+            {
+                s_currentWeightLoadTarget = Int32.Parse(textInputReceiver.LastSentText);
+            }
+            catch { }
+        }
+        private static int s_currentWeightLoadTarget = 1;
+        public static int CurrentWeightLoadTarget
+        {
+            get
+            {
+                return s_currentWeightLoadTarget;
+            }
+        }
+        public static void SendLoadWeightsToSocCommand()
+        {
+            Double[] codes = new double[] { 3, CurrentWeightLoadTarget };
+            Byte[] data = new byte[1024];
+            int startIndex = 0;
+            foreach (double d in codes)
+            {
+                byte[] thisDouble = BitConverter.GetBytes(d);
+                thisDouble.CopyTo(data, startIndex);
+                startIndex += 8;
+            }
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+        }
+        public static void ResetBotPositions()
+        {
+            for(int i = 0; i < Bot.Bots.Count; i++)
+            {
+                Bot.Bots[i].QuickMoveTo(Bot.GetStartPosByIndex(i + 1));
+                Bot.Bots[i].Halt();
+            }
+            Shell.AutoCamera.RecenterCamera();
+        }
         public static void InitMembotsUI()
         {
             if (Shell.GetEntityByName("IMEMBOTS_UIBOX") == null)
@@ -153,32 +205,40 @@ namespace VNFramework
                 Shell.UpdateQueue.Add(uiBox);
                 Shell.RenderQueue.Add(uiBox);
             }
-            if (Shell.GetEntityByName("IMEMBOTS_TITLELABEL") == null)
+            if (Shell.GetEntityByName("IMEMBOTS_TITLE_LABEL") == null)
             {
-                TextEntity titleLabel = new TextEntity("IMEMBOTS_TITLELABEL", "IMemBoTs Neural Simulator", new Vector2(10, 520), 0.95f);
+                TextEntity titleLabel = new TextEntity("IMEMBOTS_TITLE_LABEL", "IMemBoTs Neural Simulator", new Vector2(10, 520), 0.95f);
                 titleLabel.IsUIElement = true;
                 Shell.UpdateQueue.Add(titleLabel);
                 Shell.RenderQueue.Add(titleLabel);
             }
-            if (Shell.GetEntityByName("IMEMBOTS_STARTLABEL") == null)
+            if (Shell.GetEntityByName("IMEMBOTS_START_LABEL") == null)
             {
-                TextEntity startLabel = new TextEntity("IMEMBOTS_STARTLABEL", "[F:SYSFONT]Toggle neural controllers:", new Vector2(20, 560), 0.95f);
+                TextEntity startLabel = new TextEntity("IMEMBOTS_START_LABEL", "[F:SYSFONT]Toggle neural controllers:", new Vector2(20, 560), 0.95f);
                 startLabel.IsUIElement = true;
                 startLabel.BufferLength = 120;
                 Shell.UpdateQueue.Add(startLabel);
                 Shell.RenderQueue.Add(startLabel);
             }
-            if (Shell.GetEntityByName("IMEMBOTS_SIMIDFIELDLABEL") == null)
+            if (Shell.GetEntityByName("IMEMBOTS_STARTSTOP_BUTTON") == null)
             {
-                TextEntity simFieldLabel = new TextEntity("IMEMBOTS_SIMIDFIELDLABEL", "[F:SYSFONT]ID of current simulation (must be a positive integer):", new Vector2(180, 560), 0.95f);
+                Checkbox startstop = new Checkbox("IMEMBOTS_STARTSTOP_BUTTON", new Vector2(70, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_STARTSTOP"], 0.95f, false);
+                startstop.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendSimStartStopSocketCommand"), new object[] { startstop });
+                startstop.IsUIElement = true;
+                Shell.UpdateQueue.Add(startstop);
+                Shell.RenderQueue.Add(startstop);
+            }
+            if (Shell.GetEntityByName("IMEMBOTS_SIMID_FIELD_LABEL") == null)
+            {
+                TextEntity simFieldLabel = new TextEntity("IMEMBOTS_SIMID_FIELD_LABEL", "[F:SYSFONT]ID of current simulation (must be a positive integer):", new Vector2(180, 560), 0.95f);
                 simFieldLabel.IsUIElement = true;
                 simFieldLabel.BufferLength = 240;
                 Shell.UpdateQueue.Add(simFieldLabel);
                 Shell.RenderQueue.Add(simFieldLabel);
             }
-            if (Shell.GetEntityByName("IMEMBOTS_SIMIDFIELD") == null)
+            if (Shell.GetEntityByName("IMEMBOTS_SIMID_FIELD") == null)
             {
-                ToggleableTextInputField toggleTextInput = new ToggleableTextInputField("IMEMBOTS_SIMIDFIELD", "1", new Vector2(180, 620), 0.95f);
+                ToggleableTextInputField toggleTextInput = new ToggleableTextInputField("IMEMBOTS_SIMID_FIELD", "1", new Vector2(180, 620), 0.95f);
                 toggleTextInput.AssignTextureAtlas((TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_HIGHLIGHTTOGGLE"]);
                 toggleTextInput.Scale(new Vector2(100 / 30, -0.25f));
                 toggleTextInput.IsUIElement = true;
@@ -187,13 +247,60 @@ namespace VNFramework
                 Shell.UpdateQueue.Add(toggleTextInput);
                 Shell.RenderQueue.Add(toggleTextInput);
             }
-            if (Shell.GetEntityByName("IMEMBOTS_STARTSTOPBUTTON") == null)
+            if (Shell.GetEntityByName("BUTTON_RESET_BOTS") == null)
             {
-                Checkbox startstop = new Checkbox("IMEMBOTS_STARTSTOPBUTTON", new Vector2(70, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_STARTSTOP"], 0.95f, false);
-                startstop.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendSimStartStopSocketCommand"), new object[] { startstop });
-                startstop.IsUIElement = true;
-                Shell.UpdateQueue.Add(startstop);
-                Shell.RenderQueue.Add(startstop);
+                TAtlasInfo resetButtonAtlas = new TAtlasInfo();
+                resetButtonAtlas.Atlas = ButtonScripts.CreateCustomButton("[F:SYSFONT]Reset IMemBoT positions", new Vector2(220, 20), new Vector2(10, 7), new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255));
+                resetButtonAtlas.DivDimensions = new Point(2, 1);
+                Button resetBotsButton = new Button("BUTTON_RESET_BOTS", new Vector2(180, 660), resetButtonAtlas, 0.95f);
+                resetBotsButton.CenterOrigin = false;
+                resetBotsButton.IsUIElement = true;
+                resetBotsButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("ResetBotPositions"), null);
+                Shell.UpdateQueue.Add(resetBotsButton);
+                Shell.RenderQueue.Add(resetBotsButton);
+            }
+            if (Shell.GetEntityByName("IMEMBOTS_SIMID_LOAD_FIELD_LABEL") == null)
+            {
+                TextEntity simFieldLabel = new TextEntity("IMEMBOTS_SIMID_LOAD_FIELD_LABEL", "[F:SYSFONT]Weights will be saved from the current sim ID and loaded from the sim ID specified below.", new Vector2(750, 580), 0.95f);
+                simFieldLabel.IsUIElement = true;
+                simFieldLabel.BufferLength = 425;
+                Shell.UpdateQueue.Add(simFieldLabel);
+                Shell.RenderQueue.Add(simFieldLabel);
+            }
+            if (Shell.GetEntityByName("IMEMBOTS_SIMID_LOAD_FIELD") == null)
+            {
+                ToggleableTextInputField toggleTextInput = new ToggleableTextInputField("IMEMBOTS_SIMID_LOAD_FIELD", "1", new Vector2(1080, 625), 0.95f);
+                toggleTextInput.AssignTextureAtlas((TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_HIGHLIGHTTOGGLE"]);
+                toggleTextInput.Scale(new Vector2(50 / 30, -0.25f));
+                toggleTextInput.IsUIElement = true;
+                toggleTextInput.BufferLength = 50;
+                toggleTextInput.SubscribeToEvent(WorldEntity.EventNames.TextEnteredFunction, typeof(IterativeMemBoTs).GetMethod("SetWeightLoadTargetFromController"), new object[] { toggleTextInput });
+                Shell.UpdateQueue.Add(toggleTextInput);
+                Shell.RenderQueue.Add(toggleTextInput);
+            }
+            if (Shell.GetEntityByName("BUTTON_LOAD_WEIGHTS") == null)
+            {
+                TAtlasInfo resetButtonAtlas = new TAtlasInfo();
+                resetButtonAtlas.Atlas = ButtonScripts.CreateCustomButton("[F:SYSFONT]Load weights from specified ID:>:", new Vector2(310, 20), new Vector2(10, 7), new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255));
+                resetButtonAtlas.DivDimensions = new Point(2, 1);
+                Button resetBotsButton = new Button("BUTTON_LOAD_WEIGHTS", new Vector2(750, 620), resetButtonAtlas, 0.95f);
+                resetBotsButton.CenterOrigin = false;
+                resetBotsButton.IsUIElement = true;
+                resetBotsButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendLoadWeightsToSocCommand"), null);
+                Shell.UpdateQueue.Add(resetBotsButton);
+                Shell.RenderQueue.Add(resetBotsButton);
+            }
+            if (Shell.GetEntityByName("BUTTON_SAVE_WEIGHTS") == null)
+            {
+                TAtlasInfo resetButtonAtlas = new TAtlasInfo();
+                resetButtonAtlas.Atlas = ButtonScripts.CreateCustomButton("[F:SYSFONT]Save weights to set sim ID", new Vector2(310, 20), new Vector2(10, 7), new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255));
+                resetButtonAtlas.DivDimensions = new Point(2, 1);
+                Button resetBotsButton = new Button("BUTTON_SAVE_WEIGHTS", new Vector2(750, 660), resetButtonAtlas, 0.95f);
+                resetBotsButton.CenterOrigin = false;
+                resetBotsButton.IsUIElement = true;
+                resetBotsButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendSaveWeightsToSocCommand"), null);
+                Shell.UpdateQueue.Add(resetBotsButton);
+                Shell.RenderQueue.Add(resetBotsButton);
             }
             if (Shell.GetEntityByName("BUTTON_HIDE_UI") == null)
             {
@@ -267,7 +374,7 @@ namespace VNFramework
             while (total < botCount)
             {
                 total++;
-                Bot bot = new Bot("IMEMBOT_" + total, new Vector2((float)Math.Sin(total * (Math.PI / 4)), (float)Math.Cos(total * (Math.PI / 4))) * (float)(200 * Math.Ceiling((total-1) / 8d)), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 1), new Vector2());
+                Bot bot = new Bot("IMEMBOT_" + total, Bot.GetStartPosByIndex(total), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 1), new Vector2());
                 bot.CenterOrigin = true;
                 bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
                 bot.MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
@@ -287,6 +394,11 @@ namespace VNFramework
         [Serializable]
         public class Bot : DynamicEntity
         {
+            public static List<Bot> Bots = new List<Bot>();
+            public static Vector2 GetStartPosByIndex(int index)
+            {
+                return new Vector2((float)Math.Sin(index * (Math.PI / 4)), (float)Math.Cos(index * (Math.PI / 4))) * (float)(200 * Math.Ceiling((index - 1) / 8d));
+            }
             public ulong SocketID
             {
                 get; private set;
@@ -324,6 +436,7 @@ namespace VNFramework
             private List<GraphicsTools.Trace> _senseTraces = new List<GraphicsTools.Trace>();
             public Bot(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["BOT"], depth, mass)
             {
+                Bots.Add(this);
                 SocketID = AddNewSocketAsTask();
                 int subtractColour = (int)((250 / 9) * (mass - 1));
                 ColourValue = new Color(255, 255 - subtractColour, 255 - subtractColour);
@@ -473,6 +586,7 @@ namespace VNFramework
             private Boolean _socketClosed = false;
             public override void ManualDispose()
             {
+                if(Bots.Contains(this)) { Bots.Remove(this); }
                 if (PythonController.SocketInterface.OpenSockets.Contains(SocketID) && !_socketClosed) { CloseSocket(SocketID); }
                 _socketClosed = true;
                 base.ManualDispose();

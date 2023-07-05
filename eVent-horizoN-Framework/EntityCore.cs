@@ -1248,7 +1248,7 @@ namespace VNFramework
                         /*
                          * [C:] Set colour
                          * [F:] Set font to spritefont
-                         * [L:-] Manually adjust textchunk location
+                         * [L:-] Manually adjust textchunk location. Put "N" before a number to make it negative.
                          * [R] Render in rainbow text
                          * [N] Insert newline
                          * [I] Ignore auto-insertion of linebreaks for this textchunk
@@ -1287,8 +1287,8 @@ namespace VNFramework
                                 break;
                             case "L":
                                 Vector2 adjustment = new Vector2(0,0);
-                                adjustment.X = strSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[0];
-                                adjustment.Y = strSplit[1].Split('-').Select(x => Convert.ToInt32(x)).ToArray()[1];
+                                adjustment.X = strSplit[1].Split('-').Select(x => Convert.ToInt32(x.Replace("N", "-"))).ToArray()[0];
+                                adjustment.Y = strSplit[1].Split('-').Select(x => Convert.ToInt32(x.Replace("N", "-"))).ToArray()[1];
                                 location += adjustment;
                                 break;
                             case "R":

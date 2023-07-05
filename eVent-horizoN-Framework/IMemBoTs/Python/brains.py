@@ -2,10 +2,14 @@ import array
 import random
 import sys
 import math
+import os
 
 import numpy as np
 import keras
 import tensorflow as tf
+
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
 asciiChars = '!"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~'
 asciiR = np.array(list(map(str, list(asciiChars))))
@@ -84,16 +88,17 @@ class SystemHandler(IOHandler):
                     print(f"Simulation code set to {SystemHandler.simcode}")
                     i = i + 1
                 case float(2): #save_brains_to_current_simcode
+                    print(f"Saving weights within working directory {os.getcwd()}.")
                     for io in iohandlerlist:
                         if isinstance(io, Brain):
                             io.save_weights()
                     print(f"Saved simulation {SystemHandler.simcode} weights to file.")
                 case float(3): #load_sim_to_brains_by_code
-                    SystemHandler.simcode = doubles[i + 1]
+                    print(f"Loading weights within working directory {os.getcwd()}.")
                     for io in iohandlerlist:
                         if isinstance(io, Brain):
-                            io.load_weights(SystemHandler.simcode, io.socketID)
-                    print(f"Loaded simulation {SystemHandler.simcode} weights to current brains.")
+                            io.load_weights(int(doubles[i + 1]), io.socketID)
+                    print(f"Loaded simulation {int(doubles[i + 1])} weights to current brains.")
                     i = i + 1
                 case float(4): #set_sim_running_state
                     SystemHandler.runsim = (doubles[i + 1] == 1)
@@ -126,11 +131,12 @@ class Brain(IOHandler):
                     self.fitness = codes[i + 1]
                     i += 1
             i += 1
-
     def save_weights(self):
-        self.model.save(f"PyModelWeights/Simulation_{str(SystemHandler.simcode)}/brain_{self.socketID}", overwrite=True)
+        print(f"Saving weights for Brain model with ID {self.socketID}...")
+        self.model.save(f"./PyModelWeights/Simulation_{str(SystemHandler.simcode)}/brain_{self.socketID}", overwrite=True)
     def load_weights(self, simcode, socketID):
-        self.model = tf.keras.models.load_model(f"PyModelWeights/Simulation_{str(simcode)}/brain_{socketID}")
+        print(f"Loading weights to Brain model with ID {self.socketID}...")
+        self.model = tf.keras.models.load_model(f"./PyModelWeights/Simulation_{str(simcode)}/brain_{self.socketID}")
     def handle_input(self, doubles):
         if doubles[0] == sys.float_info.max:
             self.process_system_codes(doubles)

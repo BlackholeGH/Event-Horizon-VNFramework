@@ -455,6 +455,15 @@ namespace VNFramework
                 _acceleration = value;
             }
         }
+        public void Halt()
+        {
+            _acceleration.X = 0;
+            _acceleration.Y = 0;
+            _velocity.X = 0;
+            _velocity.Y = 0;
+            _angularAcceleration = 0f;
+            _angularVelocity = 0f;
+        }
         public Double Mass
         {
             get;
