@@ -613,7 +613,7 @@ namespace VNFramework
                     }
                     if (worldEntity is ITextInputReceiver)
                     {
-                        ((ITextInputReceiver)worldEntity).Enabled = false;
+                        ((ITextInputReceiver)worldEntity).Active = false;
                     }
                     if (worldEntity is ScrollBar)
                     {
@@ -640,7 +640,7 @@ namespace VNFramework
                     }
                     if (worldEntity is ITextInputReceiver && !(worldEntity is ToggleableTextInputField))
                     {
-                        ((ITextInputReceiver)worldEntity).Enabled = true;
+                        ((ITextInputReceiver)worldEntity).Active = true;
                     }
                     if (worldEntity is ScrollBar)
                     {
@@ -749,7 +749,7 @@ namespace VNFramework
                 }
                 if (worldEntity is ITextInputReceiver && !(worldEntity is ToggleableTextInputField))
                 {
-                    ((ITextInputReceiver)worldEntity).Enabled = true;
+                    ((ITextInputReceiver)worldEntity).Active = true;
                 }
                 if (worldEntity is ScrollBar)
                 {
@@ -775,56 +775,58 @@ namespace VNFramework
                 if (worldEntity.OverlayUtility) { continue; }
                 //if (E is TextEntity) { E.Drawable = false; }
                 if (worldEntity is Button) { ((Button)worldEntity).Enabled = false; }
-                if (worldEntity is ITextInputReceiver) { ((ITextInputReceiver)worldEntity).Enabled = false; }
+                if (worldEntity is ITextInputReceiver) { ((ITextInputReceiver)worldEntity).Active = false; }
+                if (worldEntity is MonitoringTextInputField) { ((MonitoringTextInputField)worldEntity).Enabled = false; }
                 if (worldEntity is ScrollBar) { ((ScrollBar)worldEntity).Enabled = false; }
                 if (worldEntity is VerticalScrollPane) { ((VerticalScrollPane)worldEntity).Enabled = false; }
             }
-            WorldEntity Pane = new WorldEntity("PAUSE_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUPANE"], 0.97f);
-            Pane.CenterOrigin = true;
-            Pane.CameraImmune = true;
-            Pane.ColourValue = new Color(200, 200, 200, 150);
-            Shell.UpdateQueue.Add(Pane);
-            Shell.RenderQueue.Add(Pane);
-            Button Back = new Button("BUTTON_PAUSE_RETURN", new Vector2(640, 180), (TAtlasInfo)Shell.AtlasDirectory["PAUSERETURNBUTTON"], 0.98f);
-            Back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unpause"), null);
-            Back.CameraImmune = true;
-            Shell.UpdateQueue.Add(Back);
-            Shell.RenderQueue.Add(Back);
-            Button SaveB = new Button("BUTTON_PAUSE_SAVE", new Vector2(640, 270), (TAtlasInfo)Shell.AtlasDirectory["PAUSESAVEBUTTON"], 0.98f);
-            SaveB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Save"), null);
-            SaveB.CameraImmune = true;
-            Shell.UpdateQueue.Add(SaveB);
-            Shell.RenderQueue.Add(SaveB);
-            Button Settings = new Button("BUTTON_PAUSE_SETTINGS", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSESETTINGSBUTTON"], 0.98f);
-            Settings.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
-            Settings.CameraImmune = true;
-            Shell.UpdateQueue.Add(Settings);
-            Shell.RenderQueue.Add(Settings);
-            Button Main = new Button("BUTTON_PAUSE_MAINMENU", new Vector2(640, 450), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMAINMENUBUTTON"], 0.98f);
-            Main.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
-            Main.CameraImmune = true;
-            Shell.UpdateQueue.Add(Main);
-            Shell.RenderQueue.Add(Main);
-            Button QuitB = new Button("BUTTON_PAUSE_QUIT", new Vector2(640, 540), (TAtlasInfo)Shell.AtlasDirectory["PAUSEQUITBUTTON"], 0.98f);
-            QuitB.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
-            QuitB.CameraImmune = true;
-            Shell.UpdateQueue.Add(QuitB);
-            Shell.RenderQueue.Add(QuitB);
+            WorldEntity pane = new WorldEntity("PAUSE_PANE", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMENUPANE"], 0.97f);
+            pane.CenterOrigin = true;
+            pane.CameraImmune = true;
+            pane.ColourValue = new Color(200, 200, 200, 150);
+            Shell.UpdateQueue.Add(pane);
+            Shell.RenderQueue.Add(pane);
+            Button back = new Button("BUTTON_PAUSE_RETURN", new Vector2(640, 180), (TAtlasInfo)Shell.AtlasDirectory["PAUSERETURNBUTTON"], 0.98f);
+            back.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Unpause"), null);
+            back.CameraImmune = true;
+            Shell.UpdateQueue.Add(back);
+            Shell.RenderQueue.Add(back);
+            Button saveButton = new Button("BUTTON_PAUSE_SAVE", new Vector2(640, 270), (TAtlasInfo)Shell.AtlasDirectory["PAUSESAVEBUTTON"], 0.98f);
+            saveButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Save"), null);
+            saveButton.CameraImmune = true;
+            Shell.UpdateQueue.Add(saveButton);
+            Shell.RenderQueue.Add(saveButton);
+            Button settings = new Button("BUTTON_PAUSE_SETTINGS", new Vector2(640, 360), (TAtlasInfo)Shell.AtlasDirectory["PAUSESETTINGSBUTTON"], 0.98f);
+            settings.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("ShowSettings"), null);
+            settings.CameraImmune = true;
+            Shell.UpdateQueue.Add(settings);
+            Shell.RenderQueue.Add(settings);
+            Button mainMenu = new Button("BUTTON_PAUSE_MAINMENU", new Vector2(640, 450), (TAtlasInfo)Shell.AtlasDirectory["PAUSEMAINMENUBUTTON"], 0.98f);
+            mainMenu.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("BackToMainMenu"), null);
+            mainMenu.CameraImmune = true;
+            Shell.UpdateQueue.Add(mainMenu);
+            Shell.RenderQueue.Add(mainMenu);
+            Button quitButton = new Button("BUTTON_PAUSE_QUIT", new Vector2(640, 540), (TAtlasInfo)Shell.AtlasDirectory["PAUSEQUITBUTTON"], 0.98f);
+            quitButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Quit"), null);
+            quitButton.CameraImmune = true;
+            Shell.UpdateQueue.Add(quitButton);
+            Shell.RenderQueue.Add(quitButton);
         }
         public static void Unpause()
         {
-            foreach (WorldEntity E in Shell.UpdateQueue)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
             {
-                if (E.OverlayUtility) { continue; }
-                if (E.Name == "PAUSE_PANE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                if (E is Button && E.Name == "BUTTON_PAUSE_RETURN" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button && E.Name == "BUTTON_PAUSE_SAVE" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button && E.Name == "BUTTON_PAUSE_SETTINGS" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button && E.Name == "BUTTON_PAUSE_MAINMENU" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button && E.Name == "BUTTON_PAUSE_QUIT" && !Shell.DeleteQueue.Contains(E)) { Shell.DeleteQueue.Add(E); }
-                else if (E is Button) { ((Button)E).Enabled = true; }
-                if (E is ScrollBar) { ((ScrollBar)E).Enabled = true; }
-                if (E is VerticalScrollPane) { ((VerticalScrollPane)E).Enabled = true; }
+                if (worldEntity.OverlayUtility) { continue; }
+                if (worldEntity.Name == "PAUSE_PANE" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                if (worldEntity is Button && worldEntity.Name == "BUTTON_PAUSE_RETURN" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button && worldEntity.Name == "BUTTON_PAUSE_SAVE" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button && worldEntity.Name == "BUTTON_PAUSE_SETTINGS" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button && worldEntity.Name == "BUTTON_PAUSE_MAINMENU" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button && worldEntity.Name == "BUTTON_PAUSE_QUIT" && !Shell.DeleteQueue.Contains(worldEntity)) { Shell.DeleteQueue.Add(worldEntity); }
+                else if (worldEntity is Button) { ((Button)worldEntity).Enabled = true; }
+                if (worldEntity is MonitoringTextInputField) { ((MonitoringTextInputField)worldEntity).Enabled = true; }
+                if (worldEntity is ScrollBar) { ((ScrollBar)worldEntity).Enabled = true; }
+                if (worldEntity is VerticalScrollPane) { ((VerticalScrollPane)worldEntity).Enabled = true; }
                 //if (E is TextEntity) { E.Drawable = true; }
             }
             Shell.AllowEnter = true;

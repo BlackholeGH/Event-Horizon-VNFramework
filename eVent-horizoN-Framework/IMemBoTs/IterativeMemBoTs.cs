@@ -212,9 +212,17 @@ namespace VNFramework
                 Shell.UpdateQueue.Add(titleLabel);
                 Shell.RenderQueue.Add(titleLabel);
             }
+            if (Shell.GetEntityByName("BUTTON_PAUSEMENU") == null)
+            {
+                Button pauseButton = new Button("BUTTON_PAUSEMENU", new Vector2(40, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_BURGERBUTTON"], 0.95f);
+                pauseButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("Pause"), null);
+                pauseButton.IsUIElement = true;
+                Shell.UpdateQueue.Add(pauseButton);
+                Shell.RenderQueue.Add(pauseButton);
+            }
             if (Shell.GetEntityByName("IMEMBOTS_START_LABEL") == null)
             {
-                TextEntity startLabel = new TextEntity("IMEMBOTS_START_LABEL", "[F:SYSFONT]Toggle neural controllers:", new Vector2(20, 560), 0.95f);
+                TextEntity startLabel = new TextEntity("IMEMBOTS_START_LABEL", "[F:SYSFONT]Toggle neural controllers:", new Vector2(40, 560), 0.95f);
                 startLabel.IsUIElement = true;
                 startLabel.BufferLength = 120;
                 Shell.UpdateQueue.Add(startLabel);
@@ -222,8 +230,8 @@ namespace VNFramework
             }
             if (Shell.GetEntityByName("IMEMBOTS_STARTSTOP_BUTTON") == null)
             {
-                Checkbox startstop = new Checkbox("IMEMBOTS_STARTSTOP_BUTTON", new Vector2(70, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_STARTSTOP"], 0.95f, false);
-                startstop.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendSimStartStopSocketCommand"), new object[] { startstop });
+                Checkbox startstop = new Checkbox("IMEMBOTS_STARTSTOP_BUTTON", new Vector2(120, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_STARTSTOP"], 0.95f, false);
+                startstop.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SendSimStartStopSocCommand"), new object[] { startstop });
                 startstop.IsUIElement = true;
                 Shell.UpdateQueue.Add(startstop);
                 Shell.RenderQueue.Add(startstop);
@@ -243,7 +251,7 @@ namespace VNFramework
                 toggleTextInput.Scale(new Vector2(100 / 30, -0.25f));
                 toggleTextInput.IsUIElement = true;
                 toggleTextInput.BufferLength = 120;
-                toggleTextInput.SubscribeToEvent(WorldEntity.EventNames.TextEnteredFunction, typeof(IterativeMemBoTs).GetMethod("SendUpdateSimcodeCommand"), new object[] { toggleTextInput });
+                toggleTextInput.SubscribeToEvent(WorldEntity.EventNames.TextEnteredFunction, typeof(IterativeMemBoTs).GetMethod("SendUpdateSimcodeSocCommand"), new object[] { toggleTextInput });
                 Shell.UpdateQueue.Add(toggleTextInput);
                 Shell.RenderQueue.Add(toggleTextInput);
             }

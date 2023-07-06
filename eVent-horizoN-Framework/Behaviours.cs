@@ -60,7 +60,7 @@ namespace VNFramework
             }
             void HandleTextInputEvent(object EventSender, TextInputEventArgs e)
             {
-                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
+                if (!_active || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
                 if (e.Key != Keys.Enter && e.Key != Keys.Back && e.Key != Keys.Escape && e.Key != Keys.OemTilde)
                 {
                     if(e.Character != '\0') { ConstructHeldString.Append(e.Character.ToString()[0]); }
@@ -100,7 +100,7 @@ namespace VNFramework
             }
             public void Up(object EventSender, InputKeyEventArgs e)
             {
-                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
+                if (!_active || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
                 if (ScrollIndex > 0 && e.Key == Microsoft.Xna.Framework.Input.Keys.Up)
                 {
                     ScrollIndex--;
@@ -115,7 +115,7 @@ namespace VNFramework
             }
             public void Down(object EventSender, InputKeyEventArgs e)
             {
-                if (!_enabled || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
+                if (!_active || (Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != _myLastOwner)) { return; }
                 if (e.Key == Microsoft.Xna.Framework.Input.Keys.Down)
                 {
                     if (ScrollIndex < Scrollers.Count - 1)
@@ -151,10 +151,10 @@ namespace VNFramework
                 }
             }
             public String LastHeldString { get { return pLastHeldString; } }
-            private Boolean _enabled = false;
+            private Boolean _active = false;
             public void UpdateEnabled(ITextInputReceiver textInputReceiver)
             {
-                if (_enabled != textInputReceiver.Enabled) { _enabled = textInputReceiver.Enabled; }
+                if (_active != textInputReceiver.Active) { _active = textInputReceiver.Active; }
             }
             WorldEntity _myLastOwner = null;
             public void UpdateFunctionality(WorldEntity behaviourOwner)

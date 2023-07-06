@@ -779,7 +779,7 @@ namespace VNFramework
     {
         void DoTextInputActionable(Behaviours.TextInputBehaviour myTextInputBehaviour);
         public event VoidDel TextEnteredFunction;
-        public Boolean Enabled { get; set; }
+        public Boolean Active { get; set; }
     }
     public class MonitoringTextInputField : TextEntity, ITextInputReceiver
     {
@@ -792,21 +792,21 @@ namespace VNFramework
             myTextInput = new Behaviours.TextInputBehaviour(false, initialText);
             TIREnabled += () => { myTextInput.UpdateEnabled(this); };
             MyBehaviours.Add(myTextInput);
-            Enabled = true;
+            Active = true;
         }
         public event VoidDel TIREnabled;
-        Boolean _enabled = false;
-        public virtual Boolean Enabled
+        Boolean _active = false;
+        public virtual Boolean Active
         {
             get
             {
-                return _enabled;
+                return _active;
             }
             set
             {
-                _enabled = value;
+                _active = value;
                 TIREnabled.Invoke();
-                if(_enabled)
+                if(_active)
                 {
                     Shell.UsingKeyboardInputs = this;
                 }
@@ -814,6 +814,31 @@ namespace VNFramework
                 {
                     Shell.UsingKeyboardInputs = null;
                 }
+            }
+        }
+        Boolean _enabled = true;
+        Boolean _activeOnDisabled = false;
+        public Boolean Enabled
+        {
+            get
+            {
+                return _enabled;
+            }
+            set
+            {
+                if(_enabled != value)
+                {
+                    if (value)
+                    {
+                        Active = _activeOnDisabled;
+                    }
+                    else
+                    {
+                        _activeOnDisabled = Active;
+                        Active = false;
+                    }
+                }
+                _enabled = value;
             }
         }
         public override void ManualDispose()
@@ -859,7 +884,7 @@ namespace VNFramework
             TextRenderParamString = "[F:SYSFONT,L:5-5]";
             Text = TextRenderParamString + initialText;
             myTextInput.TriggerWithoutEnterPress = true;
-            Enabled = false;
+            Active = false;
         }
         public override void AddEventTriggers()
         {
@@ -878,24 +903,24 @@ namespace VNFramework
         }
         protected virtual void ToggleCheckTextInputTrigger()
         {
-            if (MouseInBounds() && !Enabled && !Shell.ConsoleOpen)
+            if (MouseInBounds() && !Active && !Shell.ConsoleOpen && Enabled)
             {
-                Enabled = true;
+                Active = true;
             }
-            else if (Enabled)
+            else if (Active)
             {
-                Enabled = false;
+                Active = false;
             }
         }
-        public override Boolean Enabled
+        public override Boolean Active
         {
             get
             {
-                return base.Enabled;
+                return base.Active;
             }
             set
             {
-                base.Enabled = value;
+                base.Active = value;
                 if (value)
                 {
                     AtlasCoordinates = new Point(1, AtlasCoordinates.Y);
