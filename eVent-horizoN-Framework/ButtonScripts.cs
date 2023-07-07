@@ -434,10 +434,10 @@ namespace VNFramework
             Shell.PubGD.SetRenderTarget(null);
             return (Texture2D)Output;
         }
-        public static Texture2D CreateDynamicTextCheckbox(String text, float width)
+        public static Texture2D CreateDynamicTextCheckbox(String text, Vector2 dimensions, Vector2 textBuffer, Color highlightColour, Color unhighlightColour, Color backgroundColour, Color checkedColor)
         {
-            Texture2D A = CreateDynamicCustomButton(text, width);
-            Texture2D B = CreateCustomButton(text, new Vector2(width, -1), new Vector2(15, 15), new Color(138, 0, 255, 255), new Color(70, 70, 70, 255), new Color(255, 255, 255, 200));
+            Texture2D A = CreateCustomButton(text, dimensions, textBuffer, highlightColour, unhighlightColour, backgroundColour);
+            Texture2D B = CreateCustomButton(text, dimensions, textBuffer, highlightColour, checkedColor, backgroundColour);
             Texture2D Out = VNFUtils.CombineTextures(Shell.DefaultShell, new Point(A.Width, A.Height + B.Height), A, A.Bounds, new Vector2(), new Vector2(1, 1), B, B.Bounds, new Vector2(0, A.Height), new Vector2(1, 1));
             return Out;
         }
@@ -952,7 +952,7 @@ namespace VNFramework
             Shell.BackdropColour = Color.Black;
             Shell.AutoCamera.AutoSnapToOnResetEntityName = "";
             Shell.AutoCamera.RecenterPosition = Shell.Resolution / 2;
-            Shell.AutoCamera.RecenterCamera();
+            Shell.AutoCamera.RecenterCamera(); //Can still be moved as a sticker after this, add something to bump it
             ScriptProcessor.AssertGameRunningWithoutScript = false;
             Shell.GlobalVoid = new VoidDel(() => { StartScript("MAIN_MENU_CONSTRUCTOR", false); });
         }

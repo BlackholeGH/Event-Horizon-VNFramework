@@ -120,6 +120,29 @@ namespace VNFramework
             else if (flatDif >= Math.PI) { return flatDif - (Math.PI * 2); }
             return flatDif;
         }
+        public static Double VectorToBearing(Vector2 a)
+        {
+            double y = a.Y;
+            double x = a.X;
+            double bearing = 0;
+            if (x > 0)
+            {
+                bearing = Math.Acos(-y / a.Length());
+            }
+            else if (x < 0)
+            {
+                bearing = Math.Acos(y / a.Length()) + Math.PI;
+            }
+            else if (x == 0)
+            {
+                bearing = y > 0 ? Math.PI : 0;
+            }
+            return bearing;
+        }
+        public static Double PointToBearing(Point a)
+        {
+            return VectorToBearing(new Vector2(a.X, a.Y));
+        }
         /// <summary>
         /// Defines geometric polygons as a series of directed lines. Polygons are constructed clockwise; the righthand side of a line should be the shape interior.
         /// </summary>

@@ -142,11 +142,28 @@ namespace VNFramework
     [Serializable]
     public class DropMenu : Checkbox
     {
+        private Color[] _interfaceColours;
         public DropMenu(String name, Vector2 location, float depth, int width, String defaultText, String[] dropList, Boolean initialToggle) : base(name, location, null, depth, initialToggle)
         {
-            BoxWidth = width;
+            BoxSize = new Vector2(width, -1);
+            TextOffset = new Vector2(15, 15);
+            TextRenderPrepend = "";
+            _interfaceColours = new Color[] { new Color(138, 0, 255, 255), new Color(70, 70, 70, 255), new Color(255, 255, 255, 200), new Color(50, 50, 50, 255), new Color(255, 255, 255, 200) };
             TAtlasInfo customAtlas = new TAtlasInfo();
-            customAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(defaultText, BoxWidth);
+            customAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(TextRenderPrepend + defaultText, BoxSize, TextOffset, _interfaceColours[0], _interfaceColours[1], _interfaceColours[2], _interfaceColours[4]);
+            customAtlas.DivDimensions = new Point(2, 2);
+            Atlas = customAtlas;
+            PopulateDropList(dropList);
+        }
+        public DropMenu(String name, Vector2 location, float depth, Vector2 dimensions, Vector2 textOffset, int dropElementSpacing, Color[] colours, String defaultText, String textRenderPrepend, String[] dropList, Boolean initialToggle) : base(name, location, null, depth, initialToggle)
+        {
+            BoxSize = dimensions;
+            TextOffset = textOffset;
+            _interfaceColours = colours;
+            _dropElementSpacing = dropElementSpacing;
+            TextRenderPrepend = textRenderPrepend;
+            TAtlasInfo customAtlas = new TAtlasInfo();
+            customAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(TextRenderPrepend + defaultText, BoxSize, TextOffset, _interfaceColours[0], _interfaceColours[1], _interfaceColours[2], _interfaceColours[4]);
             customAtlas.DivDimensions = new Point(2, 2);
             Atlas = customAtlas;
             PopulateDropList(dropList);
@@ -156,14 +173,17 @@ namespace VNFramework
             DepopulateDropList();
         }
         Boolean _droppedDown = false;
-        public int BoxWidth { get; set; }
+        private int _dropElementSpacing = 10;
+        public String TextRenderPrepend { get; set; }
+        public Vector2 BoxSize { get; set; }
+        public Vector2 TextOffset { get; set; }
         private String _outputText = "";
         public String OutputText { get { return _outputText; } }
         public void SetTopText(String text)
         {
             _outputText = text;
             TAtlasInfo CustomAtlas = new TAtlasInfo();
-            CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(text, BoxWidth);
+            CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(TextRenderPrepend + text, BoxSize, TextOffset, _interfaceColours[0], _interfaceColours[1], _interfaceColours[2], _interfaceColours[4]);
             CustomAtlas.DivDimensions = new Point(2, 2);
             Atlas = CustomAtlas;
         }
@@ -177,7 +197,7 @@ namespace VNFramework
             }
             MyDropEntities = new ArrayList();
         }
-        public void AssignMenuClickFuncs(VoidDel function)
+        public void AssignUniqueMenuClickFuncs(VoidDel function)
         {
             foreach (Button dropButton in MyDropEntities)
             {
@@ -189,25 +209,29 @@ namespace VNFramework
                 dropButton.ButtonPressFunction += newClickFunction;
             }
         }
+        [field: NonSerialized]
+        public event VoidDel DropMenuSelectFunction;
         Texture2D _dropBackingTexture = null;
         void PopulateDropList(String[] textList)
         {
             DepopulateDropList();
-            float cumulativeY = Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10;
+            float cumulativeY = Position.Y + (Atlas.Atlas.Bounds.Height / 2) + _dropElementSpacing;
             foreach (String label in textList)
             {
                 TAtlasInfo buttonAtlas = new TAtlasInfo();
-                buttonAtlas.Atlas = ButtonScripts.CreateDynamicCustomButton(label, BoxWidth);
+                buttonAtlas.Atlas = ButtonScripts.CreateCustomButton(TextRenderPrepend + label, BoxSize, TextOffset, _interfaceColours[0], _interfaceColours[1], _interfaceColours[2]);
                 buttonAtlas.DivDimensions = new Point(2, 1);
                 Button button = new Button(Name + "_DROPOPTION_" + label, new Vector2(Position.X, cumulativeY), buttonAtlas, LayerDepth - 0.001f);
-                button.SubscribeToEvent(EventNames.ButtonPressFunction, typeof(Button).GetMethod("SetTopText"), new object[] { label });
+                SubscribeToEvent(button, EventNames.ButtonPressFunction, typeof(DropMenu).GetMethod("SetTopText"), new object[] { label });
                 button.CenterOrigin = false;
                 button.Enabled = _droppedDown;
+                button.IsUIElement = this.IsUIElement;
+                button.CameraImmune = this.CameraImmune;
                 MyDropEntities.Add(button);
                 MyStickers.Add(button);
                 Shell.UpdateQueue.Add(button);
-                cumulativeY += (Atlas.Atlas.Bounds.Height / 2) + 10;
-                _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, new Color(50, 50, 50, 255), new Point(BoxWidth + 10, (int)(cumulativeY - (Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));
+                cumulativeY += (Atlas.Atlas.Bounds.Height / 2) + _dropElementSpacing;
+                _dropBackingTexture = VNFUtils.GetNovelTextureOfColour(Shell.DefaultShell, _interfaceColours[3], new Point((int)BoxSize.X + 10, (int)(cumulativeY - (Position.Y + (Atlas.Atlas.Bounds.Height / 2) + 10))));
             }
 
         }
@@ -220,6 +244,8 @@ namespace VNFramework
                 foreach (Button dropButton in MyDropEntities)
                 {
                     dropButton.Enabled = true;
+                    dropButton.IsUIElement = this.IsUIElement;
+                    dropButton.CameraImmune = this.CameraImmune;
                     Shell.RenderQueue.Add(dropButton);
                 }
                 _droppedDown = true;

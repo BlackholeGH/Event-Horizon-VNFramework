@@ -33,7 +33,7 @@ namespace VNFramework
                 }
                 info.AddValue("PublisherEntName", E.PublisherEntName);
                 info.AddValue("EventName", E.EventName);
-                info.AddValue("MethodArgs", E.MethodArgs);
+                info.AddValue("MethodArgs", E.MethodArgs.Select(x => x is WorldEntity ? "worldentitywithname::" + ((WorldEntity)x).Name : x).ToArray());
             }
             public System.Object SetObjectData(System.Object obj,
                                                SerializationInfo info, StreamingContext context,

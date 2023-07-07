@@ -146,6 +146,7 @@ namespace VNFramework
         public Boolean SuppressClickable { get; set; }
         //It should be noted that the event subscription register only holds the entity name of the publishing entity, as entIDs are reassigned after deserialization.
         //Due to this, if a specific event subscription is required, the publisher should be ensured to have a unique name string.
+        //WorldEntities passed as method arguments will be decoded in a similar way; the pattern is "worldentitywithname::NAME"
         [Serializable]
         public struct EventSubRegister
         {
@@ -197,7 +198,7 @@ namespace VNFramework
             EventCoupleDecouple(eventPublisher, eventName, thisHandler, true);
         }
         [Serializable]
-        public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction, TextEnteredFunction };
+        public enum EventNames { EntityClickFunction, ButtonPressFunction, ButtonHoverFunction, ButtonHoverReleaseFunction, SliderClickFunction, ScrollBarClickFunction, TextEnteredFunction, DropMenuSelectFunction };
         public void EventCoupleDecouple(WorldEntity eventPublisher, EventNames eventName, VoidDel handler, Boolean subscribe)
         {
             switch (eventName)
@@ -212,6 +213,14 @@ namespace VNFramework
                         Button button = (Button)eventPublisher;
                         if (subscribe) { button.ButtonPressFunction += handler; }
                         else { button.ButtonPressFunction -= handler; }
+                    }
+                    break;
+                case EventNames.DropMenuSelectFunction:
+                    if (eventPublisher is DropMenu)
+                    {
+                        DropMenu dropMenu = (DropMenu)eventPublisher;
+                        if (subscribe) { dropMenu.DropMenuSelectFunction += handler; }
+                        else { dropMenu.DropMenuSelectFunction -= handler; }
                     }
                     break;
                 case EventNames.ButtonHoverFunction:
@@ -302,7 +311,15 @@ namespace VNFramework
                 WorldEntity publisher = Shell.GetEntityByName(esr.PublisherEntName);
                 if(publisher != null)
                 {
-                    SubscribeToEvent(publisher, esr.EventName, esr.EventHandler, esr.MethodArgs);
+                    object[] methodArgs = esr.MethodArgs;
+                    for(int i = 0; i < methodArgs.Length; i++)
+                    {
+                        if (methodArgs[i] is String && ((String)methodArgs[i]).StartsWith("worldentitywithname::"))
+                        {
+                            methodArgs[i] = Shell.GetEntityByName(((String)methodArgs[i]).Replace("worldentitywithname::", ""));
+                        }
+                    }
+                    SubscribeToEvent(publisher, esr.EventName, esr.EventHandler, methodArgs);
                 }
             }
         }

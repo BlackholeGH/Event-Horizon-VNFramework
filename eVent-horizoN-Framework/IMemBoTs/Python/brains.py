@@ -107,7 +107,7 @@ class SystemHandler(IOHandler):
                 case float(5): #do_interbreed
                     print(f"Interbreed event requested! Generating next generation based on current fitness values.")
                     do_interbreed = True
-                case float(6): #do_interbreed
+                case float(6): #do_generation_step
                     print(f"Generation advance requested! Reinitializing socket handlers with child generation neural models.")
                     apply_next_generation = True
             i+=1
@@ -131,6 +131,7 @@ class Brain(IOHandler):
                     self.fitness = codes[i + 1]
                     i += 1
             i += 1
+        self.nextOutput = array.array('d', [sys.float_info.max] * 128)
     def save_weights(self):
         print(f"Saving weights for Brain model with ID {self.socketID}...")
         self.model.save(f"./PyModelWeights/Simulation_{str(SystemHandler.simcode)}/brain_{self.socketID}", overwrite=True)
