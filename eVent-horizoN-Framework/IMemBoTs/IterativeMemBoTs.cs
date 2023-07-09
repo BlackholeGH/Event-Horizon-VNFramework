@@ -13,6 +13,8 @@ using static VNFramework.PythonController;
 using SharpFont;
 using static System.Net.Mime.MediaTypeNames;
 using System.Runtime.Intrinsics.X86;
+using System.Reflection;
+using System.Net.Sockets;
 
 namespace VNFramework
 {
@@ -20,30 +22,7 @@ namespace VNFramework
     {
         public static ulong SystemSocketID { get; set; }
         public static bool SystemSocketAssigned { get; set; }
-        [Serializable]
-        public class ControlByCodeBehaviour : Behaviours.IVNFBehaviour
-        {
-            public static readonly double SpeedMultiplier = 2d;
-            public static readonly double TurnMultiplier = 1d;
-            public void Clear() { }
-            public void UpdateFunctionality(WorldEntity controllableEntity)
-            {
-                if(controllableEntity is Bot)
-                {
-                    Bot myBot = (Bot)controllableEntity;
-                    double[] controlCodes = myBot.ControlCodes;
-                    if (controlCodes[0] != 0 && !myBot.ImpulseKilledByActiveCollision)
-                    {
-                        myBot.ApplyForce(new VNFramework.GraphicsTools.Trace(new Vector2(), myBot.RotationRads, controlCodes[0] * SpeedMultiplier).AsAlignedVector);
-                    }
-                    if (controlCodes[1] != 0)
-                    {
-                        myBot.Rotate((float)(controlCodes[1] * TurnMultiplier));
-                    }
-                }
-            }
-        }
-        public static readonly String[] FitnessTypes = new string[] { "MoveForwardAndOut", "null" };
+        public static readonly String[] FitnessTypes = new string[] { "MoveForwardAndOut", "SurviveEnergize" };
         public interface IFitnessEvaluator
         {
             public void Initialize(Bot thisBot);
@@ -66,7 +45,42 @@ namespace VNFramework
                 {
                     if (thisBot.Velocity.Length() > 0)
                     {
-                        _extentMovingForwards += (Math.PI / 2) - Math.Abs(GraphicsTools.AngleDifference(thisBot.ForwardTrace.Bearing, GraphicsTools.VectorToBearing(thisBot.Velocity)));
+                        Double angleDifference = GraphicsTools.AngleDifference(thisBot.ForwardTrace.Bearing, GraphicsTools.VectorToBearing(thisBot.Velocity));
+                        _extentMovingForwards += (Math.PI / 2) - Math.Abs(angleDifference);
+                    }
+                    else
+                    {
+                        _extentMovingForwards -= 2;
+                    }
+                    double distanceTravelled = (_startPosition - thisBot.Position).Length();
+                    fitness = (distanceTravelled * 5) + (_extentMovingForwards * 2);
+                }
+                return fitness;
+            }
+            public void Reset()
+            {
+                _extentMovingForwards = 0;
+                _startPosition = new Vector2();
+            }
+        }
+        public class SurviveEnergize : IFitnessEvaluator
+        {
+            double _extentMovingForwards = 0;
+            Vector2 _startPosition;
+            public void Initialize(Bot thisBot)
+            {
+                _extentMovingForwards = 0;
+                _startPosition = thisBot.Position;
+            }
+            public double Evaluate(Bot thisBot)
+            {
+                double fitness = 0;
+                if (SimulationModelRunning)
+                {
+                    if (thisBot.Velocity.Length() > 0)
+                    {
+                        Double angleDifference = GraphicsTools.AngleDifference(thisBot.ForwardTrace.Bearing, GraphicsTools.VectorToBearing(thisBot.Velocity));
+                        _extentMovingForwards += (Math.PI / 2) - Math.Abs(angleDifference);
                     }
                     else
                     {
@@ -81,6 +95,111 @@ namespace VNFramework
             {
                 _extentMovingForwards = 0;
                 _startPosition = new Vector2();
+            }
+        }
+        public class AutoTrainController : WorldEntity
+        {
+            static Boolean s_extant = false;
+            Boolean _thisExtant = false;
+            public uint GenerationLength { get; set; }
+            public AutoTrainController(uint generationLengthMillis) : base("IMEMBOTS_AUTOTRAIN_CONTROLLER", new Vector2(), null, 1)
+            {
+                if (s_extant)
+                {
+                    Shell.DeleteQueue.Add(this);
+                }
+                else
+                {
+                    GenerationLength = generationLengthMillis;
+                    s_extant = true;
+                    _thisExtant = true;
+                }
+            }
+            public override void ManualDispose()
+            {
+                if (_thisExtant)
+                {
+                    s_extant = false;
+                    AutoTrainerRunning = false;
+                }
+                base.ManualDispose();
+            }
+            Boolean _selfActive = false;
+            int _lastGenerationStartTime = Environment.TickCount;
+            int _reachedEnd = 0;
+            void InitGeneration()
+            {
+                ResetBotPositions();
+                _lastGenerationStartTime = Environment.TickCount;
+                SendSimStartStopSocCommand(true);
+            }
+            int _timeOfBotSystemCommandDispatch = 0;
+            int _timeOfGenerationApply = 0;
+            public override void Update()
+            {
+                base.Update();
+                int thisTickCount = Environment.TickCount;
+                if (_thisExtant)
+                {
+                    if (AutoTrainerRunning != _selfActive)
+                    {
+                        if (!_selfActive)
+                        {
+                            InitGeneration();
+                            _selfActive = true;
+                        }
+                        else
+                        {
+                            SendSimStartStopSocCommand(false);
+                            _selfActive = false;
+                        }
+                    }
+                    if (_selfActive)
+                    {
+                        if (thisTickCount > _lastGenerationStartTime + GenerationLength)
+                        {
+                            double[] lastSystemCodes = GetLastSystemSocketReturn();
+                            if (SimulationModelRunning) { SendSimStartStopSocCommand(false); }
+                            if (_reachedEnd == 0)
+                            {
+                                foreach (Bot bot in Bot.Bots)
+                                {
+                                    bot.Halt();
+                                }
+                                _timeOfBotSystemCommandDispatch = Environment.TickCount;
+                                SendUpdateFitnessToSocCommand();
+                                _reachedEnd = 1;
+                            }
+                            else if(_reachedEnd == 1)
+                            {
+                                Boolean returned = true;
+                                foreach(Bot bot in Bot.Bots)
+                                {
+                                    if(bot.LastSystemReturnTime < _timeOfBotSystemCommandDispatch) { returned = false; }
+                                }
+                                if (returned)
+                                {
+                                    SendDoBreedSocCommand();
+                                    _reachedEnd = 2;
+                                }
+                            }
+                            if (lastSystemCodes.Length > 0)
+                            {
+                                if (lastSystemCodes[0] == 5d && _reachedEnd == 2)
+                                {
+                                    SendApplyGenerationSocCommand();
+                                    _reachedEnd = 3;
+                                    _timeOfGenerationApply = thisTickCount;
+                                }
+                                else if (lastSystemCodes[0] == 6d && thisTickCount > _timeOfGenerationApply + 1000 && _reachedEnd == 3)
+                                {
+                                    _reachedEnd = 0;
+                                    InitGeneration();
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
         public static void InitializePhysTest(Point layout)
@@ -136,6 +255,8 @@ namespace VNFramework
             }
         }
         public static Boolean SimulationModelRunning { get; private set; }
+        public static Boolean AutoTrainerRunning { get; private set; }
+        public static Double MutationChance { get; private set; }
         public static void SendSimStartStopSocCommand(object arg)
         {
             Boolean runsim = false;
@@ -146,6 +267,11 @@ namespace VNFramework
             else if(arg is bool)
             {
                 runsim = (bool)arg;
+                WorldEntity startstop = Shell.GetEntityByName("IMEMBOTS_STARTSTOP_BUTTON");
+                if(startstop != null && startstop is Checkbox)
+                {
+                    ((Checkbox)startstop).ForceState(runsim);
+                }
             }
             Double[] codes = new double[] { 4, runsim ? 1 : 0 };
             Byte[] data = new byte[1024];
@@ -200,6 +326,7 @@ namespace VNFramework
         }
         public static void SendSaveWeightsToSocCommand()
         {
+            Shell.WriteLine("Sending weight save");
             Double[] codes = new double[] { 2 };
             Byte[] data = new byte[1024];
             int startIndex = 0;
@@ -209,7 +336,7 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1);
         }
         public static void SendUpdateFitnessToSocCommand()
         {
@@ -217,7 +344,7 @@ namespace VNFramework
             double peak = Double.MinValue;
             for (int i = 0; i < Bot.Bots.Count; i++)
             {
-                Bot.Bots[i].SendSystemCodes(new double[] { Double.MaxValue, Bot.Bots[i].Fitness });
+                Bot.Bots[i].SendSystemCodes(new double[] { Double.MaxValue, 1, Bot.Bots[i].Fitness });
                 avr += Bot.Bots[i].Fitness;
                 if (Bot.Bots[i].Fitness > peak) { peak = Bot.Bots[i].Fitness; }
             }
@@ -233,7 +360,7 @@ namespace VNFramework
         static int s_currentGeneration = 1;
         public static void SendDoBreedSocCommand()
         {
-            Double[] codes = new double[] { 5 };
+            Double[] codes = new double[] { 5, MutationChance };
             Byte[] data = new byte[1024];
             int startIndex = 0;
             foreach (double d in codes)
@@ -291,17 +418,70 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1);
+        }
+        public static double[] GetLastSystemSocketReturn()
+        {
+            PySocketQuery thisReceivedQuery = GetQuery(SystemSocketID);
+            double[] codes = new double[0];
+            if (thisReceivedQuery.LastReceive)
+            {
+                codes = new double[128];
+                for (int i = 0; i < 128; i++)
+                {
+                    codes[i] = BitConverter.ToDouble(thisReceivedQuery.Receive.AsSpan(i * 8, 8).ToArray());
+                }
+            }
+            return codes;
         }
         public static void ResetBotPositions()
         {
             for(int i = 0; i < Bot.Bots.Count; i++)
             {
-                Bot.Bots[i].QuickMoveTo(Bot.GetStartPosByIndex(i + 1));
+                Vector2 pos = Bot.GetStartPosByIndex(i + 1);
+                Bot.Bots[i].QuickMoveTo(pos);
+                Bot.Bots[i].Rotate((float)GraphicsTools.VectorToBearing(pos) - Bot.Bots[i].RotationRads);
                 Bot.Bots[i].Halt();
                 Bot.Bots[i].FitnessEvaluator.Initialize(Bot.Bots[i]);
             }
-            Shell.AutoCamera.RecenterCamera();
+            foreach(WorldEntity worldEntity in Shell.UpdateQueue)
+            {
+                if(!(worldEntity is Bot) && worldEntity is DynamicEntity)
+                {
+                    ((DynamicEntity)worldEntity).Halt(false);
+                }
+            }
+            //Shell.AutoCamera.RecenterCamera();
+        }
+        public static void ApplyFitnessModel(object arg)
+        {
+            Type fitnessEvalType = null;
+            if(arg is IFitnessEvaluator) { fitnessEvalType = arg.GetType(); }
+            else if (arg is String) { fitnessEvalType = Type.GetType("VNFramework.IterativeMemBoTs+" + (String)arg); }
+            else if (arg is DropMenu) { fitnessEvalType = Type.GetType("VNFramework.IterativeMemBoTs+" + ((DropMenu)arg).OutputText); }
+            Shell.WriteLine("Bot fitness evaluators changed to type: " + fitnessEvalType.FullName);
+            foreach(Bot bot in Bot.Bots)
+            {
+                bot.FitnessEvaluator = (IFitnessEvaluator)Activator.CreateInstance(fitnessEvalType);
+            }
+        }
+        public static void SetToggleAutoTrainer(object arg)
+        {
+            Boolean autotrain = false;
+            if (arg is Checkbox)
+            {
+                autotrain = ((Checkbox)arg).Toggle;
+            }
+            else if (arg is bool)
+            {
+                autotrain = (bool)arg;
+            }
+            AutoTrainerRunning = autotrain;
+            WorldEntity trainingStatus = Shell.GetEntityByName("IMEMBOTS_AUTOTRAIN_STATUS");
+            if (trainingStatus != null && trainingStatus is TextEntity)
+            {
+                ((TextEntity)trainingStatus).Text = "[F:SYSFONT]Autotrainer: [F:SYSFONT," + (AutoTrainerRunning ? "C:0-255-0-255]On" : "C:255-0-0-255]Off");
+            }
         }
         public static void InitMembotsUI()
         {
@@ -402,7 +582,7 @@ namespace VNFramework
                 DropMenu fitnessModelMenu = new DropMenu("DROPMENU_FITNESS_MODEL", new Vector2(630, 580), 0.95f, new Vector2(200, 20), new Vector2(7, 7), 2, new Color[] { new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255), new Color(200, 140, 0, 255), new Color(255, 207, 0, 255) }, "MoveForwardAndOut", "[F:SYSFONT]", FitnessTypes, false);
                 fitnessModelMenu.CenterOrigin = false;
                 fitnessModelMenu.IsUIElement = true;
-                //fitnessModelMenu.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("ResetBotPositions"), null);
+                fitnessModelMenu.SubscribeToEvent(WorldEntity.EventNames.DropMenuSelectFunction, typeof(IterativeMemBoTs).GetMethod("ApplyFitnessModel"), new object[] { fitnessModelMenu });
                 Shell.UpdateQueue.Add(fitnessModelMenu);
                 Shell.RenderQueue.Add(fitnessModelMenu);
             }
@@ -426,7 +606,7 @@ namespace VNFramework
             {
                 Checkbox autotrainToggle = new Checkbox("BUTTON_TOGGLE_AUTOTRAIN", new Vector2(550, 650), (TAtlasInfo)Shell.AtlasDirectory["IMEMBOTS_AUTOTRAIN_CHECKBOX"], 0.95f, false);
                 autotrainToggle.CenterOrigin = false;
-                //hideUI.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(ButtonScripts).GetMethod("RefreshUIHideState"), null);
+                autotrainToggle.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("SetToggleAutoTrainer"), new object[] { autotrainToggle });
                 autotrainToggle.IsUIElement = true;
                 Shell.UpdateQueue.Add(autotrainToggle);
                 Shell.RenderQueue.Add(autotrainToggle);
@@ -543,6 +723,10 @@ namespace VNFramework
         {
             //botCount = 1;
             Shell.WriteLine("Initializing IMemBoTs simulation.");
+            foreach(WorldEntity worldEntity in Shell.RenderQueue)
+            {
+                worldEntity.Drawable = false;
+            }
             ButtonScripts.SpoonsTrip = true;
             //Shell.ConsoleWritesOverlay = true;
             Shell.OneFadeout();
@@ -551,13 +735,15 @@ namespace VNFramework
             ScriptProcessor.AssertGameRunningWithoutScript = true;
             Shell.BackdropColour = Color.Aquamarine;
             InitMembotsUI();
+            AutoTrainerRunning = false;
             s_queuedGeneration = 1;
             s_currentGeneration = 1;
             int totalWall = 0;
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 16; i++)
             {
-                Wall wall = new Wall("WALL_" + totalWall, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.8f);
-                wall.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                Vector2 pos = new Vector2((float)Math.Sin(totalWall * (Math.PI / 8)), (float)Math.Cos(totalWall * (Math.PI / 8))) * 700f;
+                Wall wall = new Wall("WALL_" + totalWall, pos, 0.8f);
+                wall.Rotate((float)(GraphicsTools.VectorToBearing(pos) + Math.PI/2));
                 totalWall++;
                 Shell.UpdateQueue.Add(wall);
                 Shell.RenderQueue.Add(wall);
@@ -603,9 +789,10 @@ namespace VNFramework
             while (total < botCount)
             {
                 total++;
-                Bot bot = new Bot("IMEMBOT_" + total, Bot.GetStartPosByIndex(total), 0.4f + (0.001f * total), Shell.Rnd.Next(1, 1), new Vector2());
+                Vector2 pos = Bot.GetStartPosByIndex(total);
+                Bot bot = new Bot("IMEMBOT_" + total, pos, 0.4f + (0.001f * total), Shell.Rnd.Next(1, 1), new Vector2());
                 bot.CenterOrigin = true;
-                bot.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                bot.Rotate((float)GraphicsTools.VectorToBearing(pos) - bot.RotationRads);
                 bot.MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 bot.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
                 bot.FitnessEvaluator = new MoveForwardAndOutFitness();
@@ -613,13 +800,15 @@ namespace VNFramework
                 {
                     bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
                     bot.AutoRotateToVelocityBearing = false;
-                    bot.MyStickers.Add(Shell.AutoCamera);
+                    //bot.MyStickers.Add(Shell.AutoCamera);
                     Shell.AutoCamera.QuickMoveTo(bot.Position);
                 }
                 Shell.UpdateQueue.Add(bot);
                 Shell.RenderQueue.Add(bot);
             }
             Shell.AutoCamera.AutoSnapToOnResetEntityName = "IMEMBOT_1";
+            MutationChance = 0.05;
+            Shell.UpdateQueue.Add(new AutoTrainController(6000));
         }
         [Serializable]
         public class Bot : DynamicEntity
@@ -674,8 +863,8 @@ namespace VNFramework
                 AnimationQueue.Add(Animation.PlayAllFrames(Atlas, 200, true));
                 Velocity = initialVelocity;
                 AutoRotateToVelocityBearing = false;
-                SelfMovementForceMultiplier = 5;
-                SelfRotationRate = 5;
+                SelfMovementForceMultiplier = 4;
+                SelfRotationRate = 1;
 
                 SetupTraces();
             }
@@ -800,6 +989,22 @@ namespace VNFramework
             {
                 get { return _fitness; }
             }
+            public Boolean AwaitingSystemReturn
+            {
+                get
+                {
+                    return _lastSystemCodes != null;
+                }
+            }
+            int _lastSystemReturnTime = Int32.MinValue;
+            public int? LastSystemReturnTime
+            {
+                get
+                {
+                    return _lastSystemReturnTime;
+                }
+            }
+            int _lastControlReceive = 0;
             public override void Update()
             {
                 if (AutoRotateToVelocityBearing) { RotationRads = (float)new VNFramework.GraphicsTools.Trace(Velocity).Bearing; }
@@ -812,9 +1017,12 @@ namespace VNFramework
                 {
                     DispatchCodesToSocket(_senseCodes);
                     double[] receive = GetCodesFromSocket();
-                    if (receive.Length > 0)
+                    if (receive.Length > 0 && receive[0] != Double.MaxValue)
                     {
                         _controlCodes = receive;
+                        int now = Environment.TickCount;
+                        //Shell.WriteLine(Name + " control code receive latency: " + (now - _lastControlReceive));
+                        _lastControlReceive = now;
                     }
                 }
                 else
@@ -824,11 +1032,16 @@ namespace VNFramework
                     if (receive.Length > 0 && receive[0] == Double.MaxValue)
                     {
                         _lastSystemCodes = null;
+                        _lastSystemReturnTime = Environment.TickCount;
                     }
                 }
 
-                ApplyForce(ForwardTrace.AsAlignedVector * (float)_controlCodes[0] * SelfMovementForceMultiplier);
-                Rotate((float)_controlCodes[1] * SelfRotationRate);
+                if (_controlCodes[0] == 1)
+                {
+                    ApplyForce(ForwardTrace.AsAlignedVector * (float)(_controlCodes[1] - 0.5) * SelfMovementForceMultiplier);
+                    Rotate((float)(_controlCodes[2] - 0.5) * SelfRotationRate);
+                }
+
                 if(FitnessEvaluator != null)
                 {
                     _fitness = FitnessEvaluator.Evaluate(this);

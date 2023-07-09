@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using Microsoft.Xna.Framework;
+using System.Windows.Forms;
 
 namespace VNFramework
 {
@@ -126,10 +127,12 @@ namespace VNFramework
             [Serializable]
             public struct PySocketQuery
             {
-                public byte[] Send;
-                public byte[] Receive;
-                public Boolean LastSend;
-                public Boolean LastReceive;
+                public PySocketQuery() { }
+                public byte[] Send = new byte[0];
+                public byte[] Receive = new byte[0];
+                public Boolean LastSend = false;
+                public Boolean LastReceive = false;
+                public int AllowedSendAttempts = -1;
             }
             public static ulong CurrentSocketID
             {
@@ -170,6 +173,10 @@ namespace VNFramework
             }
             public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue)
             {
+                SendQuery(key, data, allowEnqueue, -1);
+            }
+            public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue, int allowedSendAttempts)
+            {
                 if (allowEnqueue) { Shunt(); }
                 if (data.Length > 1024) { return; }
                 else
@@ -195,6 +202,7 @@ namespace VNFramework
                             query.LastSend = true;
                             query.LastReceive = false;
                             query.Send = data;
+                            query.AllowedSendAttempts = allowedSendAttempts;
                             lock (s_queries)
                             {
                                 s_queries[key] = query;
@@ -238,6 +246,8 @@ namespace VNFramework
                 {
                     ulong myKey = thisKey;
                     Socket mySocket = newSocket;
+                    mySocket.SendTimeout = -1;
+                    mySocket.ReceiveTimeout = 1000;
                     PySocketQuery myQuery;
                     byte[] send;
                     byte[] buffer = new byte[1024];
@@ -260,18 +270,54 @@ namespace VNFramework
                             if (myQuery.LastSend)
                             {
                                 //Console.WriteLine("Socket " + myKey + " is sending!");
-                                send = myQuery.Send;
-                                if(!mySocket.Connected) { break; }
-                                await mySocket.SendAsync(send, SocketFlags.None);
-                                buffer = new byte[1024];
-                                int receiveCode = await mySocket.ReceiveAsync(buffer, SocketFlags.None);
-                                myQuery.LastSend = false;
-                                myQuery.LastReceive = true;
-                                myQuery.Send = new byte[1024];
-                                myQuery.Receive = buffer;
-                                lock (s_queries)
+                                if (!mySocket.Connected) { break; }
+                                bool expectReceive = false;
+                                if (myQuery.AllowedSendAttempts == -1)
                                 {
-                                    s_queries[myKey] = myQuery;
+                                    send = myQuery.Send;
+                                    mySocket.Send(send, SocketFlags.None);
+                                    expectReceive = true;
+                                }
+                                else if (myQuery.AllowedSendAttempts > 0)
+                                {
+                                    send = myQuery.Send;
+                                    mySocket.Send(send, SocketFlags.None);
+                                    myQuery.AllowedSendAttempts--;
+                                    lock (s_queries)
+                                    {
+                                        s_queries[myKey] = myQuery;
+                                    }
+                                    expectReceive = true;
+                                }
+                                else if (myQuery.AllowedSendAttempts == 0)
+                                {
+                                    myQuery.LastSend = false;
+                                    myQuery.LastReceive = false;
+                                    myQuery.Send = new byte[1024];
+                                    myQuery.Receive = new byte[1024];
+                                    myQuery.AllowedSendAttempts = -1;
+                                    lock (s_queries)
+                                    {
+                                        s_queries[myKey] = myQuery;
+                                    }
+                                }
+                                if (expectReceive)
+                                {
+                                    buffer = new byte[1024];
+                                    try
+                                    {
+                                        int receiveCode = mySocket.Receive(buffer, SocketFlags.None);
+                                        myQuery.LastSend = false;
+                                        myQuery.LastReceive = true;
+                                        myQuery.Send = new byte[1024];
+                                        myQuery.Receive = buffer;
+                                        myQuery.AllowedSendAttempts = -1;
+                                        lock (s_queries)
+                                        {
+                                            s_queries[myKey] = myQuery;
+                                        }
+                                    }
+                                    catch (SocketException e) { }
                                 }
                             }
                             else

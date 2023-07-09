@@ -186,6 +186,7 @@ namespace VNFramework
             CustomAtlas.Atlas = ButtonScripts.CreateDynamicTextCheckbox(TextRenderPrepend + text, BoxSize, TextOffset, _interfaceColours[0], _interfaceColours[1], _interfaceColours[2], _interfaceColours[4]);
             CustomAtlas.DivDimensions = new Point(2, 2);
             Atlas = CustomAtlas;
+            DropMenuSelectFunction?.Invoke();
         }
         public void DepopulateDropList()
         {

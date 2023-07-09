@@ -72,7 +72,10 @@ namespace VNFramework
         public float RotationRads
         {
             get { return _rotation; }
-            protected set { _rotation = value; }
+            protected set
+            {
+                _rotation = (float)GraphicsTools.Mod2PI(value);
+            }
         }
         public GraphicsTools.Trace ForwardTrace
         {

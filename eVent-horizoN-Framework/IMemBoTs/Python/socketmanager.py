@@ -26,18 +26,23 @@ class SocketManager:
                     if isinstance(handler, brains.SystemHandler):
                         handler.handle_input(doubles, self.ioHandlers.values())
                         if brains.SystemHandler.do_interbreed:
+                            print("Doing interbreed...")
                             brain_handlers = []
                             for handler_scan in self.ioHandlers.values():
                                 if isinstance(handler_scan, brains.Brain):
                                     brain_handlers.append(handler_scan)
-                            self.next_generation = brains.interbreed_by_fitness(brain_handlers)
+                            print(f"Found {len(brain_handlers)} brains.")
+                            self.next_generation = brains.interbreed_by_fitness(brain_handlers, brains.SystemHandler.interbreed_rand_proportion)
                             brains.SystemHandler.do_interbreed = False
                         if brains.SystemHandler.apply_next_generation:
-                            new_list = [handler].extend(self.next_generation)
+                            print(f"Applying next generation of {len(self.next_generation)} brains.")
+                            new_list = [handler]
+                            new_list.extend(self.next_generation)
                             self.ioHandlers = dict()
                             for next_handler in new_list:
                                 self.ioHandlers[next_handler.socketID] = next_handler
                             brains.SystemHandler.apply_next_generation = False
+                        handler.nextOutput = array.array('d', [float(doubles[0])] * 128)
                     else:
                         #print(f"Requesting to handle input: {sockID}")
                         handler.handle_input(doubles)

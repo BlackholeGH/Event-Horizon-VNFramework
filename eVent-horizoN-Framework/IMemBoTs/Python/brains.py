@@ -22,7 +22,7 @@ memorybox_sequence_length = 16
 attention_heads = 2
 movement_neurons = 2
 
-def do_one_crossbreed(brain_one, brain_two, proportion_one_to_two):
+def do_one_crossbreed(brain_one, brain_two, proportion_one_to_two, rand_proportion):
     if(not isinstance(brain_two, type(brain_one))):
         return None
     else:
@@ -33,15 +33,18 @@ def do_one_crossbreed(brain_one, brain_two, proportion_one_to_two):
         layerindex = 0
         for layer in child_weights:
             for index, weight in np.ndenumerate(layer):
-                if random.random() <= proportion_one_to_two:
-                    layer[index] = model_one_weights[layerindex][index]
+                if random.random() <= rand_proportion:
+                    layer[index] = random.uniform(brain_child.initmin, brain_child.initmax)
                 else:
-                    layer[index] = model_two_weights[layerindex][index]
+                    if random.random() <= proportion_one_to_two:
+                        layer[index] = model_one_weights[layerindex][index]
+                    else:
+                        layer[index] = model_two_weights[layerindex][index]
             layerindex += 1
         brain_child.model.set_weights(child_weights)
         return brain_child
 
-def interbreed_by_fitness(brains):
+def interbreed_by_fitness(brains, rand_proportion):
     canonical_brain_type = type(brains[0])
     active_socket_ids = []
     for brain in brains:
@@ -50,11 +53,13 @@ def interbreed_by_fitness(brains):
             return None
     sorted_brains = sorted(brains, key=lambda brain: brain.fitness, reverse=True)
     surviving_brains = sorted_brains[0:math.floor(len(sorted_brains) / 2)]
-    for brain in sorted_brains:
-        rank = sorted_brains.index(brain) + 1
-        spouse_index = math.floor(random.triangular(0, len(sorted_brains), 0))
+    parent_brains = surviving_brains.copy()
+    for brain in parent_brains:
+        print(brain.fitness)
+        rank = parent_brains.index(brain) + 1
+        spouse_index = math.floor(random.triangular(0, len(parent_brains), 0))
         spouse = sorted_brains[spouse_index]
-        child = do_one_crossbreed(brain, spouse, 1 / (rank / (spouse_index + 1)))
+        child = do_one_crossbreed(brain, spouse, 1 / (rank / (spouse_index + 1)), rand_proportion)
         surviving_brains.append(child)
     while len(surviving_brains) < len(sorted_brains):
         surviving_brains.append(canonical_brain_type(-1))
@@ -76,6 +81,7 @@ class SystemHandler(IOHandler):
     simcode = str(1)
     runsim = False
     do_interbreed = False
+    interbreed_rand_proportion = 0.1
     apply_next_generation = False
     def __init__(self, socketID):
         super(SystemHandler, self).__init__(socketID)
@@ -105,20 +111,24 @@ class SystemHandler(IOHandler):
                     print(f"Simulation running? Set to {str(SystemHandler.runsim)}")
                     i = i + 1
                 case float(5): #do_interbreed
-                    print(f"Interbreed event requested! Generating next generation based on current fitness values.")
-                    do_interbreed = True
+                    SystemHandler.interbreed_rand_proportion = doubles[i + 1]
+                    print(f"Interbreed event requested! Generating next generation based on current fitness values and a mutation chance of {SystemHandler.interbreed_rand_proportion}.")
+                    SystemHandler.do_interbreed = True
+                    i = i + 1
                 case float(6): #do_generation_step
                     print(f"Generation advance requested! Reinitializing socket handlers with child generation neural models.")
-                    apply_next_generation = True
+                    SystemHandler.apply_next_generation = True
             i+=1
-
-        self.nextOutput = array.array('d', [float(0)] * 128)
         #print("SystemHandler was invoked.")
         return
 
 class Brain(IOHandler):
     def __init__(self, socketID):
         super(Brain, self).__init__(socketID)
+        if(not hasattr(self, "initmin")):
+            self.initmin = -0.05
+        if(not hasattr(self, "initmax")):
+            self.initmax = 0.05
         self.model = self._setup_model()
         self.fitness = 0
     def _setup_model(self):
@@ -144,13 +154,16 @@ class Brain(IOHandler):
         else:
             if SystemHandler.runsim:
                 #print(f"Handling input starting with {str(doubles[0])}")
-                infer = np.array(self.model(np.array([doubles[0:8]]))).tolist()[0]
+                infer = [1]
+                infer.extend(np.array(self.model(np.array([doubles[0:8]]))).tolist()[0])
                 self.nextOutput = array.array('d', infer)
             else:
                 self.nextOutput = array.array('d', [float(0)] * 128)
 
 class SimpleFeedForwardDense(Brain):
     def __init__(self, socketID):
+        self.initmin = -1
+        self.initmax = 1
         super(SimpleFeedForwardDense, self).__init__(socketID)
 
     def _setup_model(self):
@@ -186,36 +199,40 @@ class SimpleFeedForwardDense(Brain):
         worldInputs = tf.keras.layers.Dense(
             units=world_dim,
             activation='relu',
-            kernel_initializer=tf.keras.initializers.random_normal,
-            bias_initializer=tf.keras.initializers.zeros,
+            kernel_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
+            bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="worldInputs")(trueWorldInputs)
 
 
         x = tf.keras.layers.Dense(
             units = world_dim,
-            kernel_initializer=tf.keras.initializers.random_normal,
-            bias_initializer=tf.keras.initializers.zeros,
+            activation='relu',
+            kernel_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
+            bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="x1"
         )(worldInputs)
 
         x = tf.keras.layers.Dense(
             units=world_dim,
-            kernel_initializer=tf.keras.initializers.random_normal,
-            bias_initializer=tf.keras.initializers.zeros,
+            activation='relu',
+            kernel_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
+            bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="x2"
         )(x)
 
         x = tf.keras.layers.Dense(
             units=world_dim,
-            kernel_initializer=tf.keras.initializers.random_normal,
-            bias_initializer=tf.keras.initializers.zeros,
+            activation='relu',
+            kernel_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
+            bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="x3"
         )(x)
 
         forMovement = tf.keras.layers.Dense(
             units=movement_neurons,
-            kernel_initializer=tf.keras.initializers.random_normal,
-            bias_initializer=tf.keras.initializers.zeros,
+            activation='sigmoid',
+            kernel_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
+            bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="forMovement")(x)
 
         fullModel = tf.keras.Model(

@@ -457,12 +457,19 @@ namespace VNFramework
         }
         public void Halt()
         {
+            Halt(true);
+        }
+        public void Halt(Boolean haltAngularMovement)
+        {
             _acceleration.X = 0;
             _acceleration.Y = 0;
             _velocity.X = 0;
             _velocity.Y = 0;
-            _angularAcceleration = 0f;
-            _angularVelocity = 0f;
+            if (haltAngularMovement)
+            {
+                _angularAcceleration = 0f;
+                _angularVelocity = 0f;
+            }
         }
         public Double Mass
         {

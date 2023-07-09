@@ -390,6 +390,7 @@ namespace VNFramework
                     if( _length == null)
                     {
                         _length = Math.Sqrt(Math.Pow(Math.Abs(_terminus.X - _origin.X), 2) + Math.Pow(Math.Abs(_terminus.Y - _origin.Y), 2));
+                        if(Double.IsNaN((double)_length)) { _length = 0d; }
                     }
                     return (Double)_length;
                 }
