@@ -32,7 +32,7 @@ class SocketManager:
                                 if isinstance(handler_scan, brains.Brain):
                                     brain_handlers.append(handler_scan)
                             print(f"Found {len(brain_handlers)} brains.")
-                            self.next_generation = brains.interbreed_by_fitness(brain_handlers, brains.SystemHandler.interbreed_rand_proportion)
+                            self.next_generation = brains.interbreed_by_fitness(brain_handlers, brains.SystemHandler.interbreed_rand_proportion, brains.SystemHandler.interbreed_param_uncertainty)
                             brains.SystemHandler.do_interbreed = False
                         if brains.SystemHandler.apply_next_generation:
                             print(f"Applying next generation of {len(self.next_generation)} brains.")
@@ -43,6 +43,7 @@ class SocketManager:
                                 self.ioHandlers[next_handler.socketID] = next_handler
                             brains.SystemHandler.apply_next_generation = False
                         handler.nextOutput = array.array('d', [float(doubles[0])] * 128)
+                        #print(f"Sending: {handler.nextOutput}")
                     else:
                         #print(f"Requesting to handle input: {sockID}")
                         handler.handle_input(doubles)
@@ -62,7 +63,8 @@ class SocketManager:
         except Exception as e:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             print(f"Exception caught while servicing connection ID {sockID}.\n{exc_type}: ({exc_value}) {traceback.extract_tb(exc_traceback)}")
-            print(self.toDispatch.keys())
+            print(f"Current IO handlers: {self.ioHandlers.keys()}")
+            print(f"Current sockets to dispatch for: {self.toDispatch.keys()}")
 
     def accept_wrapper(self, sock):
         conn, addr = sock.accept()

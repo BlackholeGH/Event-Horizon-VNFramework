@@ -20,12 +20,25 @@ namespace VNFramework
     public class Button : WorldEntity
     {
         public Boolean Enabled { get; set; }
+        public Boolean IsActingAsObscured
+        {
+            get;
+            protected set;
+        }
+        /// <summary>
+        /// Custom method to allow DropMenus to suppress button presses on elements they obscure while the menu is showing.
+        /// </summary>
+        /// <param name="menu"></param>
+        public void AssertObscuringState(DropMenu menu)
+        {
+            IsActingAsObscured = menu.Toggle;
+        }
         public Boolean AutoUpdateFrameState { get; set; }
         public Boolean ViableClick
         {
             get
             {
-                return (MouseInBounds() && Enabled);
+                return (MouseInBounds() && Enabled && !IsActingAsObscured);
             }
         }
         public Button(String name, Vector2 location, TAtlasInfo? atlas, float depth) : base(name, location, atlas, depth)
@@ -58,7 +71,7 @@ namespace VNFramework
         }
         protected virtual void ButtonPressFunctionTrigger()
         {
-            if (ButtonPressFunction != null && MouseInBounds() && Enabled && _hoverActive) { ButtonPressFunction?.Invoke(); }
+            if (ButtonPressFunction != null && MouseInBounds() && Enabled && !IsActingAsObscured && _hoverActive) { ButtonPressFunction?.Invoke(); }
         }
         private Boolean _hoverActive = false;
         public Boolean HoverActive

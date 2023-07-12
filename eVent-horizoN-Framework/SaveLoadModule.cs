@@ -23,6 +23,39 @@ namespace VNFramework
             public SaveLoadException(String Arg) : base(Arg)
             { }
         }
+        public static void WriteCSV(String fileDirectory, String fileName, object[][] data, String[] headers)
+        {
+            if(!fileName.ToLower().EndsWith(".csv")) { fileName = fileName + ".csv"; }
+            if (!(fileDirectory[1] == ':')) { fileDirectory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\" + fileDirectory; }
+            DirectoryInfo directoryInfo = new DirectoryInfo(fileDirectory);
+            try
+            {
+                if (!directoryInfo.Exists) { directoryInfo.Create(); }
+                FileInfo csvFile = new FileInfo(fileDirectory + fileName);
+                StringBuilder csv = new StringBuilder();
+                StringBuilder thisLine = new StringBuilder();
+                csv.AppendLine(String.Join(',', headers));
+                for (int line = 0; line < data[0].Length; line++)
+                {
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        thisLine.Append(data[i][line].ToString());
+                        if (i < data.Length - 1) { thisLine.Append(","); }
+                    }
+                    csv.AppendLine(thisLine.ToString());
+                    thisLine.Clear();
+                }
+                using (StreamWriter writer = new StreamWriter(new FileStream(csvFile.FullName, FileMode.Create, FileAccess.Write)))
+                {
+                    writer.Write(csv.ToString());
+                    writer.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Shell.WriteLine("Could not write .csv file: " + ex.ToString());
+            }
+        }
         static public void PullOrInitPersistentState()
         {
             FileInfo PSArchive = new FileInfo(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\Blackhole Media Systems\\Event Horizon Framework\\persistence\\settingsstates.eha");

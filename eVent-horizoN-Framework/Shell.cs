@@ -820,69 +820,72 @@ namespace VNFramework
         WorldEntity _preConsoleUsingKeyboard = null;
         protected void MainUpdate(GameTime gameTime, KeyboardState kCurrent)
         {
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
+            if (this.IsActive)
             {
-                if (ScriptProcessor.ActiveGame())
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Escape))
                 {
-                    if (!ButtonScripts.Paused) { ButtonScripts.Pause(); }
-                    else { ButtonScripts.Unpause(); }
+                    if (ScriptProcessor.ActiveGame())
+                    {
+                        if (!ButtonScripts.Paused) { ButtonScripts.Pause(); }
+                        else { ButtonScripts.Unpause(); }
+                    }
+                    else { ButtonScripts.Quit(); }
                 }
-                else { ButtonScripts.Quit(); }
-            }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde))
-            {
-                if (!ConsoleOpen)
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.OemTilde))
                 {
-                    _preConsoleUsingKeyboard = UsingKeyboardInputs;
-                    ButtonScripts.OpenAndConstructConsole();
-                    ConsoleOpen = true;
+                    if (!ConsoleOpen)
+                    {
+                        _preConsoleUsingKeyboard = UsingKeyboardInputs;
+                        ButtonScripts.OpenAndConstructConsole();
+                        ConsoleOpen = true;
+                    }
+                    else
+                    {
+                        ButtonScripts.CloseConsole();
+                        UsingKeyboardInputs = _preConsoleUsingKeyboard;
+                        ConsoleOpen = false;
+                    }
                 }
-                else
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && UsingKeyboardInputs is null && ScriptProcessor.ActiveGame())
                 {
-                    ButtonScripts.CloseConsole();
-                    UsingKeyboardInputs = _preConsoleUsingKeyboard;
-                    ConsoleOpen = false;
+                    ButtonScripts.RefreshUIHideState();
                 }
-            }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.H) && UsingKeyboardInputs is null && ScriptProcessor.ActiveGame())
-            {
-                ButtonScripts.RefreshUIHideState();
-            }
-            if (AutoCamera != null && LooseCamera)
-            {
-                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && UsingKeyboardInputs is null)
+                if (AutoCamera != null && LooseCamera)
                 {
-                    AutoCamera.RecenterCamera();
-                    AutoCamera.ResetZoom();
+                    if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.R) && UsingKeyboardInputs is null)
+                    {
+                        AutoCamera.RecenterCamera();
+                        AutoCamera.ResetZoom();
+                    }
+                    AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && UsingKeyboardInputs is null;
+                    if (!UpdateQueue.Contains(AutoCamera)) { UpdateQueue.Add(AutoCamera); }
                 }
-                AutoCamera.MouseDragEnabled = kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F) && UsingKeyboardInputs is null;
-                if(!UpdateQueue.Contains(AutoCamera)) { UpdateQueue.Add(AutoCamera); }
+                if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
+                {
+                    PythonController.SocketInterface.CloseAllSockets();
+                    Exit();
+                }
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity + 0.02) * 100) / 100f; }
+                if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity - 0.02) * 100) / 100f; }
             }
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == Microsoft.Xna.Framework.Input.ButtonState.Pressed || ExitOut)
-            {
-                PythonController.SocketInterface.CloseAllSockets();
-                Exit();
-            }
-            if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen && UsingKeyboardInputs is null) || DoNextShifter) && AllowEnter)
+            if (((kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Enter) && !ConsoleOpen && UsingKeyboardInputs is null && this.IsActive) || DoNextShifter) && AllowEnter)
             {
                 DoNextShifter = false;
                 Boolean found = false;
-                foreach(WorldEntity worldEntity in UpdateQueue)
+                foreach (WorldEntity worldEntity in UpdateQueue)
                 {
-                    if(worldEntity is TextEntity && worldEntity.Name == "TEXT_MAIN")
+                    if (worldEntity is TextEntity && worldEntity.Name == "TEXT_MAIN")
                     {
-                        if(((TextEntity)worldEntity).WrittenAll()) { GlobalWorldState = "CONTINUE"; }
+                        if (((TextEntity)worldEntity).WrittenAll()) { GlobalWorldState = "CONTINUE"; }
                         ((TextEntity)worldEntity).SkipWrite();
                         found = true;
                         break;
                     }
                 }
-                if(!found) { GlobalWorldState = "CONTINUE"; }
-            }      
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F11)) { ToggleFullscreen(); }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F2)) { PauseUpdates = !PauseUpdates; }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Down) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity + 0.02) * 100) / 100f; }
-            if (kCurrent.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && !LastKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.Up) && UsingKeyboardInputs is null) { DynamicEntity.GlobalGravity = (float)Math.Round((DynamicEntity.GlobalGravity - 0.02) * 100) / 100f; }
+                if (!found) { GlobalWorldState = "CONTINUE"; }
+            }
             LastKeyState = kCurrent;
             int currentSystemMessageDisplayTotal = 0;
             while(_systemTextQueue.Count > 0)
@@ -999,7 +1002,7 @@ namespace VNFramework
                 lastCapturedText = CaptureTextrate.Output();
             }
             MouseState currentMouseState = Mouse.GetState();
-            if(currentMouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && LastMouseState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
+            if(this.IsActive && currentMouseState.LeftButton == Microsoft.Xna.Framework.Input.ButtonState.Pressed && LastMouseState.LeftButton != Microsoft.Xna.Framework.Input.ButtonState.Pressed && MouseLeftClick != null) { MouseLeftClick(); }
             LastMouseState = currentMouseState;
             if (GlobalVoid != null)
             {

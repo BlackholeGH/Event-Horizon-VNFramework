@@ -29,7 +29,7 @@ namespace VNFramework
             public double Evaluate(Bot thisBot);
             public void Reset();
         }
-        public class MoveForwardAndOutFitness : IFitnessEvaluator
+        public class MoveForwardAndOut : IFitnessEvaluator
         {
             double _extentMovingForwards = 0;
             Vector2 _startPosition;
@@ -50,10 +50,10 @@ namespace VNFramework
                     }
                     else
                     {
-                        _extentMovingForwards -= 2;
+                        _extentMovingForwards -= 0.1;
                     }
                     double distanceTravelled = (_startPosition - thisBot.Position).Length();
-                    fitness = (distanceTravelled * 5) + (_extentMovingForwards * 2);
+                    fitness = (distanceTravelled * 5) + (_extentMovingForwards * 100);
                 }
                 return fitness;
             }
@@ -65,43 +65,42 @@ namespace VNFramework
         }
         public class SurviveEnergize : IFitnessEvaluator
         {
-            double _extentMovingForwards = 0;
-            Vector2 _startPosition;
+            int _startTime;
+            int _lastTime = -1;
+            int _maxtime;
             public void Initialize(Bot thisBot)
             {
-                _extentMovingForwards = 0;
-                _startPosition = thisBot.Position;
+                //_startTime = Environment.TickCount;
+                _maxtime = (int)AutoTrainController.GenerationLength;
+                _fitness = 0;
+                _lastTime = -1;
             }
+            double _fitness = 0;
             public double Evaluate(Bot thisBot)
-            {
-                double fitness = 0;
-                if (SimulationModelRunning)
+            {               
+                if (SimulationModelRunning && !thisBot.Dead)
                 {
-                    if (thisBot.Velocity.Length() > 0)
-                    {
-                        Double angleDifference = GraphicsTools.AngleDifference(thisBot.ForwardTrace.Bearing, GraphicsTools.VectorToBearing(thisBot.Velocity));
-                        _extentMovingForwards += (Math.PI / 2) - Math.Abs(angleDifference);
-                    }
-                    else
-                    {
-                        _extentMovingForwards -= 2;
-                    }
-                    double distanceTravelled = (_startPosition - thisBot.Position).Length();
-                    fitness = (distanceTravelled * 5) + _extentMovingForwards;
+                    int time = Environment.TickCount;
+                    if (_lastTime == -1) { _lastTime = time; }
+                    int timePassed = time - _lastTime;
+                    _fitness += ((double)timePassed / (double)_maxtime) * (1d - thisBot.Hunger) * 50000d;
+                    _lastTime = time;
                 }
-                return fitness;
+                return _fitness - (thisBot.Spiked ? 50000d : 0);
             }
             public void Reset()
             {
-                _extentMovingForwards = 0;
-                _startPosition = new Vector2();
+                //_startTime = Environment.TickCount;
+                _maxtime = (int)AutoTrainController.GenerationLength;
+                _fitness = 0;
+                _lastTime = -1;
             }
         }
         public class AutoTrainController : WorldEntity
         {
             static Boolean s_extant = false;
             Boolean _thisExtant = false;
-            public uint GenerationLength { get; set; }
+            public static uint GenerationLength { get; set; }
             public AutoTrainController(uint generationLengthMillis) : base("IMEMBOTS_AUTOTRAIN_CONTROLLER", new Vector2(), null, 1)
             {
                 if (s_extant)
@@ -156,7 +155,16 @@ namespace VNFramework
                     }
                     if (_selfActive)
                     {
-                        if (thisTickCount > _lastGenerationStartTime + GenerationLength)
+                        Boolean allDead = true;
+                        foreach (Bot bot in Bot.Bots)
+                        {
+                            if(!bot.Dead)
+                            { 
+                                allDead = false;
+                                break;
+                            }
+                        }
+                        if (thisTickCount > _lastGenerationStartTime + GenerationLength || allDead)
                         {
                             double[] lastSystemCodes = GetLastSystemSocketReturn();
                             if (SimulationModelRunning) { SendSimStartStopSocCommand(false); }
@@ -257,6 +265,19 @@ namespace VNFramework
         public static Boolean SimulationModelRunning { get; private set; }
         public static Boolean AutoTrainerRunning { get; private set; }
         public static Double MutationChance { get; private set; }
+        public static Double ParamStandardUncertainty { get; private set; }
+        static List<double> s_generationFitness = new List<double>();
+        public static List<double> GenerationFitness
+        {
+            get
+            {
+                return s_generationFitness;
+            }
+            private set
+            {
+                s_generationFitness = value;
+            }
+        }
         public static void SendSimStartStopSocCommand(object arg)
         {
             Boolean runsim = false;
@@ -282,12 +303,20 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1);
             SimulationModelRunning = runsim;
             WorldEntity running = Shell.GetEntityByName("IMEMBOTS_RUNNING_STATUS");
             if (running != null && running is TextEntity)
             {
                 ((TextEntity)running).Text = "[F:SYSFONT]Sim control [F:SYSFONT," + (SimulationModelRunning ? "C:0-255-0-255]active" : "C:255-0-0-255]paused") + "[F:SYSFONT].";
+            }
+        }
+        static int s_assertedSimCode = 1;
+        public static int AssertedSimCode
+        {
+            get
+            {
+                return s_assertedSimCode;
             }
         }
         public static void SendUpdateSimcodeSocCommand(object arg)
@@ -318,6 +347,7 @@ namespace VNFramework
                 startIndex += 8;
             }
             PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            s_assertedSimCode = simcode;
             WorldEntity simid = Shell.GetEntityByName("IMEMBOTS_SIMID_STATUS");
             if (simid != null && simid is TextEntity)
             {
@@ -350,17 +380,33 @@ namespace VNFramework
             }
             avr = avr / Bot.Bots.Count;
             Shell.WriteLine("Fitness update dispatched to Bot controllers. Current average fitness is " + avr + ". Current peak fitness is " + peak + ".");
+            GenerationFitness.Add(avr);
             WorldEntity fitness = Shell.GetEntityByName("IMEMBOTS_FITNESS_STATUS");
             if(fitness != null && fitness is TextEntity)
             {
                 ((TextEntity)fitness).Text = "[F:SYSFONT]Fitness :: Avr.: [F:SYSFONT,C:255-255-0-255]" + Math.Round(avr) + "[F:SYSFONT],[F:SYSFONT,N,L:99-0]Peak: [F:SYSFONT,C:255-255-0-255]" + Math.Round(peak);
             }
         }
+        public static void ClearStoredFitnesses()
+        {
+            Shell.WriteLine("Clearing IMemBoTs fitness scores.");
+            GenerationFitness?.Clear();
+        }
+        public static void WriteStoredFitnesses()
+        {
+            if (GenerationFitness != null)
+            {
+                Shell.WriteLine("Writing IMemBoTs fitness scores to CSV file.");
+                object[][] csvData = new object[][] { (new int[GenerationFitness.Count]).Select((x, i) => (object)(i + 1)).ToArray(), GenerationFitness.Select(x => (object)x).ToArray() };
+                String[] csvHeaders = new string[] { "Generation", "Avr. Fitness" };
+                SaveLoadModule.WriteCSV("IMemBoTs\\", "training_fitnesses_simulation_" + AssertedSimCode + "_" + System.DateTime.Now.ToLocalTime().ToString().Replace("\\", "_").Replace("/", "_").Replace(" ", "_").Replace(":", "_").Replace(".", "_") + ".csv", csvData, csvHeaders);
+            }
+        }
         static int s_queuedGeneration = 1;
         static int s_currentGeneration = 1;
         public static void SendDoBreedSocCommand()
         {
-            Double[] codes = new double[] { 5, MutationChance };
+            Double[] codes = new double[] { 5, MutationChance, ParamStandardUncertainty };
             Byte[] data = new byte[1024];
             int startIndex = 0;
             foreach (double d in codes)
@@ -369,7 +415,7 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1, 5);
             s_queuedGeneration++;
         }
         public static void SendApplyGenerationSocCommand()
@@ -383,7 +429,7 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1);
             s_currentGeneration = s_queuedGeneration;
             WorldEntity generation = Shell.GetEntityByName("IMEMBOTS_GENERATION_STATUS");
             if (generation != null && generation is TextEntity)
@@ -442,6 +488,9 @@ namespace VNFramework
                 Bot.Bots[i].QuickMoveTo(pos);
                 Bot.Bots[i].Rotate((float)GraphicsTools.VectorToBearing(pos) - Bot.Bots[i].RotationRads);
                 Bot.Bots[i].Halt();
+                Bot.Bots[i].Dead = false;
+                Bot.Bots[i].Spiked = false;
+                Bot.Bots[i].Hunger = 0;
                 Bot.Bots[i].FitnessEvaluator.Initialize(Bot.Bots[i]);
             }
             foreach(WorldEntity worldEntity in Shell.UpdateQueue)
@@ -449,6 +498,8 @@ namespace VNFramework
                 if(!(worldEntity is Bot) && worldEntity is DynamicEntity)
                 {
                     ((DynamicEntity)worldEntity).Halt(false);
+                    if (worldEntity is Plant) { ((Plant)worldEntity).Reset(); }
+                    if (worldEntity is Spike) { ((Spike)worldEntity).Reset(); }
                 }
             }
             //Shell.AutoCamera.RecenterCamera();
@@ -481,6 +532,52 @@ namespace VNFramework
             if (trainingStatus != null && trainingStatus is TextEntity)
             {
                 ((TextEntity)trainingStatus).Text = "[F:SYSFONT]Autotrainer: [F:SYSFONT," + (AutoTrainerRunning ? "C:0-255-0-255]On" : "C:255-0-0-255]Off");
+            }
+        }
+        static void InitCircleEscapeEnvironment(int spawnRadius)
+        {
+            int totalWall = 0;
+            for (int i = 0; i < 16; i++)
+            {
+                Vector2 pos = new Vector2((float)Math.Sin(totalWall * (Math.PI / 8)), (float)Math.Cos(totalWall * (Math.PI / 8))) * 700f;
+                Wall wall = new Wall("WALL_" + totalWall, pos, 0.8f);
+                wall.Rotate((float)(GraphicsTools.VectorToBearing(pos) + Math.PI / 2));
+                totalWall++;
+                Shell.UpdateQueue.Add(wall);
+                Shell.RenderQueue.Add(wall);
+            }
+            for (int i = 0; i < 20; i++)
+            {
+                Plant plant = new Plant("PLANT_" + i, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.6f + i * 0.001f, 300, new Vector2());
+                plant.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                Shell.UpdateQueue.Add(plant);
+                Shell.RenderQueue.Add(plant);
+            }
+        }
+        static void InitRandEnvironment(int spawnRadius, int circleRandomness, int numWall, int numPlant, int numSpike)
+        {
+            int totalWall = 0;
+            for (int i = 0; i < numWall; i++)
+            {
+                Wall wall = new Wall("WALL_" + totalWall, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.8f);
+                wall.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                totalWall++;
+                Shell.UpdateQueue.Add(wall);
+                Shell.RenderQueue.Add(wall);
+            }
+            for (int i = 0; i < numPlant; i++)
+            {
+                Double circangle = Shell.Rnd.NextDouble() * Math.PI * 2;
+                Plant plant = new Plant("PLANT_" + i, (new Vector2((float)Math.Sin(circangle), (float)Math.Cos(circangle)) * (spawnRadius / 2)) + new Vector2(Shell.Rnd.Next(-circleRandomness, circleRandomness), Shell.Rnd.Next(-circleRandomness, circleRandomness)), 0.6f + i * 0.001f, 300, new Vector2());
+                Shell.UpdateQueue.Add(plant);
+                Shell.RenderQueue.Add(plant);
+            }
+            for (int i = 0; i < numSpike; i++)
+            {
+                Double circangle = Shell.Rnd.NextDouble() * Math.PI * 2;
+                Spike spike = new Spike("SPIKE_" + i, (new Vector2((float)Math.Sin(circangle), (float)Math.Cos(circangle)) * (spawnRadius / 2)) + new Vector2(Shell.Rnd.Next(-circleRandomness, circleRandomness), Shell.Rnd.Next(-circleRandomness, circleRandomness)), 0.7f + i * 0.001f, 300, new Vector2());
+                Shell.UpdateQueue.Add(spike);
+                Shell.RenderQueue.Add(spike);
             }
         }
         public static void InitMembotsUI()
@@ -577,9 +674,10 @@ namespace VNFramework
                 Shell.UpdateQueue.Add(resetBotsButton);
                 Shell.RenderQueue.Add(resetBotsButton);
             }
+            DropMenu fitnessModelMenu = null;
             if (Shell.GetEntityByName("DROPMENU_FITNESS_MODEL") == null)
             {
-                DropMenu fitnessModelMenu = new DropMenu("DROPMENU_FITNESS_MODEL", new Vector2(630, 580), 0.95f, new Vector2(200, 20), new Vector2(7, 7), 2, new Color[] { new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255), new Color(200, 140, 0, 255), new Color(255, 207, 0, 255) }, "MoveForwardAndOut", "[F:SYSFONT]", FitnessTypes, false);
+                fitnessModelMenu = new DropMenu("DROPMENU_FITNESS_MODEL", new Vector2(630, 570), 0.95f, new Vector2(200, 20), new Vector2(7, 7), 2, new Color[] { new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255), new Color(200, 140, 0, 255), new Color(255, 207, 0, 255) }, "MoveForwardAndOut", "[F:SYSFONT]", FitnessTypes, false);
                 fitnessModelMenu.CenterOrigin = false;
                 fitnessModelMenu.IsUIElement = true;
                 fitnessModelMenu.SubscribeToEvent(WorldEntity.EventNames.DropMenuSelectFunction, typeof(IterativeMemBoTs).GetMethod("ApplyFitnessModel"), new object[] { fitnessModelMenu });
@@ -588,11 +686,43 @@ namespace VNFramework
             }
             if (Shell.GetEntityByName("IMEMBOTS_FITNESS_LABEL") == null)
             {
-                TextEntity fitnessLabel = new TextEntity("IMEMBOTS_FITNESS_LABEL", "[F:SYSFONT]^ Fitness model ^", new Vector2(655, 615), 0.92f);
+                TextEntity fitnessLabel = new TextEntity("IMEMBOTS_FITNESS_LABEL", "[F:SYSFONT]^ Fitness model ^", new Vector2(655, 605), 0.92f);
                 fitnessLabel.IsUIElement = true;
                 fitnessLabel.BufferLength = 240;
                 Shell.UpdateQueue.Add(fitnessLabel);
                 Shell.RenderQueue.Add(fitnessLabel);
+            }
+            if (Shell.GetEntityByName("BUTTON_RESET_FITNESS_SCORES") == null)
+            {
+                TAtlasInfo resetFitnessButtonAtlas = new TAtlasInfo();
+                resetFitnessButtonAtlas.Atlas = ButtonScripts.CreateCustomButton("[F:SYSFONT]Clear fitness history", new Vector2(200, 20), new Vector2(10, 7), new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255));
+                resetFitnessButtonAtlas.DivDimensions = new Point(2, 1);
+                Button resetFitnessButton = new Button("BUTTON_RESET_FITNESS_SCORES", new Vector2(630, 620), resetFitnessButtonAtlas, 0.91f);
+                resetFitnessButton.CenterOrigin = false;
+                resetFitnessButton.IsUIElement = true;
+                resetFitnessButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("ClearStoredFitnesses"), null);
+                if(fitnessModelMenu != null)
+                {
+                    resetFitnessButton.SubscribeToEvent(fitnessModelMenu, WorldEntity.EventNames.ButtonPressFunction, typeof(Button).GetMethod("AssertObscuringState"), new object[] { fitnessModelMenu });
+                }
+                Shell.UpdateQueue.Add(resetFitnessButton);
+                Shell.RenderQueue.Add(resetFitnessButton);
+            }
+            if (Shell.GetEntityByName("BUTTON_WRITE_FITNESS_SCORES") == null)
+            {
+                TAtlasInfo writeFitnessButtonAtlas = new TAtlasInfo();
+                writeFitnessButtonAtlas.Atlas = ButtonScripts.CreateCustomButton("[F:SYSFONT]Write fitness CSV file", new Vector2(200, 20), new Vector2(10, 7), new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255));
+                writeFitnessButtonAtlas.DivDimensions = new Point(2, 1);
+                Button writeFitnessButton = new Button("BUTTON_WRITE_FITNESS_SCORES", new Vector2(630, 660), writeFitnessButtonAtlas, 0.91f);
+                writeFitnessButton.CenterOrigin = false;
+                writeFitnessButton.IsUIElement = true;
+                writeFitnessButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("WriteStoredFitnesses"), null);
+                if (fitnessModelMenu != null)
+                {
+                    writeFitnessButton.SubscribeToEvent(fitnessModelMenu, WorldEntity.EventNames.ButtonPressFunction, typeof(Button).GetMethod("AssertObscuringState"), new object[] { fitnessModelMenu });
+                }
+                Shell.UpdateQueue.Add(writeFitnessButton);
+                Shell.RenderQueue.Add(writeFitnessButton);
             }
             if (Shell.GetEntityByName("IMEMBOTS_AUTOTRAIN_LABEL") == null)
             {
@@ -734,34 +864,13 @@ namespace VNFramework
             Shell.LooseCamera = true;
             ScriptProcessor.AssertGameRunningWithoutScript = true;
             Shell.BackdropColour = Color.Aquamarine;
+            GenerationFitness?.Clear();
             InitMembotsUI();
             AutoTrainerRunning = false;
             s_queuedGeneration = 1;
             s_currentGeneration = 1;
-            int totalWall = 0;
-            for (int i = 0; i < 16; i++)
-            {
-                Vector2 pos = new Vector2((float)Math.Sin(totalWall * (Math.PI / 8)), (float)Math.Cos(totalWall * (Math.PI / 8))) * 700f;
-                Wall wall = new Wall("WALL_" + totalWall, pos, 0.8f);
-                wall.Rotate((float)(GraphicsTools.VectorToBearing(pos) + Math.PI/2));
-                totalWall++;
-                Shell.UpdateQueue.Add(wall);
-                Shell.RenderQueue.Add(wall);
-            }
-            for (int i = 0; i < 10; i++)
-            {
-                Plant plant = new Plant("PLANT_" + i, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.6f + i * 0.001f, 300, new Vector2());
-                plant.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
-                Shell.UpdateQueue.Add(plant);
-                Shell.RenderQueue.Add(plant);
-            }
-            for (int i = 0; i < 10; i++)
-            {
-                Spike spike = new Spike("SPIKE_" + i, new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)), 0.7f + i * 0.001f, 300, new Vector2());
-                spike.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
-                Shell.UpdateQueue.Add(spike);
-                Shell.RenderQueue.Add(spike);
-            }
+            //InitCircleEscapeEnvironment(spawnRadius);
+            InitRandEnvironment(4000, 1000, 20, 30, 0);
             Process pyProcess = PythonController.StartPythonProcess("IMemBoTs\\Python\\socketmanager.py");
             Shell.WriteLine("Python process started. Waiting for socket listener to report...");
             while(true)
@@ -795,20 +904,22 @@ namespace VNFramework
                 bot.Rotate((float)GraphicsTools.VectorToBearing(pos) - bot.RotationRads);
                 bot.MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 bot.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
-                bot.FitnessEvaluator = new MoveForwardAndOutFitness();
+                //bot.FitnessEvaluator = new MoveForwardAndOut();
+                bot.FitnessEvaluator = new SurviveEnergize();
+                bot.UsesFood = true;
                 if (total == 1)
                 {
                     bot.MyBehaviours.Add(new Behaviours.DynamicWASDControlBehaviour());
                     bot.AutoRotateToVelocityBearing = false;
-                    //bot.MyStickers.Add(Shell.AutoCamera);
                     Shell.AutoCamera.QuickMoveTo(bot.Position);
                 }
                 Shell.UpdateQueue.Add(bot);
                 Shell.RenderQueue.Add(bot);
             }
             Shell.AutoCamera.AutoSnapToOnResetEntityName = "IMEMBOT_1";
-            MutationChance = 0.05;
-            Shell.UpdateQueue.Add(new AutoTrainController(6000));
+            MutationChance = 1;
+            ParamStandardUncertainty = 0.01;
+            Shell.UpdateQueue.Add(new AutoTrainController(30000));
         }
         [Serializable]
         public class Bot : DynamicEntity
@@ -863,8 +974,8 @@ namespace VNFramework
                 AnimationQueue.Add(Animation.PlayAllFrames(Atlas, 200, true));
                 Velocity = initialVelocity;
                 AutoRotateToVelocityBearing = false;
-                SelfMovementForceMultiplier = 4;
-                SelfRotationRate = 1;
+                SelfMovementForceMultiplier = 3;
+                SelfRotationRate = 0.2f;
 
                 SetupTraces();
             }
@@ -877,10 +988,10 @@ namespace VNFramework
             private void DispatchCodesToSocket(double[] codes)
             {
                 PySocketQuery thisReceivedQuery = GetQuery(SocketID);
-                if(thisReceivedQuery.LastReceive) { return; }
+                if (thisReceivedQuery.LastReceive) { return; }
                 byte[] data = new byte[1024];
                 int startIndex = 0;
-                foreach(double d in codes)
+                foreach (double d in codes)
                 {
                     byte[] thisDouble = BitConverter.GetBytes(d);
                     thisDouble.CopyTo(data, startIndex);
@@ -894,7 +1005,7 @@ namespace VNFramework
                 PySocketQuery thisReceivedQuery = GetQuery(SocketID);
                 double[] codes = new double[0];
                 //if(thisReceivedQuery.LastReceive && !thisReceivedQuery.Receive.Equals(_lastReceivedQuery.Receive))
-                if(thisReceivedQuery.LastReceive)
+                if (thisReceivedQuery.LastReceive)
                 {
                     AcknowledgeReceive(SocketID);
                     codes = new double[128];
@@ -911,6 +1022,7 @@ namespace VNFramework
                 double[] sensingOut = new double[128];
                 sensingOut[0] = Math.Min(10d, GraphicsTools.Trace.GetAlignedComponent(Velocity, ForwardTrace.AsAlignedVector).Length() / 10d); //Forward-aligned velocity
                 sensingOut[1] = Math.Min(10d, GraphicsTools.Trace.GetPerpendicularComponent(Velocity, ForwardTrace.AsAlignedVector).Length() / 10d); //Sideways-aligned velocity
+                sensingOut[8] = Hunger; //Hunger
                 for (int i = 0; i < _senseTraces.Count; i++)
                 {
                     GraphicsTools.Trace thisTrace = _senseTraces[i];
@@ -928,7 +1040,7 @@ namespace VNFramework
                             {
                                 detect = true;
                                 Double distance = (((Vector2)potentialIntersection) - sensingTrace.Origin).Length();
-                                if(Double.IsNaN(nearestDistance) || distance < nearestDistance)
+                                if (Double.IsNaN(nearestDistance) || distance < nearestDistance)
                                 {
                                     nearestDistance = distance;
                                     nearestObject = worldEntity;
@@ -1005,13 +1117,42 @@ namespace VNFramework
                 }
             }
             int _lastControlReceive = 0;
+            double _hunger = 0;
+            public double Hunger
+            {
+                get { return _hunger; }
+                set { _hunger = value; }
+            }
+            public Boolean UsesFood { get; set; }
+            Boolean _dead = false;
+            public Boolean Dead
+            {
+                get { return _dead; }
+                set
+                {
+                    if (value && !_dead)
+                    {
+                        ColourValue = new Color(0, 0, 0, 255);
+                    }
+                    else if (_dead && !value)
+                    {
+                        ColourValue = new Color(255, 255, 255, 255);
+                    }
+                    _dead = value;
+                }
+            }
+            public Boolean Spiked { get; set; }
             public override void Update()
             {
                 if (AutoRotateToVelocityBearing) { RotationRads = (float)new VNFramework.GraphicsTools.Trace(Velocity).Bearing; }
 
                 _senseClock = (_senseClock + 1) % SenseFrequency;
 
-                if (_senseClock == 0) { _senseCodes = SenseEnvironment(); }
+                if (_senseClock == 0)
+                {
+                    _senseCodes = SenseEnvironment();
+                    //if (Name == "IMEMBOT_1") { Shell.WriteLine(String.Join(' ', _senseCodes.Take(9).Select(x => x.ToString()).ToArray())); }
+                }
 
                 if (_lastSystemCodes == null)
                 {
@@ -1036,11 +1177,39 @@ namespace VNFramework
                     }
                 }
 
-                if (_controlCodes[0] == 1)
+                foreach(WorldEntity worldEntity in PreviousFrameCollides)
                 {
-                    ApplyForce(ForwardTrace.AsAlignedVector * (float)(_controlCodes[1] - 0.5) * SelfMovementForceMultiplier);
-                    Rotate((float)(_controlCodes[2] - 0.5) * SelfRotationRate);
+                    if (UsesFood && worldEntity is Plant)
+                    {
+                        _hunger = 0;
+                    }
+                    else if (worldEntity is Spike)
+                    {
+                        Dead = true;
+                        Spiked = true;
+                    }
                 }
+
+                if (_controlCodes[0] == 1 && !Dead)
+                {
+                    Vector2 forward = ForwardTrace.AsAlignedVector * (float)(_controlCodes[1]) * SelfMovementForceMultiplier;
+                    Vector2 backward = ForwardTrace.AsAlignedVector * -(float)(_controlCodes[2]) * SelfMovementForceMultiplier / 10;
+                    float right = (float)(_controlCodes[3]) * SelfRotationRate;
+                    float left = (float)(-_controlCodes[4]) * SelfRotationRate;
+                    ApplyForce(forward + backward);
+                    Rotate(right + left);
+                    if(UsesFood)
+                    {
+                        _hunger += forward.Length() / 600d;
+                        _hunger += backward.Length() / 600d;
+                        _hunger += right / 1000d;
+                        _hunger += -left / 1000d;
+                        _hunger += 0.001;
+                        ColourValue = new Color((int)((1 - _hunger) * 255d), (int)((1 - _hunger) * 255d), 255, 255);
+                    }
+                }
+
+                if(_hunger >= 1) { Dead = true; }
 
                 if(FitnessEvaluator != null)
                 {
@@ -1060,25 +1229,41 @@ namespace VNFramework
         [Serializable]
         public class Plant : DynamicEntity
         {
+            Vector2 _originalPosition = Vector2.Zero;
             public Plant(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["FOODPLANT"], depth, mass)
             {
+                _originalPosition = location;
                 CenterOrigin = true;
                 Collider = new RadialCollider(60, new Vector2());
                 Velocity = initialVelocity;
                 MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 AngularVelocity = (float)(Shell.Rnd.NextDouble() - 0.5) * 0.05f;
             }
+            public void Reset()
+            {
+                QuickMoveTo(_originalPosition);
+                Velocity = new Vector2();
+                Acceleration = new Vector2();
+            }
         }
         [Serializable]
         public class Spike : DynamicEntity
         {
+            Vector2 _originalPosition = Vector2.Zero;
             public Spike(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["DAMAGESPIKE"], depth, mass)
             {
+                _originalPosition = location;
                 CenterOrigin = true;
                 Collider = new RadialCollider(60, new Vector2());
                 Velocity = initialVelocity;
                 MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 AngularVelocity = (float)(Shell.Rnd.NextDouble() - 0.5) * 0.05f;
+            }
+            public void Reset()
+            {
+                QuickMoveTo(_originalPosition);
+                Velocity = new Vector2();
+                Acceleration = new Vector2();
             }
         }
         [Serializable]

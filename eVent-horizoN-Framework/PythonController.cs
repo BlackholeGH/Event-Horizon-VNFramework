@@ -133,6 +133,7 @@ namespace VNFramework
                 public Boolean LastSend = false;
                 public Boolean LastReceive = false;
                 public int AllowedSendAttempts = -1;
+                public int AttemptReceiveAttempts = 1;
             }
             public static ulong CurrentSocketID
             {
@@ -173,9 +174,13 @@ namespace VNFramework
             }
             public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue)
             {
-                SendQuery(key, data, allowEnqueue, -1);
+                SendQuery(key, data, allowEnqueue, -1, 1);
             }
             public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue, int allowedSendAttempts)
+            {
+                SendQuery(key, data, allowEnqueue, allowedSendAttempts, 1);
+            }
+            public static void SendQuery(ulong key, byte[] data, Boolean allowEnqueue, int allowedSendAttempts, int attemptReceiveAttempts)
             {
                 if (allowEnqueue) { Shunt(); }
                 if (data.Length > 1024) { return; }
@@ -203,6 +208,7 @@ namespace VNFramework
                             query.LastReceive = false;
                             query.Send = data;
                             query.AllowedSendAttempts = allowedSendAttempts;
+                            query.AttemptReceiveAttempts = attemptReceiveAttempts;
                             lock (s_queries)
                             {
                                 s_queries[key] = query;
@@ -296,6 +302,7 @@ namespace VNFramework
                                     myQuery.Send = new byte[1024];
                                     myQuery.Receive = new byte[1024];
                                     myQuery.AllowedSendAttempts = -1;
+                                    myQuery.AttemptReceiveAttempts = 1;
                                     lock (s_queries)
                                     {
                                         s_queries[myKey] = myQuery;
@@ -304,20 +311,24 @@ namespace VNFramework
                                 if (expectReceive)
                                 {
                                     buffer = new byte[1024];
-                                    try
+                                    while (myQuery.AttemptReceiveAttempts > 0 && !myQuery.LastReceive)
                                     {
-                                        int receiveCode = mySocket.Receive(buffer, SocketFlags.None);
-                                        myQuery.LastSend = false;
-                                        myQuery.LastReceive = true;
-                                        myQuery.Send = new byte[1024];
-                                        myQuery.Receive = buffer;
-                                        myQuery.AllowedSendAttempts = -1;
-                                        lock (s_queries)
+                                        try
                                         {
-                                            s_queries[myKey] = myQuery;
+                                            int receiveCode = mySocket.Receive(buffer, SocketFlags.None);
+                                            myQuery.LastSend = false;
+                                            myQuery.LastReceive = true;
+                                            myQuery.Send = new byte[1024];
+                                            myQuery.Receive = buffer;
+                                            myQuery.AllowedSendAttempts = -1;
+                                            myQuery.AttemptReceiveAttempts = 1;
+                                            lock (s_queries)
+                                            {
+                                                s_queries[myKey] = myQuery;
+                                            }
                                         }
+                                        catch (SocketException e) { myQuery.AttemptReceiveAttempts -= 1; }
                                     }
-                                    catch (SocketException e) { }
                                 }
                             }
                             else

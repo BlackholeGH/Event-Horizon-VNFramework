@@ -56,11 +56,12 @@ namespace VNFramework
             }
             public void Clear()
             {
-
+                _lastState = new KeyboardState();
             }
+            KeyboardState _lastState = new KeyboardState();
             public void UpdateFunctionality(WorldEntity worldEntity)
             {
-                if (worldEntity is DynamicEntity && !(Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != worldEntity))
+                if (worldEntity is DynamicEntity && !(Shell.UsingKeyboardInputs != null && Shell.UsingKeyboardInputs != worldEntity && !Shell.DefaultShell.IsActive))
                 {
                     DynamicEntity dynamicEntity = (DynamicEntity)worldEntity;
                     KeyboardState kState = Keyboard.GetState();
@@ -88,6 +89,20 @@ namespace VNFramework
                     {
                         dynamicEntity.Rotate(0.1f);
                     }
+                    if (kState.IsKeyDown(Keys.T) && !_lastState.IsKeyDown(Keys.T))
+                    {
+                        if(!worldEntity.MyStickers.Contains(Shell.AutoCamera))
+                        {
+                            worldEntity.MyStickers.Add(Shell.AutoCamera);
+                            Shell.WriteLine("Shell autocamera now attached to " + worldEntity.Name + ".");
+                        }
+                        else
+                        {
+                            worldEntity.MyStickers.Remove(Shell.AutoCamera);
+                            Shell.WriteLine("Shell autocamera detached from " + worldEntity.Name + ".");
+                        }
+                    }
+                    _lastState = kState;
                 }
             }
         }
@@ -260,10 +275,6 @@ namespace VNFramework
         }
         public void ResolveCollision(DynamicEntity selfAttach, WorldEntity remoteAttach)
         {
-            if(selfAttach.Name == "IMEMBOT_1")
-            {
-                int testpoint = 0;
-            }
             /*
             * Move out of intersection with remote collider. If both objects can move, then each does half the movement.
             */
@@ -486,12 +497,13 @@ namespace VNFramework
             Mass = mass;
             CenterOfMass = Origin;
             AlreadyCollidedWithThisIteration = new List<WorldEntity>();
+            PreviousFrameCollides = new List<WorldEntity>();
             ImpulseKilledByActiveCollision = false;
         }
         public override void Update()
         {
-            //base.Update();
             base.Update();
+            PreviousFrameCollides.Clear();
             AlreadyCollidedWithThisIteration.Clear();
             ImpulseKilledByActiveCollision = false;
             _velocity += _acceleration;
@@ -526,7 +538,8 @@ namespace VNFramework
                 CheckCollisions();
             }*/
         }
-        public List<WorldEntity> AlreadyCollidedWithThisIteration { get; protected set; }
+        private List<WorldEntity> AlreadyCollidedWithThisIteration { get; set; }
+        public List<WorldEntity> PreviousFrameCollides { get; private set; }
         public Boolean ImpulseKilledByActiveCollision { get; protected set; }
         /* appears to be some sort of error with overlapping polygon colliders that causes an entity to be shunted out the other side of the polygon when interacting with a joint created by the clipping. Investigate/fix later.
          * UPDATE: May have actually been due to surface area resizing bug? Check to see if it reoccurs.
@@ -563,6 +576,11 @@ namespace VNFramework
                         //Console.WriteLine("Collided with " + worldEntity.Name);
                         Collider.ResolveCollision(this, colliderEntity);
                         AlreadyCollidedWithThisIteration.Add(colliderEntity);
+                        PreviousFrameCollides.Add(colliderEntity);
+                        if(colliderEntity is DynamicEntity)
+                        {
+                            ((DynamicEntity)colliderEntity).PreviousFrameCollides.Add(this);
+                        }
                     }
                 }
             }
