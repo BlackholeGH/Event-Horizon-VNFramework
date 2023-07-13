@@ -415,7 +415,7 @@ namespace VNFramework
                 thisDouble.CopyTo(data, startIndex);
                 startIndex += 8;
             }
-            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1, 5);
+            PythonController.SocketInterface.SendQuery(SystemSocketID, data, false, 1, 10);
             s_queuedGeneration++;
         }
         public static void SendApplyGenerationSocCommand()
@@ -870,7 +870,7 @@ namespace VNFramework
             s_queuedGeneration = 1;
             s_currentGeneration = 1;
             //InitCircleEscapeEnvironment(spawnRadius);
-            InitRandEnvironment(4000, 1000, 20, 30, 0);
+            InitRandEnvironment(4000, 1000, 20, 30, 15);
             Process pyProcess = PythonController.StartPythonProcess("IMemBoTs\\Python\\socketmanager.py");
             Shell.WriteLine("Python process started. Waiting for socket listener to report...");
             while(true)

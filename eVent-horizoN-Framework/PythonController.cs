@@ -327,7 +327,24 @@ namespace VNFramework
                                                 s_queries[myKey] = myQuery;
                                             }
                                         }
-                                        catch (SocketException e) { myQuery.AttemptReceiveAttempts -= 1; }
+                                        catch (SocketException e)
+                                        {
+                                            Console.WriteLine(myKey + " failed receive: " + (myQuery.AttemptReceiveAttempts - 1) + " left.");
+                                            myQuery.AttemptReceiveAttempts -= 1;
+                                            if(myQuery.AttemptReceiveAttempts <= 0)
+                                            {
+                                                myQuery.LastSend = false;
+                                                myQuery.LastReceive = false;
+                                                myQuery.Send = new byte[1024];
+                                                myQuery.Receive = new byte[1024];
+                                                myQuery.AllowedSendAttempts = -1;
+                                                myQuery.AttemptReceiveAttempts = 1;
+                                                lock (s_queries)
+                                                {
+                                                    s_queries[myKey] = myQuery;
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

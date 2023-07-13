@@ -793,6 +793,7 @@ namespace VNFramework
             {
                 main = new TextEntity("TEXT_MAIN", parts[2], new Vector2(150, 500), 0.96f);
                 main.TypeWrite = true;
+                main.IsUIElement = true;
                 if(ButtonScripts.UIHideEnabled) { main.Drawable = false; }
                 Shell.RunQueue.Add(new VoidDel(delegate ()
                 {

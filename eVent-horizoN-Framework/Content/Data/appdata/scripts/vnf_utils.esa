@@ -153,6 +153,12 @@ assign=ButtonScripts.SpoonsTrip,false
 }}",
 FACTORY
 {{
+get=Shell.AutoCamera
+camera.RecenterCamera()
+camera.ResetZoom()
+}},
+FACTORY
+{{
 new=WorldEntity("BACKDROP_MAIN", new Vector2(0, 0), (TAtlasInfo)Shell.AtlasDirectory["STARBG"], 0);
 Shell.UpdateQueue
 Shell.RenderQueue

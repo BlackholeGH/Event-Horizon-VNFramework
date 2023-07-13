@@ -193,18 +193,19 @@ class Brain(IOHandler):
                     i += 1
             i += 1
         self.nextOutput = array.array('d', [sys.float_info.max] * 128)
+        #print(f"System codes processed at handler {self.socketID}.")
     def save_weights(self):
         print(f"Saving weights for Brain model with ID {self.socketID}...")
         self.model.save(f"./PyModelWeights/Simulation_{str(SystemHandler.simcode)}/brain_{self.socketID}", overwrite=True)
     def load_weights(self, simcode, socketID):
-        print(f"Loading weights to Brain model with ID {self.socketID}...")
-        self.model = tf.keras.models.load_model(f"./PyModelWeights/Simulation_{str(simcode)}/brain_{self.socketID}")
+        print(f"Loading weights to Brain model with ID {socketID}...")
+        self.model = tf.keras.models.load_model(f"./PyModelWeights/Simulation_{str(simcode)}/brain_{socketID}")
     def handle_input(self, doubles):
+        #print(f"Handling input for {self.socketID}.")
         if doubles[0] == sys.float_info.max:
             self.process_system_codes(doubles)
         else:
             if SystemHandler.runsim:
-                #print(f"Handling input starting with {str(doubles[0])}")
                 infer = [1]
                 infer.extend(np.array(self.model(np.array([doubles[0:world_dim]]))).tolist()[0])
                 self.nextOutput = array.array('d', infer)

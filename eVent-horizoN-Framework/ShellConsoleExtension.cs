@@ -87,6 +87,10 @@ namespace VNFramework
                     case "RUN":
                         RunQueue.Add(EntityFactory.AssembleVoidDelegate(input.Remove(0, input.IndexOf(' ') + 1)));
                         break;
+                    //Uses the EntityFactory's delegate assembler to set a specified identifier to data parsed from a second parameter. The first parameter can have no spaces.
+                    case "ASSIGN":
+                        RunQueue.Add(EntityFactory.AssembleVoidDelegate("assign=" + commands[1] + "," + input.Remove(0, input.IndexOf(' ', input.IndexOf(' ') + 1) + 1)));
+                        break;
                     //Fork to a new script from your current state. Equivalent to "do B|[Script name]".
                     case "FORK":
                         ScriptProcessor.ActivateScriptElement("B|" + commands[1].ToUpper());
