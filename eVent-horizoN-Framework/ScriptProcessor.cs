@@ -809,6 +809,7 @@ namespace VNFramework
                 if (textLabel is null)
                 {
                     label = new TextEntity("TEXT_LABEL", parts[1], new Vector2(140, 420), 0.96f);
+                    label.IsUIElement = true;
                     if (!snifferSkipping) { label.AnimationQueue.Add(Animation.Retrieve("BOUNCE_3")); }
                     SetFocus(parts[1]);
                     if (ButtonScripts.UIHideEnabled) { label.Drawable = false; }
@@ -822,6 +823,7 @@ namespace VNFramework
                 {
                     nameBacking = new WorldEntity("NAMELABELBACKING", new Vector2(90, 388), (TAtlasInfo)Shell.AtlasDirectory["NAMEBACKING"], 0.9f);
                     nameBacking.ColourValue = new Color(255, 255, 255, 200);
+                    nameBacking.IsUIElement = true;
                     if (ButtonScripts.UIHideEnabled) { nameBacking.Drawable = false; }
                     Shell.RunQueue.Add(new VoidDel(delegate ()
                     {
