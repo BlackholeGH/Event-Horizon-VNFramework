@@ -365,3 +365,6 @@ FodyWeavers.xsd
 #Don't push game content to git...
 Content/
 /.idea
+/eVent-horizoN-Framework/IMemBoTs/Python/PyModelWeights/Simulation_10.0
+/ClassDiagram1.png
+/eVent-horizoN-Framework/ClassDiagram.cd
