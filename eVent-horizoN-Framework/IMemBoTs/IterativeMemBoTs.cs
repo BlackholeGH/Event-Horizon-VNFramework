@@ -101,7 +101,8 @@ namespace VNFramework
             static Boolean s_extant = false;
             Boolean _thisExtant = false;
             public static uint GenerationLength { get; set; }
-            public AutoTrainController(uint generationLengthMillis) : base("IMEMBOTS_AUTOTRAIN_CONTROLLER", new Vector2(), null, 1)
+            private object[] _resetParams = null;
+            public AutoTrainController(uint generationLengthMillis, object[] resetParams) : base("IMEMBOTS_AUTOTRAIN_CONTROLLER", new Vector2(), null, 1)
             {
                 if (s_extant)
                 {
@@ -109,6 +110,7 @@ namespace VNFramework
                 }
                 else
                 {
+                    _resetParams = resetParams;
                     GenerationLength = generationLengthMillis;
                     s_extant = true;
                     _thisExtant = true;
@@ -128,7 +130,7 @@ namespace VNFramework
             int _reachedEnd = 0;
             void InitGeneration()
             {
-                ResetBotPositions();
+                ResetBotPositions((bool)_resetParams[0], (int)_resetParams[1], (int)_resetParams[2]);
                 _lastGenerationStartTime = Environment.TickCount;
                 SendSimStartStopSocCommand(true);
             }
@@ -264,7 +266,7 @@ namespace VNFramework
         }
         public static Boolean SimulationModelRunning { get; private set; }
         public static Boolean AutoTrainerRunning { get; private set; }
-        public static Double MutationChance { get; private set; }
+        public static Double MutationAddedWeight { get; private set; }
         public static Double ParamStandardUncertainty { get; private set; }
         static List<double> s_generationFitness = new List<double>();
         public static List<double> GenerationFitness
@@ -406,7 +408,7 @@ namespace VNFramework
         static int s_currentGeneration = 1;
         public static void SendDoBreedSocCommand()
         {
-            Double[] codes = new double[] { 5, MutationChance, ParamStandardUncertainty };
+            Double[] codes = new double[] { 5, MutationAddedWeight, ParamStandardUncertainty };
             Byte[] data = new byte[1024];
             int startIndex = 0;
             foreach (double d in codes)
@@ -480,9 +482,37 @@ namespace VNFramework
             }
             return codes;
         }
-        public static void ResetBotPositions()
+        public static void ResetEnvironmentObjects(Boolean shuffle, int spawnRadius, int circleRandomness)
         {
-            for(int i = 0; i < Bot.Bots.Count; i++)
+            foreach (WorldEntity worldEntity in Shell.UpdateQueue)
+            {
+                if (!(worldEntity is Bot) && worldEntity is DynamicEntity)
+                {
+                    ((DynamicEntity)worldEntity).Halt(false);
+                    if (worldEntity is Plant)
+                    {
+                        ((Plant)worldEntity).Reset();
+                    }
+                    if (worldEntity is Spike) { ((Spike)worldEntity).Reset(); }
+                    if (shuffle)
+                    {
+                        if(worldEntity is Plant || worldEntity is Spike)
+                        {
+                            Double circangle = Shell.Rnd.NextDouble() * Math.PI * 2;
+                            worldEntity.QuickMoveTo((new Vector2((float)Math.Sin(circangle), (float)Math.Cos(circangle)) * (spawnRadius / 2)) + new Vector2(Shell.Rnd.Next(-circleRandomness, circleRandomness), Shell.Rnd.Next(-circleRandomness, circleRandomness)));
+                        }
+                        if(worldEntity is Wall)
+                        {
+                            worldEntity.QuickMoveTo(new Vector2(Shell.Rnd.Next(-spawnRadius, spawnRadius), Shell.Rnd.Next(-spawnRadius, spawnRadius)));
+                            worldEntity.Rotate((float)(Shell.Rnd.NextDouble() * Math.PI * 2));
+                        }
+                    }
+                }
+            }
+        }
+        public static void ResetBotPositions(Boolean shuffleObstacles, int spawnRadius, int circleRandomness)
+        {
+            for (int i = 0; i < Bot.Bots.Count; i++)
             {
                 Vector2 pos = Bot.GetStartPosByIndex(i + 1);
                 Bot.Bots[i].QuickMoveTo(pos);
@@ -493,15 +523,7 @@ namespace VNFramework
                 Bot.Bots[i].Hunger = 0;
                 Bot.Bots[i].FitnessEvaluator.Initialize(Bot.Bots[i]);
             }
-            foreach(WorldEntity worldEntity in Shell.UpdateQueue)
-            {
-                if(!(worldEntity is Bot) && worldEntity is DynamicEntity)
-                {
-                    ((DynamicEntity)worldEntity).Halt(false);
-                    if (worldEntity is Plant) { ((Plant)worldEntity).Reset(); }
-                    if (worldEntity is Spike) { ((Spike)worldEntity).Reset(); }
-                }
-            }
+            ResetEnvironmentObjects(shuffleObstacles, spawnRadius, circleRandomness);
             //Shell.AutoCamera.RecenterCamera();
         }
         public static void ApplyFitnessModel(object arg)
@@ -581,6 +603,10 @@ namespace VNFramework
             }
         }
         public static void InitMembotsUI()
+        {
+            InitMembotsUI("MoveForwardAndOut");
+        }
+        public static void InitMembotsUI(String startingFitness)
         {
             if (Shell.GetEntityByName("IMEMBOTS_UIBOX") == null)
             {
@@ -670,14 +696,14 @@ namespace VNFramework
                 Button resetBotsButton = new Button("BUTTON_RESET_BOTS", new Vector2(180, 660), resetButtonAtlas, 0.95f);
                 resetBotsButton.CenterOrigin = false;
                 resetBotsButton.IsUIElement = true;
-                resetBotsButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("ResetBotPositions"), null);
+                resetBotsButton.SubscribeToEvent(WorldEntity.EventNames.ButtonPressFunction, typeof(IterativeMemBoTs).GetMethod("ResetBotPositions"), new object[] { false, 0, 0 });
                 Shell.UpdateQueue.Add(resetBotsButton);
                 Shell.RenderQueue.Add(resetBotsButton);
             }
             DropMenu fitnessModelMenu = null;
             if (Shell.GetEntityByName("DROPMENU_FITNESS_MODEL") == null)
             {
-                fitnessModelMenu = new DropMenu("DROPMENU_FITNESS_MODEL", new Vector2(630, 570), 0.95f, new Vector2(200, 20), new Vector2(7, 7), 2, new Color[] { new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255), new Color(200, 140, 0, 255), new Color(255, 207, 0, 255) }, "MoveForwardAndOut", "[F:SYSFONT]", FitnessTypes, false);
+                fitnessModelMenu = new DropMenu("DROPMENU_FITNESS_MODEL", new Vector2(630, 570), 0.95f, new Vector2(200, 20), new Vector2(7, 7), 2, new Color[] { new Color(255, 207, 0, 255), new Color(255, 94, 0, 255), new Color(255, 151, 32, 255), new Color(200, 140, 0, 255), new Color(255, 207, 0, 255) }, startingFitness, "[F:SYSFONT]", FitnessTypes, false);
                 fitnessModelMenu.CenterOrigin = false;
                 fitnessModelMenu.IsUIElement = true;
                 fitnessModelMenu.SubscribeToEvent(WorldEntity.EventNames.DropMenuSelectFunction, typeof(IterativeMemBoTs).GetMethod("ApplyFitnessModel"), new object[] { fitnessModelMenu });
@@ -865,12 +891,13 @@ namespace VNFramework
             ScriptProcessor.AssertGameRunningWithoutScript = true;
             Shell.BackdropColour = Color.Aquamarine;
             GenerationFitness?.Clear();
-            InitMembotsUI();
+            Type fitnessType = typeof(SurviveEnergize);
+            InitMembotsUI(fitnessType.Name);
             AutoTrainerRunning = false;
             s_queuedGeneration = 1;
             s_currentGeneration = 1;
             //InitCircleEscapeEnvironment(spawnRadius);
-            InitRandEnvironment(4000, 1000, 20, 30, 15);
+            InitRandEnvironment(3000, 400, 15, 20, 0);
             Process pyProcess = PythonController.StartPythonProcess("IMemBoTs\\Python\\socketmanager.py");
             Shell.WriteLine("Python process started. Waiting for socket listener to report...");
             while(true)
@@ -904,8 +931,7 @@ namespace VNFramework
                 bot.Rotate((float)GraphicsTools.VectorToBearing(pos) - bot.RotationRads);
                 bot.MyBehaviours.Add(new Behaviours.DragPhysicsBehaviour());
                 bot.MyBehaviours.Add(new Behaviours.ConsoleReaderBehaviour());
-                //bot.FitnessEvaluator = new MoveForwardAndOut();
-                bot.FitnessEvaluator = new SurviveEnergize();
+                bot.FitnessEvaluator = (IFitnessEvaluator)Activator.CreateInstance(fitnessType);
                 bot.UsesFood = true;
                 if (total == 1)
                 {
@@ -917,9 +943,9 @@ namespace VNFramework
                 Shell.RenderQueue.Add(bot);
             }
             Shell.AutoCamera.AutoSnapToOnResetEntityName = "IMEMBOT_1";
-            MutationChance = 1;
+            MutationAddedWeight = 0.5;
             ParamStandardUncertainty = 0.01;
-            Shell.UpdateQueue.Add(new AutoTrainController(30000));
+            Shell.UpdateQueue.Add(new AutoTrainController(30000, new object[] { true, 3000, 400 }));
         }
         [Serializable]
         public class Bot : DynamicEntity
@@ -964,6 +990,10 @@ namespace VNFramework
                 _senseTraces.Add(rightSense);
             }
             private List<GraphicsTools.Trace> _senseTraces = new List<GraphicsTools.Trace>();
+            public GraphicsTools.Trace[] SenseTraces
+            {
+                get { return _senseTraces.ToArray(); }
+            }
             public Bot(String name, Vector2 location, float depth, double mass, Vector2 initialVelocity) : base(name, location, Shell.AtlasDirectory["BOT"], depth, mass)
             {
                 Bots.Add(this);

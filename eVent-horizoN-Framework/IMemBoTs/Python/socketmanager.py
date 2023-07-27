@@ -79,8 +79,12 @@ class SocketManager:
         if self.nextConnectionID == 0:
             self.ioHandlers[self.nextConnectionID] = brains.SystemHandler(self.nextConnectionID)
             print("SYSTEM_SOCKET_ASSIGNED")
+        #else:
+        #    self.ioHandlers[self.nextConnectionID] = brains.IMemBoT2(self.nextConnectionID)
+        #else:
+        #    self.ioHandlers[self.nextConnectionID] = brains.SimpleFeedForwardDense(self.nextConnectionID)
         else:
-            self.ioHandlers[self.nextConnectionID] = brains.SimpleFeedForwardDense(self.nextConnectionID)
+            self.ioHandlers[self.nextConnectionID] = brains.ChimericMemBoT(self.nextConnectionID)
         print(f"Registered connection as: {self.nextConnectionID}")
         self.nextConnectionID = self.nextConnectionID + 1
 
