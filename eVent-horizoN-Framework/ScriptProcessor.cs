@@ -27,7 +27,7 @@ namespace VNFramework
         }
         public static int CountApplicableRollbacks { get; set; }
         public static Boolean AllowScriptShift { get; set; }
-        public static Stack<RecallableState> PastStates = new Stack<RecallableState>();
+        public static Stack PastStates = new Stack();
         public static String SongCom = "";
         static String s_textArchive = "";
         public static Boolean AllowScriptExit { get; set; }
@@ -557,7 +557,7 @@ namespace VNFramework
                             {
                                 if (E is ScriptSniffer) { ((ScriptSniffer)E).RollbacksOnReturn = CountApplicableRollbacks; }
                             }
-                            if (rollbackAble) { PastStates.Push((RecallableState)Shell.SerializeState()); }
+                            if (rollbackAble) { PastStates.Push(Shell.SerializeState()); }
                         });
                     }));
                 }
@@ -566,7 +566,7 @@ namespace VNFramework
                     Stack tempStack = new Stack();
                     for (int i = 0; i < 200; i++) { tempStack.Push(PastStates.Pop()); }
                     PastStates.Clear();
-                    for (int i = 0; i < 200; i++) { PastStates.Push((RecallableState)tempStack.Pop()); }
+                    for (int i = 0; i < 200; i++) { PastStates.Push(tempStack.Pop()); }
                     tempStack.Clear();
                 }
             }
