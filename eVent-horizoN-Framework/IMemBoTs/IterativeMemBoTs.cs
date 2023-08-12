@@ -53,7 +53,7 @@ namespace VNFramework
                         _extentMovingForwards -= 0.1;
                     }
                     double distanceTravelled = (_startPosition - thisBot.Position).Length();
-                    fitness = (distanceTravelled * 5) + (_extentMovingForwards * 100);
+                    fitness = (distanceTravelled * 5) + (_extentMovingForwards);
                 }
                 return fitness;
             }
@@ -897,7 +897,7 @@ namespace VNFramework
             s_queuedGeneration = 1;
             s_currentGeneration = 1;
             //InitCircleEscapeEnvironment(spawnRadius);
-            InitRandEnvironment(3000, 400, 15, 20, 0);
+            InitRandEnvironment(3000, 600, 15, 20, 0);
             Process pyProcess = PythonController.StartPythonProcess("IMemBoTs\\Python\\socketmanager.py");
             Shell.WriteLine("Python process started. Waiting for socket listener to report...");
             while(true)
@@ -944,8 +944,9 @@ namespace VNFramework
             }
             Shell.AutoCamera.AutoSnapToOnResetEntityName = "IMEMBOT_1";
             MutationAddedWeight = 0.5;
-            ParamStandardUncertainty = 0.01;
+            ParamStandardUncertainty = 0.005;
             Shell.UpdateQueue.Add(new AutoTrainController(30000, new object[] { true, 3000, 400 }));
+            //Shell.UpdateQueue.Add(new AutoTrainController(10000, new object[] { true, 3000, 400 }));
         }
         [Serializable]
         public class Bot : DynamicEntity

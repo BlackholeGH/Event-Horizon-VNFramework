@@ -13,20 +13,20 @@ import logging
 from tensorflow.python.ops.gradients_util import _NonEagerInputs
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
-asciiChars = 'ABCX'
+asciiChars = 'ABCDEFX'
 asciiR = np.array(list(map(str, list(asciiChars))))
 print(asciiR)
 print(len(asciiR))
 
 world_dim = 9
-embed_dim = 1
-memorybox_sequence_length = 2
+embed_dim = 2
+memorybox_sequence_length = 16
 attention_heads = 1
 movement_neurons = 4
-stored_best_decay_buffer = 50
-allow_stored_decay = False
 
-best_ever_stored_count = 2
+stored_best_decay_buffer = 50 #prev was 50
+allow_stored_decay = True
+best_ever_stored_count = 3
 best_ever_fitness = [-sys.float_info.max] * best_ever_stored_count
 best_ever_brain = [None] * best_ever_stored_count
 
@@ -45,7 +45,7 @@ def do_one_crossbreed(brain_one, brain_two, proportion_one_to_two, rand_proporti
                 for index, weight in np.ndenumerate(layer):
                     if random.random() <= rand_proportion:
                         layer[index] = random.uniform(brain_child.initmin, brain_child.initmax)
-                        #print("Random triggered!")
+                        print("Random triggered!")
                     else:
                         if random.random() <= proportion_one_to_two:
                             layer[index] = model_one_weights[layerindex][index] + random.gauss(0, param_uncertainty)
@@ -150,11 +150,15 @@ def interbreed_by_fitness(brains, rand_proportion, param_uncertainty):
                 remerge_brains.append(brain.copy())
             while len(remerge_brains) > len(parent_brains):
                 remerge_brains.pop(-1)
-        spouse_index = math.floor(random.triangular(0, 0, len(parent_brains)))
+        #spouse_index = math.floor(random.triangular(0, len(parent_brains), 0))
+        spouse_index = 0
         spouse = sorted_brains[spouse_index]
         avr_parent_fitness = float((brain.fitness + spouse.fitness) / 2)
-        adjusted_rand = min(1, float(1 - ((avr_parent_fitness + 50000) / 80000))) * rand_proportion
-        child = do_one_crossbreed(brain, spouse, 1 / (rank / (spouse_index + 1)), adjusted_rand, param_uncertainty)
+        #adjusted_rand = min(1, float(1 - ((avr_parent_fitness + 50000) / 80000))) * rand_proportion
+        adjusted_rand = 0.02
+        proportion_one_to_two = (spouse_index + 1) / (rank + spouse_index + 1)
+        #print(f"Rank 1: {rank}, Rank 2: {spouse_index + 1}, Proportion 1:2: {proportion_one_to_two}")
+        child = do_one_crossbreed(brain, spouse, proportion_one_to_two, adjusted_rand, param_uncertainty)
         surviving_brains.append(child)
     surviving_brains.extend(remerge_brains)
     while len(surviving_brains) < len(sorted_brains):
@@ -340,10 +344,10 @@ class SimpleFeedForwardDense(Brain):
 
 class IterativeMemoryTransformer(Brain):
     def __init__(self, socketID):
-        super(IterativeMemoryTransformer, self).__init__(socketID)
-        self.memory_box = ["X"] * memorybox_sequence_length
         self.initmin = -1
         self.initmax = 1
+        super(IterativeMemoryTransformer, self).__init__(socketID)
+        self.memory_box = ["X"] * memorybox_sequence_length
 
     def handle_input(self, doubles):
         if doubles[0] == sys.float_info.max:
@@ -470,18 +474,18 @@ class IterativeMemoryTransformer(Brain):
             bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="x1"
         )(expandForReshape)
-        #x = tf.keras.layers.Dense(
-        #    units=world_dim * embed_dim,
-        #    kernel_initializer=tf.keras.initializers.random_normal,
-        #    bias_initializer=tf.keras.initializers.zeros,
-        #    name="x2"
-        #)(x)
-        #x = tf.keras.layers.Dense(
-        #    units=world_dim * embed_dim,
-        #    kernel_initializer=tf.keras.initializers.random_normal,
-        #    bias_initializer=tf.keras.initializers.zeros,
-        #    name="x3"
-        #)(x)
+        x = tf.keras.layers.Dense(
+            units=world_dim * embed_dim,
+            kernel_initializer=tf.keras.initializers.random_normal,
+            bias_initializer=tf.keras.initializers.zeros,
+            name="x2"
+        )(x)
+        x = tf.keras.layers.Dense(
+            units=world_dim * embed_dim,
+            kernel_initializer=tf.keras.initializers.random_normal,
+            bias_initializer=tf.keras.initializers.zeros,
+            name="x3"
+        )(x)
 
         flatAttn = tf.keras.layers.Flatten(name="flatAttn")(norm)
 
@@ -550,27 +554,27 @@ class IterativeMemoryTransformer(Brain):
             bias_initializer=tf.keras.initializers.random_uniform(self.initmin, self.initmax),
             name="writeBoolTwo")(carry)
 
-        #writeValueThree = tf.keras.layers.Dense(
-        #    units=94,
-        #    kernel_initializer=tf.keras.initializers.random_normal,
-        #    bias_initializer=tf.keras.initializers.zeros,
-        #    name="writeValueThree")(carry)
+        writeValueThree = tf.keras.layers.Dense(
+            units=94,
+            kernel_initializer=tf.keras.initializers.random_normal,
+            bias_initializer=tf.keras.initializers.zeros,
+            name="writeValueThree")(carry)
 
-        #writeValueOutThree = tf.keras.layers.Softmax(name="writeValueOutThree")(writeValueThree)
+        writeValueOutThree = tf.keras.layers.Softmax(name="writeValueOutThree")(writeValueThree)
 
-        #writePosThree = tf.keras.layers.Dense(
-        #    units=memorybox_sequence_length,
-        #    kernel_initializer=tf.keras.initializers.random_normal,
-        #    bias_initializer=tf.keras.initializers.zeros,
-        #    name="writePosThree")(carry)
+        writePosThree = tf.keras.layers.Dense(
+            units=memorybox_sequence_length,
+            kernel_initializer=tf.keras.initializers.random_normal,
+            bias_initializer=tf.keras.initializers.zeros,
+            name="writePosThree")(carry)
 
-        #writePosOutThree = tf.keras.layers.Softmax(name="writePosOutThree")(writePosThree)
+        writePosOutThree = tf.keras.layers.Softmax(name="writePosOutThree")(writePosThree)
 
-        #writeBoolThree = tf.keras.layers.Dense(
-        #    units=1,
-        #    kernel_initializer=tf.keras.initializers.random_normal,
-        #    bias_initializer=tf.keras.initializers.zeros,
-        #    name="writeBoolThree")(carry)
+        writeBoolThree = tf.keras.layers.Dense(
+            units=1,
+            kernel_initializer=tf.keras.initializers.random_normal,
+            bias_initializer=tf.keras.initializers.zeros,
+            name="writeBoolThree")(carry)
 
         fullModel = tf.keras.Model(
             inputs=[worldInputs, boxInput],
@@ -699,7 +703,7 @@ class IMemBoT2(IterativeMemoryTransformer):
 
         return fullModel
 
-base_model = tf.keras.models.load_model(f"./PyModelWeights/Simulation_1/brain_4")
+#base_model = tf.keras.models.load_model(f"./PyModelWeights/Simulation_1/brain_4")
 
 class ChimericMemBoT(IterativeMemoryTransformer):
     def __init__(self, socketID):
@@ -832,3 +836,4 @@ class ChimericMemBoT(IterativeMemoryTransformer):
 #imembot = IterativeMemoryTransformer(0)
 #sffd = SimpleFeedForwardDense(0)
 #chimem = ChimericMemBoT(1)
+#imem2 = IMemBoT2(0)
