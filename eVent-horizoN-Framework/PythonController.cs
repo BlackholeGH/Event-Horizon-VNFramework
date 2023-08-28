@@ -163,8 +163,8 @@ namespace VNFramework
                 public PySocketQuery() { }
                 public byte[] Send = new byte[0]; //Data to send
                 public byte[] Receive = new byte[0]; //Data received
-                public Boolean LastSend = false; //Whether the last operation was a send operation
-                public Boolean LastReceive = false; //Whether the last operation was a receive operation
+                public Boolean LastSend = false; //Whether the last operation was a send operation (awaiting receive)
+                public Boolean LastReceive = false; //Whether the last operation was a receive operation (awaiting receive acknowledgement)
                 public int AllowedSendAttempts = -1; //Number of allowed send attempts
                 public int AttemptReceiveAttempts = 1; //Number of allowed receive attempts
             }
