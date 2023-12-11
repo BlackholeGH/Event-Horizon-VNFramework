@@ -13,6 +13,7 @@ using static Assimp.Metadata;
 using static System.Net.Mime.MediaTypeNames;
 using System.Diagnostics;
 using System.Xml.Linq;
+using static VNFramework.VNFUtils;
 
 namespace VNFramework
 {
@@ -229,6 +230,10 @@ namespace VNFramework
                     {
                         thisTrueShift[commandIndex] = RunFactoryCommand(command, 2, false);
                     }
+                    else if (command.StartsWith("TILE_FACTORY"))
+                    {
+                        thisTrueShift[commandIndex] = RunFactoryCommand(command, 3, false); //Add when
+                    }
                     else if (command.StartsWith("MERGE_IN"))
                     {
                         String mergeName = command.Replace("MERGE_IN=\"", "");
@@ -246,7 +251,7 @@ namespace VNFramework
             }
             return eventScriptAssembled.ToArray();
         }
-        public class ScriptParseException : Exception
+        public class ScriptParseException : EventHorizonException
         {
             public ScriptParseException(String arg) : base(arg)
             { }

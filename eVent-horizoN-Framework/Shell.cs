@@ -17,6 +17,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Reflection;
 using static VNFramework.GraphicsTools;
+using Tileset = VNFramework.GraphicsTools.TileRenderer.Tileset;
 
 namespace VNFramework
 {
@@ -527,6 +528,7 @@ namespace VNFramework
         public static Dictionary<string, TAtlasInfo> AtlasDirectory = new Dictionary<string, TAtlasInfo>();
         public static Dictionary<string, SoundEffect> SFXDirectory = new Dictionary<string, SoundEffect>();
         public static Dictionary<string, Song> SongDirectory = new Dictionary<string, Song>();
+        public static Dictionary<string, Tileset> TilesetDirectory = new Dictionary<string, Tileset>();
         public static List<SoundEffectInstance> ActiveSounds = new List<SoundEffectInstance>();
         public static Checkbox CaptureFullscreen = null;
         public static Slider CaptureTextrate = null;
@@ -621,6 +623,10 @@ namespace VNFramework
             foreach (String key in ((Dictionary<object, TAtlasInfo>)resources[5]).Keys)
             {
                 AtlasDirectory.Add(key, ((Dictionary<object, TAtlasInfo>)resources[5])[key]);
+            }
+            foreach (String key in ((Dictionary<object, TAtlasInfo>)resources[6]).Keys)
+            {
+                TilesetDirectory.Add(key, ((Dictionary<object, Tileset>)resources[6])[key]);
             }
             List<string> adKeys = new List<string>();
             foreach (String key in AtlasDirectory.Keys)

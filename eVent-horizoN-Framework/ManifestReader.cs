@@ -12,12 +12,13 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
+using Tileset = VNFramework.GraphicsTools.TileRenderer.Tileset;
 
 namespace VNFramework
 {
     public static class ManifestReader
     {
-        public class ManifestReaderException : Exception
+        public class ManifestReaderException : VNFUtils.EventHorizonException
         {
             public ManifestReaderException(String arg) : base(arg)
             { }
@@ -97,6 +98,7 @@ namespace VNFramework
             Dictionary<object, Song> songDirectory = new Dictionary<object, Song>();
             Dictionary<object, Texture2D> stemAtlasTemps = new Dictionary<object, Texture2D>();
             Dictionary<object, TAtlasInfo> atlasDirectory = new Dictionary<object, TAtlasInfo>();
+            Dictionary<object, Tileset> tilesetDirectory = new Dictionary<object, Tileset>();
             String[] manifestEntries = VNFUtils.Strings.SplitAtExclosed(manifest, ';', '\"');
             int readProg = 0;
             foreach(String entry in manifestEntries)
@@ -154,6 +156,8 @@ namespace VNFramework
                         dirIndex = EntityFactory.ParseRealData(entrySegment[1]);
                         atlasDirectory.Add(dirIndex, ParseTextureAtlas(entrySegment, stemAtlasTemps, myShell));
                         break;
+                    case "TILESET":
+                        break;
                 }
                 readProg++;
                 try
@@ -164,7 +168,7 @@ namespace VNFramework
                 finally { Monitor.Exit(myShell.LPLockObj); }
             }
             Shell.WriteLine("Finished reading manifest.");
-            return new object[] { metaDirectory, scriptDirectory, fontDirectory, sfxDirectory, songDirectory, atlasDirectory };
+            return new object[] { metaDirectory, scriptDirectory, fontDirectory, sfxDirectory, songDirectory, atlasDirectory, tilesetDirectory };
         }
         private static TAtlasInfo ParseTextureAtlas(String[] entrySegment, Dictionary<object, Texture2D> stemAtlasTemps, Shell myShell)
         {

@@ -20,7 +20,7 @@ namespace VNFramework
     /// <summary>
     /// Classes and functions facillitating more complex graphical operations between entities
     /// </summary>
-    public static class GraphicsTools
+    public static partial class GraphicsTools
     {
         /// <summary>
         /// VertexRenderable objects can be drawn to the world based on point vector graphics. This class provides the abstract definitions

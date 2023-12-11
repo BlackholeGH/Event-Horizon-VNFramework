@@ -481,17 +481,17 @@ namespace VNFramework
             customText.Draw(spriteBatch);
             spriteBatch.End();
             Shell.PubGD.SetRenderTarget(null);
-            Texture2D Out = VNFUtils.GetFromRT(Output);
-            Color[] OutModify = new Color[Out.Width * Out.Height];
-            Out.GetData<Color>(OutModify);
+            Texture2D outTexture = VNFUtils.GetFromRT(Output);
+            Color[] OutModify = new Color[outTexture.Width * outTexture.Height];
+            outTexture.GetData<Color>(OutModify);
             Color Prev = backgroundColour;
             Color New = new Color((int)backgroundColour.R, (int)backgroundColour.G, (int)backgroundColour.B, (int)backgroundColour.A);
             for (int i = 0; i < OutModify.Length; i++)
             {
                 if(OutModify[i] == Prev) { OutModify[i] = New; }
             }
-            Out.SetData<Color>(OutModify);
-            return Out;
+            outTexture.SetData<Color>(OutModify);
+            return outTexture;
         }
         public static Button GetQuickButton(String text)
         {

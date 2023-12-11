@@ -292,6 +292,52 @@ namespace VNFramework
                 }
             }
         }
+        /// <summary>
+        /// Initialize the "physics test" environment.
+        /// This initialization protocal was for testing the initial physics implementation and was not used in experimentation.
+        /// </summary>
+        /// <param name="layout">Spawn grid dimensions for physics objects</param>
+        public static void InitializePhysTest2(Point layout)
+        {
+            //Prepare environment
+            ButtonScripts.SpoonsTrip = true;
+            Shell.OneFadeout();
+            ScriptProcessor.ClearNonUIEntities();
+            Shell.LooseCamera = true;
+            ScriptProcessor.AssertGameRunningWithoutScript = true;
+            Shell.BackdropColour = Color.Aquamarine;
+            //Spawn bounding walls
+            Wall wall = new Wall("WALL_1", new Vector2(-5000, 0), 0.8f);
+            wall.CenterOrigin = true;
+            wall.Scale(new Vector2(2, 66));
+            Shell.UpdateQueue.Add(wall);
+            Shell.RenderQueue.Add(wall);
+            wall = new Wall("WALL_2", new Vector2(5000, 0), 0.8f);
+            wall.CenterOrigin = true;
+            wall.Scale(new Vector2(2, 66));
+            Shell.UpdateQueue.Add(wall);
+            Shell.RenderQueue.Add(wall);
+            wall = new Wall("WALL_3", new Vector2(0, 5000), 0.8f);
+            wall.CenterOrigin = true;
+            wall.Scale(new Vector2(2, 66));
+            wall.Rotate((float)(Math.PI / 2));
+            Shell.UpdateQueue.Add(wall);
+            Shell.RenderQueue.Add(wall);
+            int total = 0;
+            //Spawn IMemBoTs for physics test
+            for (int y = 0; y < layout.Y; y++)
+            {
+                for (int x = 0; x < layout.X; x++)
+                {
+                    total++;
+                    Plant plant = new Plant("PLANT" + x + "_" + y, new Vector2(-2400 + 200 * (x + 1), -2400 + 200 * (y + 1)), 0.4f + (0.001f * total), 10, new Vector2(Shell.Rnd.Next(-5, 5), Shell.Rnd.Next(-5, 5)));
+                    plant.CenterOrigin = true;
+                    Shell.UpdateQueue.Add(plant);
+                    Shell.RenderQueue.Add(plant);
+                }
+            }
+            DynamicEntity.GlobalGravity = 2;
+        }
         //Public static properties to control IMemBoT simulation parameters.
         public static Boolean SimulationModelRunning { get; private set; } //Is the simulation running?
         public static Boolean AutoTrainerRunning { get; private set; } //Is the autotrainer running?

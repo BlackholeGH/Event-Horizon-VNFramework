@@ -18,7 +18,7 @@ namespace VNFramework
 {
     public static class SaveLoadModule
     {
-        public class SaveLoadException : Exception
+        public class SaveLoadException : VNFUtils.EventHorizonException
         {
             public SaveLoadException(String Arg) : base(Arg)
             { }

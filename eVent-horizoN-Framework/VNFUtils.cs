@@ -59,6 +59,11 @@ namespace VNFramework
     public delegate void VoidDel();
     public static class VNFUtils
     {
+        public class EventHorizonException : Exception
+        {
+            public EventHorizonException(String arg) : base(arg)
+            { }
+        }
         public static Dictionary<String, String> TypeAliasLookup()
         {
             Dictionary<String, String> Out = new Dictionary<string, string>();
