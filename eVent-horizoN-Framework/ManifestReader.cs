@@ -157,6 +157,8 @@ namespace VNFramework
                         atlasDirectory.Add(dirIndex, ParseTextureAtlas(entrySegment, stemAtlasTemps, myShell));
                         break;
                     case "TILESET":
+                        dirIndex = EntityFactory.ParseRealData(entrySegment[1]);
+                        tilesetDirectory.Add(dirIndex, ParseTileset(entrySegment, atlasDirectory));
                         break;
                 }
                 readProg++;
@@ -169,6 +171,124 @@ namespace VNFramework
             }
             Shell.WriteLine("Finished reading manifest.");
             return new object[] { metaDirectory, scriptDirectory, fontDirectory, sfxDirectory, songDirectory, atlasDirectory, tilesetDirectory };
+        }
+        private static Tileset ParseTileset(String[] entrySegment, Dictionary<object, TAtlasInfo> atlasDirectory)
+        {
+            Tileset tileset = new Tileset();
+            object dirIndex = EntityFactory.ParseRealData(entrySegment[1]);
+            if (!(dirIndex is String || dirIndex is string)) { throw new ManifestReaderException("Manifest is invalid: Tileset must be String indexed at point of load."); }
+            for (int i = 2; i < entrySegment.Length; i++)
+            {
+                float x = 1;
+                float y = 1;
+                if (entrySegment[i].ToUpper().StartsWith("TEX_ATL:"))
+                {
+                    object atlIndex = EntityFactory.ParseRealData(entrySegment[i].Remove(0, 8));
+                    if(atlasDirectory.ContainsKey(atlIndex))
+                    {
+                        tileset.TileAtlas = atlasDirectory[atlIndex];
+                    }
+                    else
+                    {
+                        throw new ManifestReaderException("Manifest is invalid: Invalid texture identifier when building Tileset " + dirIndex.ToString() + ".");
+                    }
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TILE_OFFSET:"))
+                {
+                    String offsets = entrySegment[i].Remove(0, 12).Replace("#", "").Replace('[', '#').Replace(']', '#');
+                    String[] offsetsXY = VNFUtils.Strings.SplitAtExclosed(offsets, ',', '#');
+                    if(offsetsXY.Length != 2) { throw new ManifestReaderException("Manifest is invalid: Tiling offsets must be defined as a two variable sequence."); }
+                    Vector2[][] trueOffsets = new Vector2[2][];
+                    try
+                    {
+                        for(int j = 0; j < 2; j++)
+                        {
+                            String[] vectors = offsetsXY[j].Split(':');
+                            trueOffsets[j] = new Vector2[vectors.Length];
+                            int k = 0;
+                            foreach (String vector in vectors)
+                            {
+                                String[] offset = vector.Split(',');
+                                x = Convert.ToSingle(offset[0]);
+                                y = Convert.ToSingle(offset[1]);
+                                trueOffsets[j][k] = new Vector2(x, y);
+                                k++;
+                            }
+                        }
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset offsets are in an incorrect format."); }
+                    tileset.TileOffset = trueOffsets;
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TILE_ORIGIN:"))
+                {
+                    String[] origin = entrySegment[i].Remove(0, 12).Split(',');
+                    try
+                    {
+                        x = Convert.ToSingle(origin[0]);
+                        y = Convert.ToSingle(origin[1]);
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset origin is in an incorrect format."); }
+                    tileset.TileOrigin = new Vector2(x, y);
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TILE_SCALING:"))
+                {
+                    String[] scale = entrySegment[i].Remove(0, 13).Split(',');
+                    try
+                    {
+                        x = Convert.ToSingle(scale[0]);
+                        y = Convert.ToSingle(scale[1]);
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset scaling is in an incorrect format."); }
+                    tileset.TileOrigin = new Vector2(x, y);
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TILE_TINT:"))
+                {
+                    String[] col = entrySegment[i].Remove(0, 10).Split(',');
+                    int[] colourChannels = new int[4];
+                    try
+                    {
+                        for(int ii = 0; ii < colourChannels.Length; ii++)
+                        {
+                            colourChannels[ii] = Convert.ToInt32(col[ii]);
+                        }
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset tint is in an incorrect format."); }
+                    tileset.Tint = new Color(colourChannels[0], colourChannels[1], colourChannels[2], colourChannels[3]);
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TILE_BG:"))
+                {
+                    String[] col = entrySegment[i].Remove(0, 8).Split(',');
+                    int[] colourChannels = new int[4];
+                    try
+                    {
+                        for (int ii = 0; ii < colourChannels.Length; ii++)
+                        {
+                            colourChannels[ii] = Convert.ToInt32(col[ii]);
+                        }
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset background colour is in an incorrect format."); }
+                    tileset.Background = new Color(colourChannels[0], colourChannels[1], colourChannels[2], colourChannels[3]);
+                }
+                else if (entrySegment[i].ToUpper().StartsWith("TL:"))
+                {
+                    String[] tlParams = entrySegment[i].Remove(0, 3).Split(':');
+                    int tileIndex = 0;
+                    int x2 = 0;
+                    int y2 = 0;
+                    try
+                    {
+                        tileIndex = Convert.ToInt32(tlParams[0]);
+                        String[] tileDivs = tlParams[1].Split(',');
+                        x2 = Convert.ToInt32(tileDivs[0]);
+                        y2 = Convert.ToInt32(tileDivs[1]);
+                    }
+                    catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tile index mappings are in an incorrect format."); }
+                    tileset.TileLookup.Add(tileIndex, new Point(x2, y2));
+                }
+            }
+            if (tileset.TileAtlas is null) { throw new ManifestReaderException("Manifest is invalid: Tileset " + dirIndex.ToString() + " did not specify a texture atlas."); }
+            if (tileset.TileLookup.Count == 0) { throw new ManifestReaderException("Manifest is invalid: Tileset " + dirIndex.ToString() + " has no tile index mappings."); }
+            return tileset;
         }
         private static TAtlasInfo ParseTextureAtlas(String[] entrySegment, Dictionary<object, Texture2D> stemAtlasTemps, Shell myShell)
         {
