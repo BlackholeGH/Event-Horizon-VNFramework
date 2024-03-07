@@ -1,6 +1,6 @@
 # Event-Horizon-VNFramework
 
-The eVent horizoN Framework is a framework for 2D games built using MonoGame, developed by Julia (Blackhole). Initially designed for visual novels, the game engine can be used to build any arbitrary 2D project.
+The eVent horizoN Framework is a framework for 2D games built using MonoGame. Initially designed for visual novels, the game engine can be used to build any arbitrary 2D project.
 
 eVent horizoN incorporates its own scene control systems, scripting language, resource manifests, stock UI elements, developer console, save/load functionality, custom animation engine and more!
 
