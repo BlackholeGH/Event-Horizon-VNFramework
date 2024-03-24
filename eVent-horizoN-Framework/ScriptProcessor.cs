@@ -167,7 +167,7 @@ namespace VNFramework
         /// Extract a factory command string and assembles the delegate, either running or returning it.
         /// </summary>
         /// <param name="command">Command string containing the factory schema.</param>
-        /// <param name="assemblyMode">1: Runs in regular WorldEntity assembly mode. 2: Runs in "RUN" assembly mode. Other: Returns null.</param>
+        /// <param name="assemblyMode">1: Runs in regular WorldEntity assembly mode. 2: Runs in "RUN" assembly mode. 3: Runs in tilesheet factory mode. Other: Returns null.</param>
         /// <param name="executeInstantly">Boolean flag for whether the delegate should be returned or put on the run queue.</param>
         /// <returns></returns>
         private static VoidDel? RunFactoryCommand(string command, int assemblyMode, Boolean executeInstantly)
@@ -193,6 +193,16 @@ namespace VNFramework
                 factoryDelegate = new VoidDel(delegate ()
                 {
                     Shell.RunQueue.Add(EntityFactory.AssembleVoidDelegate(factoryBlueprint));
+                });
+            }
+            else if (assemblyMode == 3)
+            {
+                factoryDelegate = new VoidDel(delegate ()
+                {
+                    Shell.RunQueue.Add(new VoidDel(delegate ()
+                    {
+                        EntityFactory.AssembleTileDisplay(factoryBlueprint);
+                    }));
                 });
             }
             else { return null; }
@@ -232,7 +242,7 @@ namespace VNFramework
                     }
                     else if (command.StartsWith("TILE_FACTORY"))
                     {
-                        thisTrueShift[commandIndex] = RunFactoryCommand(command, 3, false); //Add when
+                        thisTrueShift[commandIndex] = RunFactoryCommand(command, 3, false);
                     }
                     else if (command.StartsWith("MERGE_IN"))
                     {

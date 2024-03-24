@@ -325,6 +325,44 @@ namespace VNFramework
                     return Input;
                 }
             }
+            public static Boolean ContainsExclosedFromNestingChars(String Input, char ContainsChar, char EncloseCommence, char EncloseCease)
+            {
+                return ContainsExclosedFromNestingChars(Input, ContainsChar, new char[] { EncloseCommence }, new char[] { EncloseCease });
+            }
+            public static Boolean ContainsExclosedFromNestingChars(String Input, char ContainsChar, char[] EncloseCommence, char[] EncloseCease)
+            {
+                int level = 0;
+                foreach (char c in Input)
+                {
+                    if (EncloseCommence.Contains(c)) { level++; }
+                    if (EncloseCease.Contains(c) && level > 0) { level--; }
+                    if (c == ContainsChar && level == 0) { return true; }
+                }
+                return false;
+            }
+            public static String[] SplitAtExclosedFromNestingChars(String Input, char SplitChar, char EncloseCommence, char EncloseCease)
+            {
+                return SplitAtExclosedFromNestingChars(Input, SplitChar, new char[] { EncloseCommence }, new char[] { EncloseCease });
+            }
+            public static String[] SplitAtExclosedFromNestingChars(String Input, char SplitChar, char[] EncloseCommence, char[] EncloseCease)
+            {
+                ArrayList Splits = new ArrayList();
+                StringBuilder Current = new StringBuilder();
+                int level = 0;
+                foreach (char c in Input)
+                {
+                    if (EncloseCommence.Contains(c)) { level++; }
+                    if (EncloseCease.Contains(c) && level > 0) { level--; }
+                    if (c == SplitChar && level == 0)
+                    {
+                        Splits.Add(Current.ToString());
+                        Current = new StringBuilder();
+                    }
+                    else { Current.Append(c); }
+                }
+                Splits.Add(Current.ToString());
+                return Splits.ToArray().Select(o => (String)o).ToArray();
+            }
             /// <summary>
             /// This String replacer method will replace all instances of an occurrence of a substring in a String with another, if said occurrence is enclosed within one set of characters, but not also enclosed within another.
             /// </summary>

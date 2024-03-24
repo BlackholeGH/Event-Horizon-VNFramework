@@ -624,7 +624,7 @@ namespace VNFramework
             {
                 AtlasDirectory.Add(key, ((Dictionary<object, TAtlasInfo>)resources[5])[key]);
             }
-            foreach (String key in ((Dictionary<object, TAtlasInfo>)resources[6]).Keys)
+            foreach (String key in ((Dictionary<object, Tileset>)resources[6]).Keys)
             {
                 TilesetDirectory.Add(key, ((Dictionary<object, Tileset>)resources[6])[key]);
             }
@@ -728,7 +728,7 @@ namespace VNFramework
         float lastCapturedVol = 0f;
         float lastCapturedText = 0f;
         public Queue LoadGraphicsQueue { get; set; }
-        public GameTime LastUpdateGameTime { get; set; }
+        public static GameTime LastUpdateGameTime { get; set; }
         /// <summary>
         /// Allows the game to run logic such as updating the world,
         /// checking for collisions, gathering input, and playing audio.
@@ -1061,9 +1061,10 @@ namespace VNFramework
         {
             foreach(WorldEntity worldEntity in RenderQueue)
             {
-                if(!(worldEntity is Pane || worldEntity is VerticalScrollPane)) { continue; }
+                if(!(worldEntity is Pane || worldEntity is VerticalScrollPane || worldEntity is TileRenderer.TileDisplay)) { continue; }
                 else if (worldEntity is Pane && ((Pane)worldEntity).RenderAlways) { ((Pane)worldEntity).Render(); }
                 else if (worldEntity is VerticalScrollPane && ((VerticalScrollPane)worldEntity).AssociatedPane.RenderAlways) { ((VerticalScrollPane)worldEntity).AssociatedPane.Render(); }
+                else if (worldEntity is TileRenderer.TileDisplay && ((TileRenderer.TileDisplay)worldEntity).NeedUpdateRender) { ((TileRenderer.TileDisplay)worldEntity).DoRenderUpdate(); }
             }
             GraphicsDevice.SetRenderTarget(TrueDisplay);
             GraphicsDevice.Clear(BackdropColour);

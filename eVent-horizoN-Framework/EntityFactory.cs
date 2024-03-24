@@ -11,6 +11,7 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Media;
 using System.Runtime.Serialization;
 using System.Reflection;
+using static VNFramework.GraphicsTools.TileRenderer;
 
 namespace VNFramework
 {
@@ -669,6 +670,37 @@ namespace VNFramework
                 else { ConstructedEntity = Process(SplitScheme[1], Identifier, ConstructedEntity); }
             }
             return ConstructedEntity;
+        }
+        /// <summary>
+        /// Assembles a TileDisplay object based on a String schema/blueprint.
+        /// </summary>
+        /// <param name="Schema">The String "blueprint" for a TileDisplay.</param>
+        /// <returns></returns>
+        public static TileDisplay AssembleTileDisplay(String Schema)
+        {
+            TileDisplay ConstructedDisplay = null;
+            String[] Schemas = VNFUtils.Strings.SplitAtExclosed(VNFUtils.Strings.RemoveExclosed(Schema, ' ', '\"'), '\n', '\"');
+            foreach (String S in Schemas)
+            {
+                String RS = S;
+                if (!RS.Contains("=")) { RS = RS + "="; }
+                String[] SplitScheme = VNFUtils.Strings.SplitAtExclosed(RS, '=', '\"');
+                String Identifier = SplitScheme[0];
+                if (Identifier == "new")
+                {
+                    ConstructedDisplay = (TileDisplay)Process(SplitScheme[1], Identifier, null);
+                }
+                else if (Identifier == "tilestates")
+                {
+                    String tileInfo = SplitScheme[1];
+                    tileInfo = tileInfo.TrimEnd('\"');
+                    tileInfo = tileInfo.TrimStart('\"');
+                    tileInfo = tileInfo.Replace("\n", "");
+                    ConstructedDisplay.SetTiles(TileDisplay.ParseTileInfoString(tileInfo));
+                }
+                else { ConstructedDisplay = (TileDisplay)Process(SplitScheme[1], Identifier, ConstructedDisplay); }
+            }
+            return ConstructedDisplay;
         }
         /// <summary>
         /// Assmbles an anonymous delegate void of delegate type VoidDel based on a given String schema/blueprint.

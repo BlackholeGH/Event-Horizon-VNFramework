@@ -176,6 +176,7 @@ namespace VNFramework
         {
             Tileset tileset = new Tileset();
             object dirIndex = EntityFactory.ParseRealData(entrySegment[1]);
+            object atlIndex = null;
             if (!(dirIndex is String || dirIndex is string)) { throw new ManifestReaderException("Manifest is invalid: Tileset must be String indexed at point of load."); }
             for (int i = 2; i < entrySegment.Length; i++)
             {
@@ -183,7 +184,7 @@ namespace VNFramework
                 float y = 1;
                 if (entrySegment[i].ToUpper().StartsWith("TEX_ATL:"))
                 {
-                    object atlIndex = EntityFactory.ParseRealData(entrySegment[i].Remove(0, 8));
+                    atlIndex = EntityFactory.ParseRealData(entrySegment[i].Remove(0, 8));
                     if(atlasDirectory.ContainsKey(atlIndex))
                     {
                         tileset.TileAtlas = atlasDirectory[atlIndex];
@@ -203,7 +204,7 @@ namespace VNFramework
                     {
                         for(int j = 0; j < 2; j++)
                         {
-                            String[] vectors = offsetsXY[j].Split(':');
+                            String[] vectors = offsetsXY[j].Replace("#","").Split(':');
                             trueOffsets[j] = new Vector2[vectors.Length];
                             int k = 0;
                             foreach (String vector in vectors)
@@ -239,7 +240,7 @@ namespace VNFramework
                         y = Convert.ToSingle(scale[1]);
                     }
                     catch (FormatException) { throw new ManifestReaderException("Manifest is invalid: Tileset scaling is in an incorrect format."); }
-                    tileset.TileOrigin = new Vector2(x, y);
+                    tileset.DrawScale = new Vector2(x, y);
                 }
                 else if (entrySegment[i].ToUpper().StartsWith("TILE_TINT:"))
                 {
@@ -271,6 +272,10 @@ namespace VNFramework
                 }
                 else if (entrySegment[i].ToUpper().StartsWith("TL:"))
                 {
+                    if(tileset.TileLookup is null)
+                    {
+                        tileset.TileLookup = new Dictionary<int, Point>();
+                    }
                     String[] tlParams = entrySegment[i].Remove(0, 3).Split(':');
                     int tileIndex = 0;
                     int x2 = 0;
@@ -288,6 +293,7 @@ namespace VNFramework
             }
             if (tileset.TileAtlas is null) { throw new ManifestReaderException("Manifest is invalid: Tileset " + dirIndex.ToString() + " did not specify a texture atlas."); }
             if (tileset.TileLookup.Count == 0) { throw new ManifestReaderException("Manifest is invalid: Tileset " + dirIndex.ToString() + " has no tile index mappings."); }
+            Shell.WriteLine("Built tileset from texture " + atlIndex.ToString() + " to " + dirIndex.ToString() + ".");
             return tileset;
         }
         private static TAtlasInfo ParseTextureAtlas(String[] entrySegment, Dictionary<object, Texture2D> stemAtlasTemps, Shell myShell)

@@ -713,7 +713,7 @@ namespace VNFramework
                 return originOut;
             }
         }
-        private float _flipRotationAddit = 0f;
+        protected float _flipRotationAddit = 0f;
         public Boolean ManualHorizontalFlip { get; set; }
         public Boolean ManualVerticalFlip { get; set; }
         private Boolean _autoHorizontalFlip = false;
